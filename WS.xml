@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context antiJARLocking="true" docBase="D:\recent\WS\build\web" path="/ws">
+<Resource name="jdbc/spdDB" auth="Container"
+          type="javax.sql.DataSource" driverClassName="oracle.jdbc.driver.OracleDriver"
+          url="jdbc:oracle:thin:@10.1.94.63:1522:ora122"
+          username="BKUS" password="123456" maxActive="25" maxIdle="5" maxWait="-1"/>
+		  </Context>

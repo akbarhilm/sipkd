@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ws.entity.BOSMapper">
+    
+    <select id="getHeaderk7a" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT 'K7A' as namareport,#{tahun} AS tahun, #{triwulan} as triwulan , a.i_npsn as npsn,  A.N_SEKOLAH_PENDEK as namasekolah, A.A_SEKOLAH as alamatsekolah, (SELECT N_SKPD FROM TRSKPD WHERE I_ID = A.I_IDSKPD) as namaskpd,
+        A.N_PA AS namapa, A.I_NIP_PA AS nippa, A.N_PKBLJ AS namapk, A.I_NIP_PKBLJ AS nippk
+        FROM TRSEKOLAH A
+
+        WHERE A.I_npsn = #{npsn}
+       
+    </select>
+    <select id="getDetailk7a" parameterType="java.util.Map" resultType="java.util.Map">
+        select '1.'||c_snp as no, N_SNP_PROGRAM as namaprogram, V_REAL_01 as perpustakaan, V_REAL_02 as siswabaru, V_REAL_03 as pembelajaraneskul, V_REAL_04 as evaluasi,
+        V_REAL_05 as pengelolaan, V_REAL_06 as tenagakerja, V_REAL_07 as dayajasa, V_REAL_08 as sarpras, V_REAL_09 as honor, V_REAL_10 as multimedia, V_REAL_11 as lainnya,
+        JUMLAH from(
+        SELECT C_SNP, N_SNP_PROGRAM, SUM(V_REAL_01) AS V_REAL_01, SUM(V_REAL_02) AS V_REAL_02, SUM(V_REAL_03) AS V_REAL_03,
+        SUM(V_REAL_04) AS V_REAL_04, SUM(V_REAL_05) AS V_REAL_05, SUM(V_REAL_06) AS V_REAL_06, SUM(V_REAL_07) AS V_REAL_07,
+        SUM(V_REAL_08) AS V_REAL_08, SUM(V_REAL_09) AS V_REAL_09, SUM(V_REAL_10) AS V_REAL_10, SUM(V_REAL_11) AS V_REAL_11,
+        SUM(V_REAL_01+V_REAL_02+V_REAL_03+V_REAL_04+V_REAL_05+V_REAL_06+V_REAL_07+V_REAL_08+V_REAL_09+V_REAL_10+V_REAL_11) AS JUMLAH
+        FROM(
+        SELECT C_SNP, N_SNP_PROGRAM, 0 AS V_REAL_01, 0 AS V_REAL_02, 0 AS V_REAL_03, 0 AS V_REAL_04, 0 AS V_REAL_05,
+        0 AS V_REAL_06, 0 AS V_REAL_07, 0 AS V_REAL_08, 0 AS V_REAL_09, 0 AS V_REAL_10, 0 AS V_REAL_11
+        FROM TRBKUSSNP
+        UNION ALL
+        SELECT D.C_SNP, D.N_SNP_PROGRAM,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'01',SUM(V_KAS_KELUAR),0) AS V_REAL_01,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'02',SUM(V_KAS_KELUAR),0) AS V_REAL_02,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'03',SUM(V_KAS_KELUAR),0) AS V_REAL_03,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'04',SUM(V_KAS_KELUAR),0) AS V_REAL_04,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'05',SUM(V_KAS_KELUAR),0) AS V_REAL_05,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'06',SUM(V_KAS_KELUAR),0) AS V_REAL_06,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'07',SUM(V_KAS_KELUAR),0) AS V_REAL_07,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'08',SUM(V_KAS_KELUAR),0) AS V_REAL_08,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'09',SUM(V_KAS_KELUAR),0) AS V_REAL_09,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'10',SUM(V_KAS_KELUAR),0) AS V_REAL_10,
+        DECODE(C.C_KEGIATAN_GROUPBOS,'11',SUM(V_KAS_KELUAR),0) AS V_REAL_11
+        FROM TMBKUSBOS A, TMBKUSBOSRINCI B, TMRKASKEGIATAN C, TRBKUSSNP D, TRSEKOLAH E
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+  
+        AND E.I_NPSN = #{npsn}
+        AND A.I_IDSEKOLAH = A.I_ID
+        AND A.C_TRX = 'JJ'
+        AND A.C_ANGG_TRIWULAN = #{triwulan}
+        AND A.D_POSTING IS NOT NULL
+        AND A.I_ID = B.I_IDBKUBOS
+        AND C.C_ANGG_TAHUN = A.C_ANGG_TAHUN
+        AND C.I_IDSEKOLAH = A.I_IDSEKOLAH
+        AND C.I_ID = A.I_IDKEGIATAN
+        AND D.I_ID = C.I_IDSNP
+        GROUP BY C.C_KEGIATAN_GROUPBOS, D.C_SNP, D.N_SNP_PROGRAM
+        )
+        GROUP BY C_SNP, N_SNP_PROGRAM
+        ORDER BY C_SNP
+        )
+    </select>
+    <select id="getSummary7a" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT SALDO_AWAL AS saldoawal, PENERIMAAN as penerimaan, PENGELUARAN as penggunaan, (SALDO_AWAL+PENERIMAAN-PENGELUARAN) AS saldosaatini
+        FROM
+        (SELECT SUM(TERIMA-KELUAR) AS SALDO_AWAL
+        FROM(
+        SELECT B.V_BKUS_BOSSALDO AS TERIMA, 0 AS KELUAR
+        FROM TRSEKOLAH A, TRBKUSSALDO B
+        WHERE A.I_NPSN = #{npsn}
+        AND A.I_NPSN = B.I_NPSN
+        UNION ALL
+        SELECT NVL(SUM(V_KAS_TERIMA),0) AS TERIMA, 0 AS KELUAR
+        FROM TMBKUSBOS A, TMBKUSBOSRINCI B, TRSEKOLAH C
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.C_ANGG_TRIWULAN &lt; #{triwulan}
+        AND C.I_NPSN = #{npsn}
+        AND A.I_IDSEKOLAH = C.I_ID
+        AND A.C_TRX = 'JO'
+        AND A.D_POSTING IS NOT NULL
+        AND A.I_ID = B.I_IDBKUBOS
+        UNION ALL
+        SELECT 0 AS TERIMA, NVL(SUM(V_KAS_KELUAR),0) AS KELUAR
+        FROM TMBKUSBOS A, TMBKUSBOSRINCI B,TRSEKOLAH C
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.C_ANGG_TRIWULAN &lt; #{triwulan}
+        AND C.I_NPSN = #{npsn}
+        AND A.I_IDSEKOLAH = C.I_ID
+        AND A.C_TRX = 'JJ'
+        AND A.D_POSTING IS NOT NULL
+        AND A.I_ID = B.I_IDBKUBOS
+        )
+        ) A,
+        (SELECT SUM(TERIMA) AS PENERIMAAN, SUM(KELUAR) AS PENGELUARAN
+        FROM(
+        SELECT SUM(V_KAS_TERIMA) AS TERIMA, 0 AS KELUAR
+        FROM TMBKUSBOS A, TMBKUSBOSRINCI B,TRSEKOLAH C
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.C_ANGG_TRIWULAN = #{triwulan}
+        AND C.I_NPSN = #{npsn}
+        AND A.I_IDSEKOLAH = C.I_ID
+        AND A.C_TRX = 'JO'
+        AND A.D_POSTING IS NOT NULL
+        AND A.I_ID = B.I_IDBKUBOS
+        UNION ALL
+        SELECT 0 AS TERIMA, SUM(V_KAS_KELUAR) AS KELUAR
+        FROM TMBKUSBOS A, TMBKUSBOSRINCI B,TRSEKOLAH C
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.C_ANGG_TRIWULAN = #{triwulan}
+        AND C.I_NPSN = #{npsn}
+        AND A.I_IDSEKOLAH = C.I_ID
+        AND A.C_TRX = 'JJ'
+        AND A.D_POSTING IS NOT NULL
+        AND A.I_ID = B.I_IDBKUBOS
+        )
+        ) B
+    </select>
+</mapper>
