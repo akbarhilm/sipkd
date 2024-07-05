@@ -1,0 +1,455 @@
+/***
+Modify bootstrap buttons
+***/
+
+/* remove rounds from all elements */
+div, input, select, textarea, span, img, table, td, th, p, a, button, ul{
+  -webkit-border-radius: 0 !important;
+     -moz-border-radius: 0 !important;
+          border-radius: 0 !important;
+}
+
+a:focus {
+  outline: none !important;
+}
+
+a:hover, a:active {
+  outline: 0 !important;
+}
+
+select:focus {
+   outline: none !important;
+}
+
+.btn {
+	background-color: #e5e5e5;
+	background-image: none;
+	filter: none;
+	border: 0;
+	padding: 7px 14px; 
+	
+	font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 14px;  	
+  color: #333333;
+	cursor: pointer;
+	outline: none;
+  -webkit-box-shadow: none !important;
+     -moz-box-shadow: none !important;
+          box-shadow: none !important;
+  -webkit-border-radius: 0 !important;
+     -moz-border-radius: 0 !important;
+          border-radius: 0 !important;
+
+  -webkit-text-shadow: none;
+     -moz-text-shadow: none;
+          text-shadow: none;
+}
+.btn:hover, 
+.btn:focus, 
+.btn:active,
+.btn.active,
+.btn[disabled],
+.btn.disabled {  
+  color: #333333;
+  background-color: #d8d8d8 !important;
+}
+
+/*  Blue */
+.btn.transparent   
+{
+  color: black;  
+  text-shadow: none;  
+  background-color: transparent;
+}
+
+.btn.blue   
+{
+  color: white;  
+  text-shadow: none;	
+  background-color: #4d90fe;
+}
+.btn.blue:hover, 
+.btn.blue:focus, 
+.btn.blue:active,
+.btn.blue.active,
+.btn.blue[disabled],
+.btn.blue.disabled {  
+  background-color: #0362fd !important;
+  color: #fff !important;
+}
+
+.btn-group .btn.blue.dropdown-toggle {
+  background-color: #4d90fe !important;
+}
+.btn-group .btn.blue:hover, 
+.btn-group .btn.blue:focus, 
+.btn-group .btn.blue:active, 
+.btn-group .btn.blue.active, 
+.btn-group .btn.blue.disabled,
+.btn-group .btn.blue[disabled] { 
+  background-color: #0362fd !important;
+  color: #fff !important;
+}
+
+.mini 
+{
+  height: 13px;
+  font-size: 11px !important; 
+  line-height: 13px;
+  padding: 4px 10px;
+}
+
+.big
+{
+  height: 38px;
+	font-size: 18px; 
+	line-height: 38px; 	
+	padding: 8px 16px;
+}
+
+button.btn.big,
+input[type="button"].btn.big,
+input[type="submit"].btn.big {
+  height: 54px;
+  padding-top: 9px;
+  padding-bottom: 8px;
+}
+
+button.btn.mini,
+input[type="button"].btn.mini,
+input[type="submit"].btn.mini {
+  height: 21px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+a.btn.big.btn-block {
+ height: 54px;
+}
+
+/***
+Metro icons
+***/
+[class^="m-icon-"] {
+  display: inline-block;
+  width: 14px;
+  height: 14px;;
+  margin-top: 4px;
+  line-height: 14px;  
+  vertical-align: top;
+  background-image: url(../img/syncfusion-icons.png);
+  background-position: 0 0;
+  background-repeat: no-repeat; 
+}
+
+[class^="m-icon-big-"] {
+  display: inline-block;
+  width: 30px;
+  height: 30px; 
+  margin: 6px;
+  vertical-align: top;
+  background-image: url(../img/syncfusion-icons.png);
+  background-position: 0 0px;
+  background-repeat: no-repeat; 
+}
+
+.m-icon-white {
+  background-image: url(../img/syncfusion-icons-white.png);
+}
+
+/*  Misc */
+.btn.icn-only {
+  min-width: 14px;
+}
+.btn.bigicn-only {
+  min-width: 34px;
+}
+.m-icon-swapright {
+  background-position: -27px -10px;
+}
+
+
+/***
+Dropdowns
+***/
+
+ /*Fixing dropdown issue on mobile devices in Bootstrap 3.2.2*/
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  display: none;
+  float: left;
+  list-style: none;
+  text-shadow: none;
+  padding: 0px;
+  margin:0px;
+  -webkit-box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
+  -moz-box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);  
+  font-size: 14px;
+  font-family: "Segoe UI",Helvetica, Arial, sans-serif;
+  border: 1px solid #ddd;
+}
+
+.dropdown:hover .caret, 
+.open.dropdown .caret {
+  opacity: 1;
+  filter: alpha(opacity=100);
+}
+
+.dropdown-menu.bottom-up {
+  top: auto;
+  bottom: 100%;
+  margin-bottom: 2px;
+}
+
+.dropdown-menu li > a {
+  padding: 6px 0 6px 13px;
+  color: #333;
+  text-decoration: none;
+  display: block;
+  clear: both;
+  font-weight: normal;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.dropdown-menu li > a:hover, 
+.dropdown-menu .active > a, 
+.dropdown-menu .active > a:hover {
+  text-decoration: none;
+  background-image: none;
+  background-color: #eee;
+  color: #333;
+  filter:none;
+}
+
+.dropdown.open .dropdown-toggle {
+  color: #08c;
+  background: #ccc;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* bagin: sidebar menu badges */
+.dropdown-menu > li > a > .badge {
+   position: absolute;
+   margin-top: 1px;
+   right: 3px;
+   display: inline;
+   font-size: 11px;
+   height: auto;
+   font-weight: 300;
+   text-shadow:none;
+   padding: 2px 6px 2px 6px;
+   -webkit-border-radius: 12px !important;
+      -moz-border-radius: 12px !important;
+           border-radius: 12px !important;
+}
+
+.dropdown-menu > li > a > .badge.badge-roundless {
+  padding: 1px 6px 1px 6px;
+   -webkit-border-radius: 0 !important;
+      -moz-border-radius: 0 !important;
+           border-radius: 0 !important;
+}
+
+.ie8 .dropdown-menu > li > a > .badge,
+.ie9 .dropdown-menu > li > a > .badge,
+.ie10 .dropdown-menu > li > a > .badge {
+  padding-top: 1px;
+}
+
+@-moz-document url-prefix() { 
+  .dropdown-menu > li > a > .badge {
+    padding: 1px 6px 3px 6px;
+  }
+  
+  .dropdown-menu > li > a > .badge.badge-roundless {
+    padding: 1px 6px 2px 6px;
+  }
+}
+/* end: sidebar menu badges */
+
+/***
+Forms
+***/
+label.m-wrap,
+input.m-wrap,
+button.m-wrap,
+select.m-wrap,
+textarea.m-wrap {
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 20px;
+
+}
+
+input.m-wrap,
+button.m-wrap,
+select.m-wrap,
+textarea.m-wrap {
+  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+label.m-wrap {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.uneditable-input,
+textarea.m-wrap,
+input[type="text"].m-wrap,
+input[type="password"].m-wrap,
+input[type="datetime"].m-wrap,
+input[type="datetime-local"].m-wrap,
+input[type="date"].m-wrap,
+input[type="month"].m-wrap,
+input[type="time"].m-wrap,
+input[type="week"].m-wrap,
+input[type="number"].m-wrap,
+input[type="email"].m-wrap,
+input[type="url"].m-wrap,
+input[type="search"].m-wrap,
+input[type="tel"].m-wrap,
+input[type="color"].m-wrap {
+  -webkit-appearance: none !important;   
+	color: #333333; 		
+  outline: 0;
+  height: 35px;
+	padding: 6px 6px !important;
+  line-height: 20px;
+  font-size: 14px;
+  font-weight: normal;
+  vertical-align: top;  
+	background-color: #ffffff;
+	background-image: none !important;
+  filter: none !important;
+	  -webkit-box-shadow: none !important;
+	     -moz-box-shadow: none !important;
+	          box-shadow: none !important;
+	  -webkit-border-radius: 0px;
+	     -moz-border-radius: 0px;
+	          border-radius: 0px;
+  background: transparent;   
+}
+
+input.m-wrap {
+  border: 1px solid #e5e5e5;
+}
+
+textarea.m-wrap {
+  height: auto;
+}
+
+.uneditable-input.focus,
+textarea.m-wrap:focus,
+select.m-wrap:focus,
+input[type="text"].m-wrap:focus,
+input[type="password"].m-wrap:focus,
+input[type="datetime"].m-wrap:focus,
+input[type="datetime-local"].m-wrap:focus,
+input[type="date"].m-wrap:focus,
+input[type="month"].m-wrap:focus,
+input[type="time"].m-wrap:focus,
+input[type="week"].m-wrap:focus,
+input[type="number"].m-wrap:focus,
+input[type="email"].m-wrap:focus,
+input[type="url"].m-wrap:focus,
+input[type="search"].m-wrap:focus,
+input[type="tel"].m-wrap:focus,
+input[type="color"].m-wrap:focus,
+.m-uneditable-input:focus {
+  border-color: #999999;
+  outline: 0 !important;
+  /* IE6-9 */
+  -webkit-box-shadow: none;
+     -moz-box-shadow: none;
+          box-shadow: none;      
+}
+
+input[disabled],
+select[disabled],
+textarea[disabled] {
+  cursor: not-allowed;
+  background-color: #F4F4F4 !important;
+}
+
+input[readonly],
+select[readonly],
+textarea[readonly] {
+  cursor: not-allowed;
+  background-color: #F9F9F9 !important;
+}
+
+
+input[type="radio"][disabled],
+input[type="checkbox"][disabled],
+input[type="radio"][readonly],
+input[type="checkbox"][readonly] {
+  background-color: transparent;
+}
+
+input[type="radio"].m-wrap,
+input[type="checkbox"].m-wrap {
+  	margin: 4px 0 0;
+  	margin-top: 1px \9;
+  	*margin-top: 0;
+  	line-height: normal;
+	  cursor: pointer;		
+  	-webkit-box-sizing: border-box;
+	     -moz-box-sizing: border-box;
+	          box-sizing: border-box;		
+}
+
+select.m-wrap,
+input[type="file"].m-wrap {
+  height: 34px !important;
+  /* In IE7, the height of the select element cannot be changed by height, only font-size */
+  *margin-top: 4px;
+  /* For IE7, add top margin to align select with labels */
+  line-height: 30px;
+}
+
+select.m-wrap {
+  width: 220px;
+  background-color: #ffffff;
+  background-image: none !important;
+  filter: none !important;
+  border: 1px solid #e5e5e5;
+  outline: none;          
+}
+
+select[multiple].m-wrap,
+select[size].m-wrap {
+  height: auto !important;
+}
+
+select.m-wrap:focus,
+input[type="file"].m-wrap:focus,
+input[type="radio"].m-wrap:focus,
+input[type="checkbox"].m-wrap:focus {
+  outline: thin dotted #333333;
+  outline: 5px auto -webkit-focus-ring-color;
+  outline-offset: -2px;  
+  -webkit-box-shadow: none !important;
+     -moz-box-shadow: none !important;
+          box-shadow: none !important;
+}
+
+input[class*="span"].m-wrap
+{
+  float: none;
+  height: 34px !important;
+  margin-left: 0;
+}
+
+select[class*="span"].m-wrap,
+textarea[class*="span"].m-wrap
+{
+  float: none;
+  margin-left: 0;
+}
+
