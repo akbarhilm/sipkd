@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sipkd.entity.BeritaLoginMapper">
+    
+    <select id="getBerita" parameterType="java.util.Map" resultType="sipkd.model.Berita">
+        select  row_number() OVER (order by  d_berita_berlaku desc, i_nourut asc)  as idBerita, 
+        d_berita_berlaku as tglBerlaku,  to_char(d_berita_berakhir, 'DD/MM/YYYY') as tglAkhir,
+        d_berita_berakhir as tglBerakhir, nvl(n_pdf_file,'-') as namaPdf, nvl(n_pdf_judul,'-') as judulPdf,
+        i_nourut as noUrut, e_berita as uraian, e_berita_tujuan as tujuanBerita, 
+        e_berita_dari as pengirimBerita from tmberita
+        where C_BERITA_GROUP in ('SPD','ALL')
+        and c_aktif = 1
+        and c_popup = 0
+        and TO_DATE(SYSDATE, 'DD/MM/YY') between D_BERITA_BERLAKU and D_BERITA_BERAKHIR 
+        order by  d_berita_berlaku desc, i_nourut asc
+    </select>
+    
+    <select id="getBanyakBerita"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from (
+        select d_berita_berlaku as tglBerlaku, d_berita_berakhir as tglBerakhir, i_nourut as noUrut, 
+        e_berita as uraian, e_berita_tujuan as tujuanBerita, e_berita_dari as pengirimBerita
+        from tmberita where C_BERITA_GROUP in ('SPD','ALL')
+        and c_aktif = 1
+        and c_popup = 0
+        and TO_DATE(SYSDATE, 'DD/MM/YY') between D_BERITA_BERLAKU and D_BERITA_BERAKHIR 
+        )
+    </select>
+    
+    <select id="getImagePopup" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT n_pdf_file
+        FROM tmberita
+        where C_BERITA_GROUP in ('SPD','ALL')
+        and c_popup = 1
+        and c_aktif = 1
+        and TO_DATE(SYSDATE, 'DD/MM/YY') between D_BERITA_BERLAKU and D_BERITA_BERAKHIR 
+        and rownum = 1
+        order by i_id desc
+    </select>
+    
+    <select id="getBanyakImagePopup"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from (
+        SELECT n_pdf_file as namaPdf
+        FROM tmberita
+        where C_BERITA_GROUP in ('SPD','ALL')
+        and c_popup = 1
+        and c_aktif = 1
+        and TO_DATE(SYSDATE, 'DD/MM/YY') between D_BERITA_BERLAKU and D_BERITA_BERAKHIR 
+        and rownum = 1
+        order by i_id desc 
+        )
+    </select>
+    
+    
+</mapper>

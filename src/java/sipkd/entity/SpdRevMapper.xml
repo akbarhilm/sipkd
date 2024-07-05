@@ -1,0 +1,1666 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sipkd.entity.SpdRevMapper"> 
+ 
+    <resultMap id="spdBTLMasterMap" type="sipkd.model.SpdBTLMaster">
+        <result property="idSpd"  column="I_IDSPD" /> 
+        <result  property="tglSpd"  column="D_SPDNO" />
+        <result  property="noSpd"  column="I_SPDNO"/>
+        <result  property="status"  column="STATUS" />
+        <result  property="tahunAnggaran"   column="C_ANGG_TAHUN"/>
+        <result  property="nilaiSpd"   column="V_SPD"/>
+        <result  property="skpd.idSkpd"  column="I_IDSKPD"  /> 
+    </resultMap>
+    <resultMap id="spdBTLMasterInsertMap" type="sipkd.model.SpdBTLMaster">
+        <result property="idSpd"  column="I_ID" /> 
+        <result  property="tglSpd"  column="D_SPDNO" />
+        <result  property="noSpd"  column="I_SPDNO"/>
+        <result  property="uraian"  column="E_SPD" />
+        <result  property="bulanAwal"  column="C_BULAN_AWAL" />
+        <result  property="bulanAkhir"  column="C_BULAN_AKHIR" />
+        <result  property="tahunAnggaran"   column="C_ANGG_TAHUN"/>  
+        <result  property="skpd.idSkpd"  column="I_IDSKPD"  /> 
+        <result  property="skpd.namaSkpd"  column="N_SKPD"  />    
+        <result  property="skpd.kodeSkpd"  column="C_SKPD"  />         
+        <result  property="pejabatPpkd.namaPegawai"  column="N_PEG"  /> 
+        <result  property="pejabatPpkd.nip"  column="I_NIP"  /> 
+    </resultMap>
+    
+    
+    <select id="getspdsahid"  parameterType="java.lang.Integer" resultType="java.util.Map" >
+        SELECT to_char('A') || to_char(T.I_ID,'000000000') AS ID  
+        from   TMSPDCETAK T
+        WHERE   I_ID =  #{idspd}
+    </select>
+    
+    
+    <select id="getspdsahnomor"  parameterType="java.lang.Integer" resultType="java.util.Map" >
+        SELECT to_char(T.I_SPDNO,'0000000') || '/SPD/' ||   Romawi(to_char(S.D_SPD_CETAK,'MM')) || to_char(S.D_SPD_CETAK,'/YYYY') AS I_SPDNO 
+        FROM  TMSPD T
+        LEFT JOIN
+        TMSPDCETAK S
+        ON S.I_ID = T.I_ID        
+        WHERE   T.I_ID =  #{idspd}
+    </select>
+    
+    <select id="getAllSkpdBtl"   resultType="sipkd.model.Skpd">
+        SELECT   DISTINCT trskpd.i_id, trskpd.C_SKPD, trskpd.N_SKPD
+        FROM   trskpd, tmdpabtl, trbas
+        WHERE       trskpd.I_ID = tmdpabtl.I_IDSKPD
+        AND trbas.I_ID = tmdpabtl.I_IDBAS
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.1', '5.1.2', '5.1.8')
+        AND tmdpabtl.C_ANGG_TAHUN = #{tahun} 
+        ORDER BY   trskpd.C_SKPD
+    </select>
+    
+    <select id="getAllSkpdById"   parameterType="java.lang.Integer" resultType="sipkd.model.Skpd">
+        SELECT   DISTINCT trskpd.i_id, trskpd.C_SKPD, trskpd.N_SKPD
+        FROM   trskpd, tmdpabtl, trbas
+        WHERE       trskpd.I_ID = tmdpabtl.I_IDSKPD 
+        AND trbas.I_ID = tmdpabtl.I_IDBAS
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.1', '5.1.2', '5.1.8')
+        AND tmdpabtl.C_ANGG_TAHUN = #{tahun} 
+        AND trskpd.i_id = #{id}
+        ORDER BY   trskpd.C_SKPD
+    </select>
+            
+    <select id="getPaguDanSisaRev"   parameterType="java.util.Map" resultType="java.util.Map">
+               
+        SELECT   XXX.I_IDSKPD,
+        TRSKPD.N_SKPD,
+        SUM (BTL_APBD) BTL_APBD,
+        SUM (BTL_APBDP) BTL_APBDP,
+        SUM (SPD) SPD,
+        SUM (BTL_APBD - SPD) SELISIH_APBD,
+        SUM (BTL_APBDP - SPD) SELISIH_APBDP
+        FROM   (SELECT   I_IDSKPD,(V_ANGG_DPA) BTL_APBD, (V_ANGG_TAPD) BTL_APBDP, 0 SPD
+        FROM   TMDPABTL, TRBAS
+        WHERE   C_ANGG_TAHUN =   #{tahun} and I_IDSKPD = #{idskpd}
+        AND trbas.I_ID = tmdpabtl.I_IDBAS
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.1', '5.1.2', '5.1.8')
+        UNION ALL
+        SELECT   I_IDSKPD, 0 BTL_DPA, 0 BTL_APBDP, (V_SPD) SPD
+        FROM   VW_SPDBTL
+        WHERE  C_ANGG_TAHUN =  #{tahun} and I_IDSKPD = #{idskpd} ) XXX, TRSKPD
+        WHERE   XXX.I_IDSKPD = TRSKPD.I_ID
+        GROUP BY   XXX.I_IDSKPD, TRSKPD.N_SKPD
+        ORDER BY   1
+        
+        
+    </select>
+    
+    
+    <select id="gettotalpagubyidskpddantahun"   parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT     SUM (tmdpabtl.v_angg_tapd) AS pagu
+        FROM   tmdpabtl, trbas, trskpd
+        WHERE   ( (trbas.i_id = tmdpabtl.i_idbas)
+        AND (trskpd.i_id = tmdpabtl.i_idskpd))
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.1', '5.1.2', '5.1.8')
+        AND tmdpabtl.c_angg_tahun = #{tahun}
+        AND tmdpabtl.i_idskpd = #{idskpd}
+        GROUP BY   tmdpabtl.i_idskpd
+    </select>
+    
+    <select id="gettotalspdbyidskpddantahun"   parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT   SUM (v_spd) AS tmpVar
+        FROM   tmspd, tmspdrincibtl, tmspdcetak
+        WHERE       tmspd.I_ID = tmspdrincibtl.I_IDSPD
+        AND tmspd.I_ID = tmspdcetak.I_ID
+        AND tmspd.c_jenis = '1'
+        AND tmspd.C_ANGG_TAHUN = #{tahun}
+        AND tmspd.I_IDSKPD =  #{idskpd}
+    </select>
+    
+    <select id="getAnggaranBtlSkpd"   parameterType="java.util.Map" resultType="sipkd.model.SpdBTLMaster">
+        SELECT   I_IDSKPD AS "skpd.idSkpd",
+        C_ANGG_TAHUN AS tahunAnggaran,
+        D_SPDNO AS tglSpd,
+        I_IDSPD AS idSpd,
+        I_SPDNO AS noSpd,
+        STATUS AS status,
+        V_SPD AS nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        TO_DATE(A.D_SPDNO,'DD-MM-YYYY') as  D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        A.V_SPD
+        FROM   VW_SPDBTL_GRID A
+        WHERE   upper(STATUS) !=  'VALIDASI' AND   c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+        ORDER BY   
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                A.I_SPDNO
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                A.D_SPDNO
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                A.V_SPD
+            </when>
+            <otherwise>
+                A.I_IDSPD
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    
+    <select id="getAnggaranBtlSkpdRev"   parameterType="java.util.Map" resultType="sipkd.model.SpdBTLMaster">
+        SELECT   I_IDSKPD AS "skpd.idSkpd",
+        C_ANGG_TAHUN AS tahunAnggaran,
+        D_SPDNO AS tglSpd,
+        I_IDSPD AS idSpd,
+        I_SPDNO AS noSpd,
+        STATUS AS status,
+        V_SPD AS nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        TO_DATE(A.D_SPDNO,'DD-MM-YYYY') as  D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        A.V_SPD
+        FROM   VW_SPD_BTL_APBDP A
+        WHERE  c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+        ORDER BY   
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                A.I_SPDNO
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                A.D_SPDNO
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                A.V_SPD
+            </when>
+            <otherwise>
+                A.I_IDSPD
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    
+    <select id="getBanyakAnggaranBtlSkpd"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT    count( A.I_IDSPD ) as banyak
+        FROM   VW_SPD_BTL_APBDP A
+        WHERE   upper(STATUS) != 'VALIDASI'  AND   c_angg_tahun =  #{tahun} AND i_idskpd = #{idskpd}
+    </select>
+    
+    <select id="getBanyakAnggaranBtlSkpdRev"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT    count( A.I_IDSPD ) as banyak
+        FROM   VW_SPD_BTL_APBDP A
+        WHERE   upper(STATUS) != 'VALIDASI'  AND   c_angg_tahun =  #{tahun} AND i_idskpd = #{idskpd}
+    </select>
+    
+    <select id="getTotalAnggaranSkpd"    parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT   NVL(SUM (T.V_ANGG_TAPD),0)
+        FROM    TMDPABTL T
+        WHERE   T.I_IDSKPD = #{idskpd} AND T.C_ANGG_TAHUN = #{tahun}
+    </select>
+    <select id="getTotalSPDBySKPDDanTahun"    parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT   NVL(SUM (v_spd),0)
+        FROM   VW_SPD_BTL_APBDP
+        WHERE   c_angg_tahun =  #{tahun} AND i_idskpd = #{idskpd}
+    </select>
+    <select id="getListSPDDetailBySKPDDanTahun"   parameterType="java.util.Map" resultType="sipkd.model.SpdBtlDetail"  >      
+        SELECT   IDBTL AS idBtl,
+        I_IDBAS AS idAkun,
+        c_akun AS kodeAkun,
+        N_AKUN AS namaAkun,
+        nilaiAnggaranSPDSudahAda,
+        nilaiAnggaranTAPD,
+        nilaiAnggaranSPDSisa,
+        nilaiAnggaranSPDBaru
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   XXX.I_IDSKPD,
+        IDBTL,
+        TRSKPD.N_SKPD,
+        I_IDBAS,
+        c_akun,
+        trbas.N_AKUN,
+        SUM (SPD_sdhada) as nilaiAnggaranSPDSudahAda,
+        SUM (BTL) AS nilaiAnggaranTAPD,
+        SUM (BTL - SPD_sdhada)
+        AS nilaiAnggaranSPDSisa,
+        SUM (BTL - SPD_sdhada)
+        AS nilaiAnggaranSPDBaru
+        FROM   (SELECT   I_IDSKPD,
+        I_ID IDBTL,
+        I_IDBAS,
+        (V_ANGG_TAPD) BTL,
+        0 SPD_sdhada
+        FROM   TMDPABTL
+        WHERE   C_ANGG_TAHUN = #{tahun}
+        AND TMDPABTL.I_IDskpd = #{idskpd}
+        UNION ALL
+        SELECT   I_IDSKPD,
+        VW_SPDBTL.I_IDBTL IDBTL,
+        I_IDBAS,
+        0 BTL,
+        (V_SPD) SPD_sdhada
+        FROM   VW_SPDBTL
+        WHERE   C_ANGG_TAHUN = #{tahun}
+        AND VW_SPDBTL.I_IDskpd = #{idskpd} ) XXX,
+        TRSKPD,
+        trbas
+        WHERE   XXX.I_IDSKPD = TRSKPD.I_ID
+        AND XXX.I_IDBAS = trbas.I_ID
+        and substr(trbas.c_akun,1,5) in ('5.1.1','5.1.2','5.1.8')
+        GROUP BY   XXX.I_IDSKPD,
+        IDBTL,
+        TRSKPD.N_SKPD,
+        I_IDBAS,
+        c_akun,
+        N_AKUN
+        ORDER BY   1, 4) a)
+        WHERE  ROWNUM  &lt;= #{limit} AND rn &gt; #{offset}  
+    </select>
+    
+    
+    <select id="getListSPDDetailBySKPDDanTahunRev"   parameterType="java.util.Map" resultType="sipkd.model.SpdBtlDetail"  >      
+        SELECT IDBTL AS idBtl
+        ,I_IDBAS AS idAkun
+        ,c_akun AS kodeAkun
+        ,N_AKUN AS namaAkun
+        ,nilaiAnggaranSPDSudahAda
+        ,nilaiAnggaranTAPD
+        ,nilaiAnggaranSPDSisa
+        ,nilaiAnggaranSPDBaru
+        ,nilaiAnggaranSPDMurni,nilaiSPDYangSudahDiserap
+        FROM (
+        SELECT ROWNUM AS rn
+        ,a.*
+        FROM (
+        SELECT XXX.I_IDSKPD
+        ,IDBTL
+        ,TRSKPD.N_SKPD
+        ,I_IDBAS
+        ,c_akun
+        ,trbas.N_AKUN
+        ,SUM(SPD_sdhada) AS nilaiAnggaranSPDSudahAda
+        ,SUM(BTL) AS nilaiAnggaranTAPD
+        ,SUM(BTL - SPD_sdhada) AS nilaiAnggaranSPDSisa
+        ,SUM(spd) AS nilaiAnggaranSPDEdit
+        ,SUM(BTL - SPD_sdhada - spd) AS KOREKSI
+        ,SUM(V_ANGG_DPA) AS nilaiAnggaranSPDMurni
+        ,NVL(SUM(V_SPP),0) AS nilaiSPDYangSudahDiserap
+        FROM (
+        SELECT I_IDSKPD
+        ,TMDPABTL.I_ID IDBTL
+        ,I_IDBAS
+        ,(V_ANGG_TAPD) BTL
+        ,0 SPD_sdhada
+        ,0 spd
+        ,(V_ANGG_DPA) V_ANGG_DPA,O AS V_SPP
+        FROM TMDPABTL
+        ,TRBAS
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND TMDPABTL.I_IDskpd = #{idskpd}
+        AND TMDPABTL.I_IDBAS = trbas.I_ID
+        AND substr(trbas.c_akun, 1, 5) IN (
+        '5.1.1'
+        ,'5.1.2'
+        ,'5.1.8'
+        )
+			
+        UNION ALL
+			
+        SELECT I_IDSKPD
+        ,VW_SPDBTL.I_IDBTL IDBTL
+        ,I_IDBAS
+        ,0 BTL
+        ,(V_SPD) SPD_sdhada
+        ,0 spd,0 AS V_ANGG_DPA,
+        (SELECT SUM (NVL(V_SPP,0))
+        FROM    tmspprincibtl btl
+        INNER JOIN
+        tmspp spp
+        ON SPP.I_ID = BTL.I_IDSPP
+        WHERE     btl.I_IDBAS = VW_SPDBTL.I_IDBAS
+        AND VW_SPDBTL.I_IDSPD = BTL.I_IDSPD
+        AND SPP.C_ANGG_TAHUN = #{tahun} )  
+        AS V_SPP
+        FROM VW_SPDBTL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND VW_SPDBTL.I_IDSPD != #{idspd}
+        AND VW_SPDBTL.I_IDskpd = #{idskpd}
+        AND VW_SPDBTL.C_SPD_STATUS = 'P'
+        UNION ALL
+			
+        SELECT I_IDSKPD
+        ,VW_SPDBTL.I_IDBTL IDBTL
+        ,I_IDBAS
+        ,0 BTL
+        ,0 SPD_sdhada
+        ,(V_SPD) SPD,0 AS V_ANGG_DPA,
+        (SELECT SUM (NVL(V_SPP,0))
+        FROM    tmspprincibtl btl
+        INNER JOIN
+        tmspp spp
+        ON SPP.I_ID = BTL.I_IDSPP
+        WHERE     btl.I_IDBAS = VW_SPDBTL.I_IDBAS
+        AND VW_SPDBTL.I_IDSPD = BTL.I_IDSPD
+        AND SPP.C_ANGG_TAHUN = #{tahun} )  
+        AS V_SPP
+        FROM VW_SPDBTL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND VW_SPDBTL.I_IDSPD = #{idspd}
+        AND VW_SPDBTL.I_IDskpd = #{idskpd}
+        AND VW_SPDBTL.C_SPD_STATUS = 'P'
+        ) XXX
+        ,TRSKPD
+        ,trbas
+        WHERE XXX.I_IDSKPD = TRSKPD.I_ID
+        AND XXX.I_IDBAS = trbas.I_ID
+        AND substr(trbas.c_akun, 1, 5) IN (
+        '5.1.1'
+        ,'5.1.2'
+        ,'5.1.8'
+        )
+        GROUP BY XXX.I_IDSKPD
+        ,IDBTL
+        ,TRSKPD.N_SKPD
+        ,I_IDBAS
+        ,c_akun
+        ,N_AKUN
+        ORDER BY 1
+        ,4
+        ) a
+        )
+        WHERE  ROWNUM  &lt;= #{limit} AND rn &gt; #{offset}  
+    </select>
+    
+    <select id="getListSPDDetailBySKPDDanTahunEdit"   parameterType="java.util.Map" resultType="sipkd.model.SpdBtlDetail"  >  
+        SELECT   IDBTL AS idBtl,
+        I_IDBAS AS idAkun,
+        c_akun AS kodeAkun,
+        N_AKUN AS namaAkun,
+        nilaiAnggaranSPDSudahAda,
+        nilaiAnggaranTAPD,
+        nilaiAnggaranSPDSisa,
+        nilaiAnggaranSPDEdit
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   XXX.I_IDSKPD,
+        IDBTL,
+        TRSKPD.N_SKPD,
+        I_IDBAS,
+        c_akun,
+        trbas.N_AKUN,
+        SUM (SPD_sdhada) AS nilaiAnggaranSPDSudahAda,
+        SUM (BTL) AS nilaiAnggaranTAPD,
+        SUM (BTL - SPD_sdhada) AS nilaiAnggaranSPDSisa,
+        SUM (spd) AS nilaiAnggaranSPDEdit
+        FROM   (SELECT   I_IDSKPD,
+        TMDPABTL.I_ID IDBTL,
+        I_IDBAS,
+        (V_ANGG_TAPD) BTL,
+        0 SPD_sdhada,
+        0 spd
+        FROM   TMDPABTL,TRBAS
+        WHERE   C_ANGG_TAHUN = #{tahun}
+        AND TMDPABTL.I_IDskpd = #{idskpd}
+        AND TMDPABTL.I_IDBAS = trbas.I_ID
+        and substr(trbas.c_akun,1,5) in ('5.1.1','5.1.2','5.1.8')
+        UNION ALL
+        SELECT   I_IDSKPD,
+        VW_SPDBTL.I_IDBTL IDBTL,
+        I_IDBAS,
+        0 BTL,
+        (V_SPD) SPD_sdhada,
+        0 spd
+        FROM   VW_SPDBTL
+        WHERE       C_ANGG_TAHUN = #{tahun}
+        AND VW_SPDBTL.I_IDSPD != #{idspd}
+        AND VW_SPDBTL.I_IDskpd = #{idskpd}
+        UNION ALL
+        SELECT   I_IDSKPD,
+        VW_SPDBTL.I_IDBTL IDBTL,
+        I_IDBAS,
+        0 BTL,
+        0 SPD_sdhada,
+        (V_SPD) SPD
+        FROM   VW_SPDBTL
+        WHERE       C_ANGG_TAHUN = #{tahun}
+        AND VW_SPDBTL.I_IDSPD = #{idspd}
+        AND VW_SPDBTL.I_IDskpd = #{idskpd} ) XXX,
+        TRSKPD,
+        trbas
+        WHERE   XXX.I_IDSKPD = TRSKPD.I_ID
+        AND XXX.I_IDBAS = trbas.I_ID
+        and substr(trbas.c_akun,1,5) in ('5.1.1','5.1.2','5.1.8')
+        GROUP BY   XXX.I_IDSKPD,
+        IDBTL,
+        TRSKPD.N_SKPD,
+        I_IDBAS,
+        c_akun,
+        N_AKUN
+        ORDER BY   1, 4) a)
+        WHERE  ROWNUM  &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    
+    
+    <select id="getListSPDDetailBySKPDDanTahunEditRev"   parameterType="java.util.Map" resultType="sipkd.model.SpdBtlDetail"  >  
+        SELECT IDBTL AS idBtl
+        ,I_IDBAS AS idAkun
+        ,c_akun AS kodeAkun
+        ,N_AKUN AS namaAkun
+        ,nilaiAnggaranSPDSudahAda
+        ,nilaiAnggaranTAPD
+        ,nilaiAnggaranSPDSisa
+        ,nilaiAnggaranSPDEdit
+        ,nilaiAnggaranSPDMurni
+        ,nilaiSPDYangSudahDiserap
+        FROM (
+        SELECT ROWNUM AS rn
+        ,a.*
+        FROM (
+        SELECT XXX.I_IDSKPD
+        ,IDBTL
+        ,TRSKPD.N_SKPD
+        ,I_IDBAS
+        ,c_akun
+        ,trbas.N_AKUN
+        ,SUM(SPD_sdhada) AS nilaiAnggaranSPDSudahAda
+        ,SUM(BTL) AS nilaiAnggaranTAPD
+        ,SUM(BTL - SPD_sdhada) AS nilaiAnggaranSPDSisa
+        ,SUM(spd) AS nilaiAnggaranSPDEdit
+        ,SUM(BTL - SPD_sdhada - spd) AS KOREKSI
+        ,SUM(V_ANGG_DPA) AS nilaiAnggaranSPDMurni
+        ,NVL(SUM(V_SPP), 0) AS nilaiSPDYangSudahDiserap
+        FROM (
+        SELECT I_IDSKPD
+        ,TMDPABTL.I_ID IDBTL
+        ,I_IDBAS
+        ,(V_ANGG_TAPD) BTL
+        ,0 SPD_sdhada
+        ,0 spd
+        ,(V_ANGG_DPA) V_ANGG_DPA
+        ,0 AS V_SPP
+        FROM TMDPABTL
+        ,TRBAS
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND TMDPABTL.I_IDskpd = #{idskpd}
+        AND TMDPABTL.I_IDBAS = trbas.I_ID
+        AND substr(trbas.c_akun, 1, 5) IN (
+        '5.1.1'
+        ,'5.1.2'
+        ,'5.1.8'   )
+        and exists (select 1 from tmspdrincibtl, tmspd where tmspdrincibtl.i_idspd =  tmspd.i_id and 
+        C_ANGG_TAHUN = #{tahun}
+        AND tmspdrincibtl.I_IDSPD = #{idspd}
+        AND tmspd.I_IDskpd = #{idskpd}
+         AND tmspdrincibtl.C_SPD_STATUS = 'P'
+         and TMDPABTL.i_idbas = tmspdrincibtl.i_idbas
+        )
+            
+        UNION ALL
+            
+        SELECT I_IDSKPD
+        ,VW_SPDBTL.I_IDBTL IDBTL
+        ,I_IDBAS
+        ,0 BTL
+        ,(V_SPD) SPD_sdhada
+        ,0 spd
+        ,0 AS V_ANGG_DPA
+        ,0 AS V_SPP
+        FROM VW_SPDBTL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND VW_SPDBTL.I_IDSPD != #{idspd}
+        AND VW_SPDBTL.I_IDskpd = #{idskpd}
+        and exists (select 1 from tmspdrincibtl, tmspd where tmspdrincibtl.i_idspd =  tmspd.i_id and 
+        C_ANGG_TAHUN = #{tahun}
+        AND tmspdrincibtl.I_IDSPD = #{idspd}
+        AND tmspd.I_IDskpd = #{idskpd}
+         AND tmspdrincibtl.C_SPD_STATUS = 'P'
+         and VW_SPDBTL.i_idbas = tmspdrincibtl.i_idbas
+        )
+            
+        UNION ALL        
+        SELECT I_IDSKPD
+        ,VW_SPDBTL.I_IDBTL IDBTL
+        ,I_IDBAS
+        ,0 BTL
+        ,0 SPD_sdhada
+        ,(V_SPD) SPD
+        ,0 AS V_ANGG_DPA
+        ,0 AS V_SPP
+        FROM VW_SPDBTL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND VW_SPDBTL.I_IDSPD = #{idspd}
+        AND VW_SPDBTL.I_IDskpd = #{idskpd}
+        AND VW_SPDBTL.C_SPD_STATUS = 'P'
+        
+        UNION ALL        
+        SELECT I_IDSKPD
+        ,VW_SPDBTL.I_IDBTL IDBTL
+        ,I_IDBAS
+        ,0 BTL
+        ,0 SPD_sdhada
+        ,0 SPD
+        ,0 AS V_ANGG_DPA
+        ,(
+        SELECT SUM(NVL(V_SPP, 0))
+        FROM tmspprincibtl btl
+        INNER JOIN tmspp spp ON SPP.I_ID = BTL.I_IDSPP
+        WHERE btl.I_IDBAS = VW_SPDBTL.I_IDBAS
+        AND  BTL.I_IDSPD = #{idspd}
+        AND SPP.I_IDSKPD = VW_SPDBTL.I_IDSKPD 
+        AND SPP.C_ANGG_TAHUN = #{tahun}
+        ) AS V_SPP
+        FROM VW_SPDBTL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND VW_SPDBTL.I_IDSPD = #{idspd}
+        AND VW_SPDBTL.I_IDskpd = #{idskpd}
+         AND VW_SPDBTL.C_SPD_STATUS = 'P'
+        
+        ) XXX
+        ,TRSKPD
+        ,trbas
+        WHERE XXX.I_IDSKPD = TRSKPD.I_ID
+        AND XXX.I_IDBAS = trbas.I_ID
+        AND substr(trbas.c_akun, 1, 5) IN (
+        '5.1.1'
+        ,'5.1.2'
+        ,'5.1.8'
+        )
+        GROUP BY XXX.I_IDSKPD
+        ,IDBTL
+        ,TRSKPD.N_SKPD
+        ,I_IDBAS
+        ,c_akun
+        ,N_AKUN
+        ORDER BY 1
+        ,4
+        ) a
+        )
+         
+        WHERE  ROWNUM  &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    
+    <select id="getAllPejabatPpkd"   parameterType="java.util.Map" resultType="sipkd.model.PejabatPpkd">
+        SELECT   I_ID AS idPejabatPPKD,
+        C_AKTIF AS isAktif,
+        I_NIP AS nip,
+        I_NRK AS nrk,
+        N_PEG AS namaPegawai,
+        N_JABATAN AS namaJabatan,
+        I_PGUN_REKAM AS idEntry,
+        D_PGUN_REKAM AS tglEntry,
+        I_PGUN_UBAH AS idEdit,
+        D_PGUN_UBAH AS tglEdit
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   T.I_ID,
+        T.C_AKTIF,
+        T.I_NIP,
+        T.I_NRK,
+        T.N_PEG,
+        T.N_JABATAN,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.I_PGUN_UBAH,
+        T.D_PGUN_UBAH
+        FROM   TRDOKTTD T
+        WHERE  ( T.C_DOK = #{kodeDok}
+        AND  
+        (  #{nilaispd} &gt;= T.V_DOK_MIN AND  #{nilaispd} &lt;= T.V_DOK_MAX )) OR  T.C_DOK = 'ALL'
+        ORDER BY  
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                I_NIP
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                I_NRK
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                N_PEG
+            </when>
+            <when test="iSortCol_0 == 4 ">
+                N_JABATAN
+            </when>
+            <otherwise>
+                T.I_ID 
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                DESC
+            </when>
+            <otherwise> 
+                ASC
+            </otherwise>
+        </choose>         
+        ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset}    
+    </select>
+    
+    <select id="getBanyakPejabatPPKD"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  COUNT(DISTINCT( T.I_ID))  FROM   TRDOKTTD T  WHERE  ( T.C_DOK = #{kodeDok} AND  
+        (  #{nilaispd} &gt;= T.V_DOK_MIN AND  #{nilaispd} &lt;= T.V_DOK_MAX ) ) OR  T.C_DOK = 'ALL'
+    </select>
+    
+    <select id="getspdno"   parameterType="java.lang.String"        resultType="java.lang.Integer">
+        SELECT   NVL (MAX (i_spdno), 0) + 1 AS no_spd
+        FROM   tmspd
+        WHERE   c_angg_tahun = #{value}
+    </select>
+    
+    <select id="getspdid"     resultType="java.lang.Long">
+        SELECT    SEQ_TMSPD.nextval   from dual
+    </select>
+    
+    <select id="getdataspdbtlmaster"  parameterType="java.lang.Integer" resultMap="spdBTLMasterMap" >
+        SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        A.D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        A.V_SPD
+        FROM   VW_SPD_BTL_APBDP A
+        WHERE  A.I_IDSPD =  #{param}
+    </select>
+    
+    <insert id="insertspdmaster" parameterType="sipkd.model.SpdBTLMaster"   >
+        INSERT INTO TMSPD (
+        I_ID, C_ANGG_TAHUN, I_SPDNO, 
+        D_SPDNO, I_IDSKPD, 
+        C_BULAN_AWAL, C_BULAN_AKHIR, E_SPD, 
+        C_JENIS ) 
+        VALUES (   
+        #{idSpd}    
+        ,#{tahunAnggaran} 
+        ,#{noSpd}
+        ,#{tglSpd} 
+        ,#{skpd.idSkpd}
+        ,#{bulanAwal}
+        ,#{bulanAkhir} 
+        ,REPLACE ( REPLACE (REPLACE (#{uraian} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )
+        ,#{jenis} )
+    </insert>
+    <update id="updatespdmaster" parameterType="sipkd.model.SpdBTLMaster"   >
+        UPDATE  TMSPD
+        SET     
+        C_ANGG_TAHUN  = #{tahunAnggaran} ,
+        I_SPDNO       = #{noSpd},
+        C_JENIS       = #{jenis},
+        D_SPDNO       = #{tglSpd} ,
+        I_IDSKPD      = #{skpd.idSkpd},
+        C_BULAN_AWAL  = #{bulanAwal},
+        C_BULAN_AKHIR = #{bulanAkhir},
+        E_SPD         = REPLACE ( REPLACE (REPLACE (#{uraian} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )
+        WHERE  I_ID          =  #{idSpd}
+    </update>
+    <insert id="insertspddetail" parameterType="sipkd.model.SpdBtlDetail"   >
+        INSERT INTO TMSPDRINCIBTL (I_ID,
+        I_IDSPD,
+        I_IDBTL,
+        V_SPD,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,I_IDBAS )
+        VALUES   (  SEQ_TMSPDRINCIBTL.nextval 
+        ,#{idSpd}
+        ,#{idBtl}
+        ,#{nilaiAnggaranSPDCurrent}
+        ,#{idEntry}
+        ,#{tglEntry} ,#{idAkun})
+    </insert>
+    <select id="getdataspdbtlmasterinsert"  parameterType="java.lang.Integer" resultMap="spdBTLMasterInsertMap" >        
+        SELECT   T.I_ID,
+        T.C_ANGG_TAHUN,
+        T.I_SPDNO,
+        T.D_SPDNO,
+        T.I_IDSKPD,
+        T.C_BULAN_AWAL||'/'||T.C_ANGG_TAHUN as  C_BULAN_AWAL, 
+        T.C_BULAN_AKHIR||'/'||T.C_ANGG_TAHUN as C_BULAN_AKHIR,
+        T.E_SPD, 
+        S.C_SKPD||'/'||S.N_SKPD as N_SKPD,S.C_SKPD  
+        FROM          TMSPD T
+        LEFT JOIN
+        TRSKPD S
+        ON S.I_ID = T.I_IDSKPD         
+        WHERE  T.I_ID =  #{param}
+    </select>
+    <select id="getBanyakTotalSPDBySKPDDanTahun"    parameterType="java.util.Map" resultType="java.lang.Integer">  
+        SELECT SUM(COUNT(DISTINCT XXX.I_IDBAS)) AS banyak
+        FROM (
+        SELECT I_IDSKPD
+        ,I_IDBAS
+        ,(V_ANGG_TAPD) BTL
+        ,0 SPD
+        FROM TMDPABTL t
+        WHERE C_ANGG_TAHUN = #{tahun}
+        and exists (select 1 from tmspdrincibtl, tmspd where tmspdrincibtl.i_idspd =  tmspd.i_id and 
+        C_ANGG_TAHUN = #{tahun}
+        AND tmspdrincibtl.I_IDSPD = #{idspd}
+        AND tmspd.I_IDskpd = #{idskpd}
+         AND tmspdrincibtl.C_SPD_STATUS = 'P'
+         and t.i_idbas = tmspdrincibtl.i_idbas
+        )
+	
+        UNION ALL
+	
+        SELECT I_IDSKPD
+        ,I_IDBAS
+        ,0 BTL
+        ,(V_SPD) SPD
+        FROM VW_SPDBTL v
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND V.I_IDSPD != #{idspd}
+        AND v.C_SPD_STATUS = 'P'
+        )
+
+        XXX
+        ,TRSKPD
+        ,trbas
+        WHERE XXX.I_IDSKPD = TRSKPD.I_ID
+        AND TRSKPD.I_ID = #{idskpd}
+        AND XXX.I_IDBAS = trbas.I_ID
+        GROUP BY XXX.I_IDSKPD
+        ,TRSKPD.N_SKPD
+        ,I_IDBAS
+        ,c_akun
+        ,N_AKUN
+    </select>
+    <update id="updatenilaispddetail" parameterType="sipkd.model.SpdBtlDetail"   >
+        UPDATE    TMSPDRINCIBTL 
+        SET   V_SPD = #{nilaiAnggaranSPDCurrent},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit}
+        WHERE   I_ID = #{idSpdRinci}
+    </update>
+    
+    <select id="getcekspddetailbyidspd"  parameterType="java.lang.Integer" resultType="java.lang.Integer" >
+        SELECT   COUNT (T.I_ID)
+        FROM    TMSPDRINCIBTL T
+        WHERE   T.I_IDSPD =  #{param}
+    </select>
+    
+    <select id="getcekspddetailbyidspdandidbtl"  parameterType="java.util.Map" resultType="java.lang.Integer" >
+        SELECT   COUNT (T.I_ID)
+        FROM    TMSPDRINCIBTL T
+        WHERE   T.I_IDSPD =   #{idSpd} AND 
+        I_IDBTL      = #{idBtl}  
+    </select>
+    
+    <update id="updatenilaispddetailbyidspdandidbtl" parameterType="sipkd.model.SpdBtlDetail"   >
+        UPDATE  TMSPDRINCIBTL
+        SET   
+        V_SPD        = #{nilaiAnggaranSPDCurrent},
+        I_PGUN_UBAH  = #{idEdit},
+        D_PGUN_UBAH  = #{tglEdit}
+        WHERE  I_IDSPD      = #{idSpd}  AND 
+        I_IDBTL      = #{idBtl}  
+    </update>
+    <insert id="insertspdsah" parameterType="java.util.Map"   >
+        INSERT INTO  TMSPDSAH (I_ID,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        D_SPD_SAH, V_SPD)
+        VALUES   (#{idspd},#{userid},#{tglentry} ,#{tglentry},#{nilaispd})
+    </insert>
+    <!-- kode jenis bisa dilihat dari spdpengajuancetakdanvalidasirevacton -->
+    <update id="updatespdsah" parameterType="java.util.Map"   >
+        UPDATE  TMSPDSAH
+        SET   
+        C_SPD_STATUS           = #{stat},
+        <choose>
+            <when test="jenisspd == 'BTL' " >
+                V_SPD = (SELECT NVL (SUM (v_SPD), 0)
+                FROM tmspdrincibtl
+                WHERE i_IDSPD = #{idspd}  ),
+            </when>
+            <when test="jenisspd == 'BL' " >
+                V_SPD = (SELECT NVL (SUM (v_SPD), 0)
+                FROM tmspdrincibl
+                WHERE i_IDSPD = #{idspd}  ),
+            </when>
+            <when test="jenisspd == 'BTL BANTUAN' " >
+                V_SPD = (SELECT NVL (SUM (v_SPD), 0)
+                FROM tmspdrincibtlbantuan
+                WHERE i_IDSPD = #{idspd}  ),
+            </when>
+            <when test="jenisspd == 'BIAYA' " >
+                V_SPD = (SELECT NVL (SUM (v_SPD), 0)
+                FROM tmspdrincibiaya
+                WHERE i_IDSPD = #{idspd}  ),
+            </when>
+        </choose>
+        D_PGUN_REKAM = #{tglentry}
+        wHERE  I_ID  = #{idspd}    
+                
+    </update>
+    
+    <update id="updatespdsahrincibtl" parameterType="java.util.Map"   >
+        UPDATE  TMSPDRINCIBTL
+        SET   
+        C_SPD_STATUS           = '2',
+        D_PGUN_REKAM = #{tglentry}
+        wHERE  I_IDSPD  = #{idspd}   and C_SPD_STATUS = 'P'  
+               
+    </update>
+    
+    <update id="updatespdsahrincibl" parameterType="java.util.Map"   >
+        UPDATE  TMSPDRINCIBL
+        SET   
+        C_SPD_STATUS           = '2',
+        D_PGUN_REKAM = #{tglentry}
+        wHERE  I_IDSPD  = #{idspd}   and C_SPD_STATUS = 'P'    
+               
+    </update>
+    
+    <update id="updatespdsahrincibantuan" parameterType="java.util.Map"   >
+        UPDATE  TMSPDRINCIBTLBANTUAN
+        SET   
+        C_SPD_STATUS           = '2',
+        D_PGUN_REKAM = #{tglentry}
+        wHERE  I_IDSPD  = #{idspd}   and C_SPD_STATUS = 'P'    
+               
+    </update>
+    
+    <update id="updatespdsahrincibiaya" parameterType="java.util.Map"   >
+        UPDATE  TMSPDRINCIBIAYA
+        SET   
+        C_SPD_STATUS           = '2',
+        D_PGUN_REKAM = #{tglentry}
+        wHERE  I_IDSPD  = #{idspd}   and C_SPD_STATUS = 'P'    
+               
+    </update>
+    
+    <update id="updatespdcetak" parameterType="java.util.Map"   >
+        UPDATE  TMSPDCETAK
+        SET   
+        C_SPD_STATUS           = #{stat},
+        <!--C_STATUS_CAMEL = #{statcam},
+        C_JENIS = #{jenis},
+        I_SPDNO = #{nospd},
+        C_ANGG_TAHUN = #{tahun},-->
+        A_SPDFILE_PDF = #{filepdf},
+        E_PERATURAN_SPD1 = #{p1},
+        E_PERATURAN_SPD2 = #{p2},
+        E_PERATURAN_SPD5 = #{p5},
+        E_PERATURAN_SPD6 = #{p6}  
+        wHERE  I_ID  = #{idspd}    
+               
+    </update>
+    
+    <insert id="insertspdcetak" parameterType="java.util.Map"   >
+        INSERT INTO  TMSPDCETAK (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM, 
+        A_JASPER_FILE,  A_SPDFILE_PDF, 
+        I_NIP, 
+        N_PEG, N_JABATAN ,C_STATUS_CETAK,C_SPD_STATUS,I_NRK, I_NIP_PA, I_NRK_PA, N_PA, 
+        I_NIP_PK, I_NRK_PK,N_PK,D_SPD_CETAK) 
+        VALUES (#{idspd},#{userid},#{tglentry} , #{filejasper},#{filepdf},#{nip},#{namapeg},#{namajabatan},'1',#{stat},
+        #{nrkPegawai},#{nipPA},#{nrkPA},#{namaPA},#{nipPK},#{nrkPK},#{namaPK},#{tglc} )
+    </insert>
+    <delete id="hapusspdrincibtl" parameterType="java.lang.Integer"   >
+        delete  TMSPDRINCIBTL    WHERE   I_ID = #{value} 
+    </delete>
+    <delete id="hapusspdrincibtlbyakundanspd" parameterType="java.util.Map"    >
+        delete  TMSPDRINCIBTL    WHERE   I_IDBAS = #{idAkun} AND I_IDSPD = #{idSpd} 
+    </delete>
+    <select id="getharikerjaspd"   parameterType="java.sql.Date" resultType="sipkd.model.HariKerja">
+        SELECT   T.D_REKAM as tglRekam,
+        T.D_APPROVE as tglApprove,
+        T.D_CETAK as tglCetak,
+        T.D_SAH as tglSah
+        FROM    TRHARIKERJA T
+        WHERE   C_DOK = 'SPD' AND D_HARI_KERJA = #{value}
+    </select>
+    <delete id="hapusspdrincibtlbyidspd" parameterType="java.lang.Integer"   >
+        delete from TMSPDRINCIBTL where I_IDSPD =  #{idSpd} 
+    </delete>
+    <delete id="hapusspdbyidspd" parameterType="java.lang.Integer"   >
+        delete from TMSPD where I_ID = #{idSpd} 
+    </delete>
+    <select id="getlistcetakspdbtl"   parameterType="java.util.Map" resultType="java.util.Map">
+        
+        SELECT DISTINCT (i_idspd) AS idspd, i_idskpd, c_angg_tahun, d_spdno,
+        i_spdno AS nospd, status AS status, v_spd AS nilaispd,
+        TO_CHAR (d_spd_cetak, 'DD-MM-YYYY') AS tglcetak,
+        n_peg AS namapegawai, i_nip AS nippegawai,
+        i_nrk AS nrkpegawai, n_jabatan AS namajabatan,
+        c_status_cetak AS statuscetak, jenis, i_nrk_pkblj,
+        i_nip_pkblj, i_n_pkblj, i_nrk_pkbantuan, i_nip_pkbantuan,
+        i_n_pkbantuan, i_nrk_pkbtt, i_nip_pkbtt, i_n_pkbtt,
+        i_nrk_pkbiaya, i_nip_pkbiaya, i_n_pkbiaya,i_nip_pa,n_pa,i_nrk_pa,c_akun,
+        E_PERATURAN_SPD1,E_PERATURAN_SPD2,E_PERATURAN_SPD5,E_PERATURAN_SPD6
+        FROM (SELECT ROWNUM AS rn, a.*
+        FROM (SELECT   x.*
+        FROM (SELECT a.i_idspd, a.i_idskpd,
+        a.c_angg_tahun, a.d_spdno,
+        a.i_spdno, a.status, 
+        <!-- a.v_spd,-->
+        (select sum(v_spd) from tmspdrincibtl where tmspdrincibtl.i_idspd = a.i_idspd) as V_SPD ,
+        d.i_nip_pkbtt AS i_nip_pkbtt,
+        d.n_pkbtt AS i_n_pkbtt,
+        d.i_nrk_pkbtt AS i_nrk_pkbtt,
+        d.i_nip_pkblj AS i_nip_pkblj,
+        d.n_pkblj AS i_n_pkblj,
+        d.i_nrk_pkblj AS i_nrk_pkblj,
+        d.E_PERATURAN_SPD1 as E_PERATURAN_SPD1,
+        d.E_PERATURAN_SPD2 as E_PERATURAN_SPD2,
+        d.E_PERATURAN_SPD5 as E_PERATURAN_SPD5,
+        d.E_PERATURAN_SPD6 as E_PERATURAN_SPD6,
+        '' AS i_nip_pkbantuan,
+        '' AS i_n_pkbantuan,
+        '' AS i_nrk_pkbantuan,
+        '' AS i_nip_pkbiaya,
+        '' AS i_n_pkbiaya,
+        '' AS i_nrk_pkbiaya,
+        c.d_spd_cetak,
+        d.I_NIP_PA as i_nip_pa,
+        d.N_PA as n_pa,
+        d.I_NRK_PA as i_nrk_pa,
+        q.c_akun as c_akun,
+        ttd.n_peg AS n_peg,
+        ttd.i_nip AS i_nip,
+        ttd.n_jabatan AS n_jabatan,
+        COALESCE (c.i_nrk,
+        ttd.i_nrk
+        ) AS i_nrk,
+        c.c_status_cetak, 'BTL' AS jenis
+        FROM vw_spd_btl_apbdp a LEFT JOIN tmspdcetak c
+        ON c.i_id = a.i_idspd
+        and a.c_angg_tahun = #{tahun}
+        left JOIN trdokttd ttd
+        ON ttd.c_aktif = 1
+        AND (    ttd.c_dok = 'SPD'
+        AND (A.V_SPD &gt;= TTD.V_DOK_MIN AND A.V_SPD &lt;= TTD.V_DOK_MAX))
+        inner JOIN tmdpa d
+        ON d.c_angg_tahun = #{tahun}
+        AND d.i_idskpd = #{idskpd}
+        left join trbas q
+        on q.c_tahun_berlaku = #{tahun} AND q.C_AKUN = '5.1.8'
+        WHERE UPPER (status) != 'VALIDASI'
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND d.c_angg_tahun = #{tahun}
+        AND d.i_idskpd = #{idskpd}
+        
+        UNION ALL
+        SELECT a.i_idspd, a.i_idskpd,
+        a.c_angg_tahun, a.d_spdno,
+        a.i_spdno, a.status, 
+       (select sum(v_spd) from tmspdrincibtlbantuan where tmspdrincibtlbantuan.i_idspd = a.i_idspd) as V_SPD ,
+        '' AS i_nip_pkbtt,
+        '' AS i_n_pkbtt,
+        '' AS i_nrk_pkbtt,
+        '' AS i_nip_pkblj,
+        '' AS i_n_pkblj,
+        '' AS i_nrk_pkblj,
+        d.E_PERATURAN_SPD1 as E_PERATURAN_SPD1,
+        d.E_PERATURAN_SPD2 as E_PERATURAN_SPD2,
+        d.E_PERATURAN_SPD5 as E_PERATURAN_SPD5,
+        d.E_PERATURAN_SPD6 as E_PERATURAN_SPD6,
+        d.i_nip_pkbantuan AS i_nip_pkbantuan,
+        d.n_pkbantuan AS i_n_pkbantuan,
+        d.i_nrk_pkbantuan AS i_nrk_pkbantuan,
+        '' AS i_nip_pkbiaya,
+        '' AS i_n_pkbiaya,
+        '' AS i_nrk_pkbiaya,
+        c.d_spd_cetak,
+        d.I_NIP_PA as i_nip_pa,
+        d.N_PA as n_pa,
+        d.I_NRK_PA as i_nrk_pa,
+        '' as c_akun,
+        ttd.n_peg AS n_peg,
+        ttd.i_nip AS i_nip,
+        ttd.n_jabatan AS n_jabatan,
+        COALESCE (c.i_nrk,
+        ttd.i_nrk
+        ) AS i_nrk,
+        c.c_status_cetak,
+        'BTL BANTUAN' AS jenis
+        FROM vw_spd_btlbantuan_apbdp a LEFT JOIN tmspdcetak c
+        ON c.i_id = a.i_idspd
+        and a.c_angg_tahun = #{tahun}
+        left JOIN trdokttd ttd
+        ON ttd.c_aktif = 1
+        AND (    ttd.c_dok = 'SPD'
+        AND (A.V_SPD &gt;= TTD.V_DOK_MIN AND A.V_SPD &lt;= TTD.V_DOK_MAX))
+        inner JOIN tmdpa d
+        ON d.c_angg_tahun = #{tahun}
+        AND d.i_idskpd = #{idskpd}
+        left join trbas q
+        on q.c_tahun_berlaku = #{tahun} AND SUBSTR (q.c_akun, 1, 5) IN ('5.1.8.01.01')
+        WHERE UPPER (status) != 'VALIDASI'
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND d.c_angg_tahun = #{tahun}
+        AND d.i_idskpd = #{idskpd}
+        
+        UNION ALL
+        SELECT a.i_idspd, a.i_idskpd,
+        a.c_angg_tahun, a.d_spdno,
+        a.i_spdno, a.status, 
+        (select sum(v_spd) from tmspdrincibl where tmspdrincibl.i_idspd = a.i_idspd) as V_SPD ,
+        '' AS i_nip_pkbtt,
+        '' AS i_n_pkbtt,
+        '' AS i_nrk_pkbtt,
+        d.i_nip_pkblj AS i_nip_pkblj,
+        d.n_pkblj AS i_n_pkblj,
+        d.i_nrk_pkblj AS i_nrk_pkblj,
+        d.E_PERATURAN_SPD1 as E_PERATURAN_SPD1,
+        d.E_PERATURAN_SPD2 as E_PERATURAN_SPD2,
+        d.E_PERATURAN_SPD5 as E_PERATURAN_SPD5,
+        d.E_PERATURAN_SPD6 as E_PERATURAN_SPD6,
+        '' AS i_nip_pkbantuan,
+        '' AS i_n_pkbantuan,
+        '' AS i_nrk_pkbantuan,
+        '' AS i_nip_pkbiaya,
+        '' AS i_n_pkbiaya,
+        '' AS i_nrk_pkbiaya,
+        c.d_spd_cetak,
+        d.I_NIP_PA as i_nip_pa,
+        d.N_PA as n_pa,
+        d.I_NRK_PA as i_nrk_pa,
+        '' as c_akun,
+        ttd.n_peg AS n_peg,
+        ttd.i_nip AS i_nip,
+        ttd.n_jabatan AS n_jabatan,
+        COALESCE (c.i_nrk,
+        ttd.i_nrk
+        ) AS i_nrk,
+        c.c_status_cetak, 'BL' AS jenis
+        FROM vw_spd_bl_apbdp a LEFT JOIN tmspdcetak c
+        ON c.i_id = a.i_idspd
+        and a.c_angg_tahun = #{tahun}
+        left JOIN trdokttd ttd
+        ON ttd.c_aktif = 1
+        AND (    ttd.c_dok = 'SPD'
+        AND (A.V_SPD &gt;= TTD.V_DOK_MIN AND A.V_SPD &lt;= TTD.V_DOK_MAX))
+        inner JOIN tmdpa d
+        ON d.c_angg_tahun = #{tahun}
+        AND d.i_idskpd = #{idskpd}
+        left join trbas q
+        on q.c_tahun_berlaku = #{tahun} AND SUBSTR (q.c_akun, 1, 5) IN ('5.1.8.01.01')
+        WHERE UPPER (status) != 'VALIDASI'
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND d.c_angg_tahun = #{tahun}
+        AND d.i_idskpd = #{idskpd}
+        
+        UNION ALL
+        SELECT a.i_idspd, 
+        a.i_idskpd,
+        a.c_angg_tahun, 
+        a.d_spdno,
+        a.i_spdno, 
+        a.status, 
+        (select sum(v_spd) from tmspdrincibiaya where tmspdrincibiaya.i_idspd = a.i_idspd) as V_SPD ,
+        '' AS i_nip_pkbtt,
+        '' AS i_n_pkbtt,
+        '' AS i_nrk_pkbtt,
+        '' AS i_nip_pkblj,
+        '' AS i_n_pkblj,
+        '' AS i_nrk_pkblj,
+        d.E_PERATURAN_SPD1 as E_PERATURAN_SPD1,
+        d.E_PERATURAN_SPD2 as E_PERATURAN_SPD2,
+        d.E_PERATURAN_SPD5 as E_PERATURAN_SPD5,
+        d.E_PERATURAN_SPD6 as E_PERATURAN_SPD6,
+        '' AS i_nip_pkbantuan,
+        '' AS i_n_pkbantuan,
+        '' AS i_nrk_pkbantuan,
+        d.i_nip_pkbiaya AS i_nip_pkbiaya,
+        d.n_pkbiaya AS i_n_pkbiaya,
+        d.i_nrk_pkbiaya AS i_nrk_pkbiaya,
+        c.d_spd_cetak,
+        d.I_NIP_PA as i_nip_pa,
+        d.N_PA as n_pa,
+        d.I_NRK_PA as i_nrk_pa,
+        '' as c_akun,
+        ttd.n_peg AS n_peg,
+        ttd.i_nip AS i_nip,
+        ttd.n_jabatan AS n_jabatan,
+        COALESCE (c.i_nrk,ttd.i_nrk) AS i_nrk,
+        c.c_status_cetak, 
+        'BIAYA' AS jenis
+        FROM vw_spd_biaya_apbdp a LEFT JOIN tmspdcetak c
+        ON c.i_id = i_idspd 
+        and a.c_angg_tahun = #{tahun}
+        left JOIN trdokttd ttd
+        ON ttd.c_aktif = 1
+        AND (    ttd.c_dok = 'SPD'
+        AND (A.V_SPD &gt;= TTD.V_DOK_MIN AND A.V_SPD &lt;= TTD.V_DOK_MAX))
+        inner JOIN tmdpa d
+        ON d.c_angg_tahun = #{tahun}
+        AND d.i_idskpd = #{idskpd}
+        inner join trbas q
+        on q.c_tahun_berlaku = #{tahun} AND SUBSTR (q.c_akun, 1, 5) IN ('5.1.8.01.01')
+        WHERE UPPER (status) != 'VALIDASI'
+        AND a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND d.c_angg_tahun = #{tahun}
+        AND d.i_idskpd = #{idskpd}) x
+        ORDER BY x.i_spdno ASC) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        ORDER BY i_spdno
+    </select>
+    
+    
+    <select id="getlistmonlap"   parameterType="java.util.Map" resultType="java.util.Map">
+        /* Formatted on 2015/06/12 15:15 (Formatter Plus v4.8.8) */
+        SELECT c_akun, n_akun, v_angg_tapd, v_spd, persen_spd, v_sp2d, persen_sp2d,
+        persen_sp2d_tapd
+        FROM (SELECT ROWNUM AS rn, a.*
+        FROM (SELECT *
+        FROM (SELECT   SUBSTR (xxxx.c_akun, 1, 3) c_akun, b.n_akun,
+        SUM (v_angg_tapd) v_angg_tapd,
+        SUM (v_spd) v_spd,
+        TO_CHAR (SUM (v_spd) / SUM (v_angg_tapd)
+        * 100,
+        99.99
+        ) AS persen_spd,
+        SUM (v_sp2d) v_sp2d,
+        TO_CHAR (SUM (v_sp2d) / SUM (v_spd) * 100,
+        99.99
+        ) AS persen_sp2d,
+        TO_CHAR
+        (SUM (v_sp2d) / SUM (v_angg_tapd) * 100,
+        99.99
+        ) AS persen_sp2d_tapd
+        FROM (SELECT '5.2' AS c_akun, v_angg_tapd,
+        0 v_spd, 0 v_sp2d
+        FROM tmdpabl
+        WHERE c_angg_tahun = #{tahun}
+        UNION ALL
+        SELECT '5.1' AS c_akun, v_angg_tapd,
+        0 v_spd, 0 v_sp2d
+        FROM tmdpabtl
+        WHERE c_angg_tahun = #{tahun}
+        UNION ALL
+        SELECT '6.2' AS c_akun, v_angg_tapd,
+        0 v_spd, 0 v_sp2d
+        FROM tmdpabiaya, trbas
+        WHERE c_angg_tahun = #{tahun}
+        AND c_akun LIKE '6.2'
+        UNION ALL
+        SELECT '5.1' AS c_akun, 0 v_angg_tapd,
+        (a.v_spd) AS v_spd, 0 v_sp2d
+        FROM tmspdrincibtl a, tmspdsah, tmspd
+        WHERE a.i_idspd = tmspdsah.i_id
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        UNION ALL
+        SELECT '5.1' AS c_akun, 0 v_angg_tapd,
+        (a.v_spd) AS v_spd, 0 v_sp2d
+        FROM tmspdrincibtlbantuan a,
+        tmspdsah,
+        tmspd
+        WHERE a.i_idspd = tmspdsah.i_id
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmspdsah.d_spd_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '5.2', 0 v_angg_tapd,
+        (a.v_spd) AS v_spd, 0 v_sp2d
+        FROM tmspdrincibl a, tmspdsah, tmspd
+        WHERE a.i_idspd = tmspdsah.i_id
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmspdsah.d_spd_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '6.2' AS c_akun, 0 v_angg_tapd,
+        (a.v_spd) AS v_spd, 0 v_sp2d
+        FROM tmspdrincibiaya a, tmspdsah, tmspd
+        WHERE a.i_idspd = tmspdsah.i_id
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmspdsah.d_spd_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '5.1' AS c_akun, 0 v_angg_tapd,
+        0 AS v_spd, a.v_spp v_sp2d
+        FROM tmspprincibtl a, tmsp2d, tmspp
+        WHERE a.i_idspp = tmsp2d.i_idspp
+        AND tmspp.i_id = a.i_idspp
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmsp2d.d_pgun_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '5.1' AS c_akun, 0 v_angg_tapd,
+        0 AS v_spd, a.v_spp v_sp2d
+        FROM tmspprincibtlbantuan a, tmsp2d,
+        tmspp
+        WHERE a.i_idspp = tmsp2d.i_idspp
+        AND tmspp.i_id = a.i_idspp
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmsp2d.d_pgun_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '5.2' AS c_akun, 0 v_angg_tapd,
+        0 AS v_spd, a.v_spp v_sp2d
+        FROM tmspprincibl a, tmsp2d, tmspp
+        WHERE a.i_idspp = tmsp2d.i_idspp
+        AND tmspp.i_id = a.i_idspp
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmsp2d.d_pgun_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '6.2' AS c_akun, 0 v_angg_tapd,
+        0 AS v_spd, a.v_spp v_sp2d
+        FROM tmspprincibiaya a, tmsp2d, tmspp
+        WHERE a.i_idspp = tmsp2d.i_idspp
+        AND tmspp.i_id = a.i_idspp
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmsp2d.d_pgun_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}) xxxx,
+        trbas b
+        WHERE SUBSTR (xxxx.c_akun, 1, 3) = b.c_akun
+        AND b.c_aktif = '1'
+        GROUP BY SUBSTR (xxxx.c_akun, 1, 3), b.n_akun) x) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        ORDER BY c_akun
+        
+    </select>
+    
+    
+    <select id="getbanyakmonlap"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (DISTINCT X.c_akun)
+        FROM ( SELECT   SUBSTR (xxxx.c_akun, 1, 3) c_akun, b.n_akun,
+        SUM (v_angg_tapd) v_angg_tapd,
+        SUM (v_spd) v_spd,
+        TO_CHAR (SUM (v_spd) / SUM (v_angg_tapd)
+        * 100,
+        99.99
+        ) AS persen_spd,
+        SUM (v_sp2d) v_sp2d,
+        TO_CHAR (SUM (v_sp2d) / SUM (v_spd) * 100,
+        99.99
+        ) AS persen_sp2d,
+        TO_CHAR
+        (SUM (v_sp2d) / SUM (v_angg_tapd) * 100,
+        99.99
+        ) AS persen_sp2d_tapd
+        FROM (SELECT '5.2' AS c_akun, v_angg_tapd,
+        0 v_spd, 0 v_sp2d
+        FROM tmdpabl
+        WHERE c_angg_tahun = #{tahun}
+        UNION ALL
+        SELECT '5.1' AS c_akun, v_angg_tapd,
+        0 v_spd, 0 v_sp2d
+        FROM tmdpabtl
+        WHERE c_angg_tahun = #{tahun}
+        UNION ALL
+        SELECT '6.2' AS c_akun, v_angg_tapd,
+        0 v_spd, 0 v_sp2d
+        FROM tmdpabiaya, trbas
+        WHERE c_angg_tahun = #{tahun}
+        AND c_akun LIKE '6.2'
+        UNION ALL
+        SELECT '5.1' AS c_akun, 0 v_angg_tapd,
+        (a.v_spd) AS v_spd, 0 v_sp2d
+        FROM tmspdrincibtl a, tmspdsah, tmspd
+        WHERE a.i_idspd = tmspdsah.i_id
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        UNION ALL
+        SELECT '5.1' AS c_akun, 0 v_angg_tapd,
+        (a.v_spd) AS v_spd, 0 v_sp2d
+        FROM tmspdrincibtlbantuan a,
+        tmspdsah,
+        tmspd
+        WHERE a.i_idspd = tmspdsah.i_id
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmspdsah.d_spd_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '5.2', 0 v_angg_tapd,
+        (a.v_spd) AS v_spd, 0 v_sp2d
+        FROM tmspdrincibl a, tmspdsah, tmspd
+        WHERE a.i_idspd = tmspdsah.i_id
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmspdsah.d_spd_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '6.2' AS c_akun, 0 v_angg_tapd,
+        (a.v_spd) AS v_spd, 0 v_sp2d
+        FROM tmspdrincibiaya a, tmspdsah, tmspd
+        WHERE a.i_idspd = tmspdsah.i_id
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmspdsah.d_spd_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '5.1' AS c_akun, 0 v_angg_tapd,
+        0 AS v_spd, a.v_spp v_sp2d
+        FROM tmspprincibtl a, tmsp2d, tmspp
+        WHERE a.i_idspp = tmsp2d.i_idspp
+        AND tmspp.i_id = a.i_idspp
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmsp2d.d_pgun_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '5.1' AS c_akun, 0 v_angg_tapd,
+        0 AS v_spd, a.v_spp v_sp2d
+        FROM tmspprincibtlbantuan a, tmsp2d,
+        tmspp
+        WHERE a.i_idspp = tmsp2d.i_idspp
+        AND tmspp.i_id = a.i_idspp
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmsp2d.d_pgun_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '5.2' AS c_akun, 0 v_angg_tapd,
+        0 AS v_spd, a.v_spp v_sp2d
+        FROM tmspprincibl a, tmsp2d, tmspp
+        WHERE a.i_idspp = tmsp2d.i_idspp
+        AND tmspp.i_id = a.i_idspp
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmsp2d.d_pgun_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}
+        UNION ALL
+        SELECT '6.2' AS c_akun, 0 v_angg_tapd,
+        0 AS v_spd, a.v_spp v_sp2d
+        FROM tmspprincibiaya a, tmsp2d, tmspp
+        WHERE a.i_idspp = tmsp2d.i_idspp
+        AND tmspp.i_id = a.i_idspp
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND TO_CHAR (tmsp2d.d_pgun_sah,
+        'yyyymmdd'
+        ) BETWEEN #{tgl1} AND #{tgl2}) xxxx,
+        trbas b
+        WHERE SUBSTR (xxxx.c_akun, 1, 3) = b.c_akun
+        AND b.c_aktif = '1'
+        GROUP BY SUBSTR (xxxx.c_akun, 1, 3), b.n_akun
+        )X
+        
+        
+        
+    </select>
+    
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5,E_PERATURAN_SPD6,
+        E_PERATURAN_SPD7
+        from   TRDOKREFF 
+    </select>
+    
+    <select id="getnilaiparam1"   parameterType="java.util.Map" resultType="java.util.Map">
+        select E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,
+        E_PERATURAN_SPD5,
+        E_PERATURAN_SPD6,
+        from   TMSPDCETAK
+        where I_ID = #{value} and c_angg_tahun = #{tahun}    
+    </select>
+    
+    <select id="getbanyakcetakspdbtl"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (DISTINCT X.I_IDSPD)
+        FROM   (SELECT   A.I_IDSPD
+        FROM   VW_SPD_BTL_APBDP A
+        WHERE       UPPER (STATUS) != 'VALIDASI'
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   A.I_IDSPD
+        FROM   VW_SPD_BTLBANTUAN_APBDP A
+        WHERE       UPPER (STATUS) != 'VALIDASI'
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   A.I_IDSPD
+        FROM   VW_SPD_BL_APBDP A
+        WHERE       UPPER (STATUS) != 'VALIDASI'
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   A.I_IDSPD
+        FROM   VW_SPD_BIAYA_APBDP A
+        WHERE       UPPER (STATUS) != 'VALIDASI'
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd} ) X
+    </select>
+    <select id="getcetakspdbyidspd"  resultType="java.util.Map"  parameterType="java.lang.Integer">
+        SELECT 
+        T.I_ID as idSpd, 
+        T.D_SPD_CETAK, T.A_SPDFILE_PDF as alamatPdf,
+        T.C_STATUS_CETAK as statusCetak, 
+        T.A_JASPER_FILE as alamatJasper 
+        FROM 
+        TMSPDCETAK T WHERE T.I_ID  =  #{idskpd} AND  T.C_STATUS_CETAK = 2
+    </select>
+    <select id="getlistvalidasispd"   parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT   I_IDSKPD,
+        C_ANGG_TAHUN,
+        D_SPDNO,
+        I_IDSPD as idSpd,
+        I_SPDNO as noSpd,
+        STATUS as status,
+        V_SPD as nilaiSpd,
+        D_SPD_CETAK AS tglcetak2,
+        to_char(D_SPD_CETAK,'DD-MM-YYYY') as tglcetak1 ,
+        N_PEG as namaPegawai,
+        I_NIP as nipPegawai,
+        N_JABATAN as namaJabatan, C_STATUS_CETAK as statusCetak,jenis
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   *
+        FROM   (SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        A.D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        <!-- A.V_SPD, -->
+        (select sum(v_spd) from tmspdrincibtl where tmspdrincibtl.i_idspd = A.i_idspd) as V_SPD ,
+        C.D_SPD_CETAK, 
+        C.N_PEG,
+        C.I_NIP,
+        C.N_JABATAN,
+        C.C_STATUS_CETAK,
+        'BTL' AS jenis
+        FROM      VW_SPD_BTL_APBDP A
+        LEFT JOIN
+        TMSPDCETAK C
+                       
+        ON C.I_ID = A.I_IDSPD
+        WHERE   (UPPER (STATUS) = 'CETAK REVISI (APBDP)'  )
+        AND A.c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        A.D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        (select sum(v_spd) from tmspdrincibtlbantuan where tmspdrincibtlbantuan.i_idspd = A.i_idspd) as V_SPD ,
+        C.D_SPD_CETAK, 
+        C.N_PEG,
+        C.I_NIP,
+        C.N_JABATAN,
+        C.C_STATUS_CETAK,
+        'BTL BANTUAN' AS jenis
+        FROM      VW_SPD_BTLBANTUAN_APBDP A
+        LEFT JOIN
+        TMSPDCETAK C
+                      
+        ON C.I_ID = A.I_IDSPD
+        WHERE   (UPPER (STATUS) = 'CETAK REVISI (APBDP)'  )
+        AND A.c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        A.D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        (select sum(v_spd) from tmspdrincibiaya where tmspdrincibiaya.i_idspd = A.i_idspd) as V_SPD ,
+        C.D_SPD_CETAK, 
+        C.N_PEG,
+        C.I_NIP,
+        C.N_JABATAN,
+        C.C_STATUS_CETAK,
+        'BIAYA' AS jenis
+        FROM      VW_SPD_BIAYA_APBDP A
+        LEFT JOIN
+        TMSPDCETAK C
+                       
+        ON C.I_ID = A.I_IDSPD
+        WHERE   (UPPER (STATUS) = 'CETAK REVISI (APBDP)'  )
+        AND A.c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        A.D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        (select sum(v_spd) from tmspdrincibl where tmspdrincibl.i_idspd = A.i_idspd) as V_SPD ,
+        C.D_SPD_CETAK, 
+        C.N_PEG,
+        C.I_NIP,
+        C.N_JABATAN,
+        C.C_STATUS_CETAK,
+        'BL' AS jenis
+        FROM      VW_SPD_BL_APBDP A
+        LEFT JOIN
+        TMSPDCETAK C
+                       
+        ON C.I_ID = A.I_IDSPD
+        WHERE   (UPPER (STATUS) = 'CETAK REVISI (APBDP)'   )
+        AND A.c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}) X
+        ORDER BY
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                X.I_SPDNO
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                X.D_SPDNO
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                X.jenis
+            </when>
+            <when test="iSortCol_0 == 4 ">
+                X.V_SPD
+            </when>
+            <when test="iSortCol_0 == 5 ">
+                X.STATUS
+            </when>
+            <when test="iSortCol_0 == 6 ">
+                X.D_SPD_CETAK
+            </when>
+            <when test="iSortCol_0 == 7 ">
+                X.N_PEG
+            </when>
+            <otherwise>
+                X.I_IDSPD
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>
+        ) a)  WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    <select id="getbanyakvalidasispd"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (DISTINCT X.I_SPDNO)
+        FROM   (SELECT   A.I_SPDNO
+        FROM   VW_SPD_BTL_APBDP A
+        WHERE       (UPPER (STATUS) = 'CETAK'  )
+        AND A.c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   A.I_SPDNO
+        FROM   VW_SPD_BTLBANTUAN_APBDP A
+        WHERE       (UPPER (STATUS) = 'CETAK'  )
+        AND A.c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   A.I_SPDNO
+        FROM   VW_SPD_BL_APBDP A
+        WHERE        (UPPER (STATUS) = 'CETAK'  )
+        AND A.c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   A.I_SPDNO
+        FROM   VW_SPD_BIAYA_APBDP A
+        WHERE        (UPPER (STATUS) = 'CETAK'  )
+        AND A.c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd} ) X
+    </select>
+    <select id="getspdsahbyidspd"  parameterType="java.lang.Integer" resultType="java.util.Map" >
+        SELECT   T.I_ID,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.D_SPD_SAH,
+       
+        T.V_SPD
+        FROM    TMSPDSAH T
+        WHERE   T.I_ID =  #{idspd}
+    </select>
+    <delete id="deletespdcetak" parameterType="java.lang.Integer"    >
+        delete TMSPDCETAK    WHERE   I_ID = #{value}  
+    </delete>
+    
+    <update id="updatespdcetak1" parameterType="java.util.Map"   >
+        UPDATE  TMSPDCETAK
+        SET   
+        C_SPD_STATUS    = #{stat},
+        D_PGUN_REKAM    = #{tglentry} 
+        wHERE  I_ID            = #{idspd}
+    </update>
+    
+    
+    <select id="getlistmoninitoringlaporan"   parameterType="java.util.Map" resultType="java.util.Map">
+       
+    </select>
+    
+    <select id="getPathFile"  parameterType="java.util.Map" resultType="sipkd.model.SpdBTLMaster" >  
+        SELECT c_jenis as jenis,
+        A_SPDFILE_PDF AS alamatPdfOutput
+        FROM TMSPDCETAK where C_STATUS_CETAK = 1 and i_spdno = #{nospd} and c_angg_tahun = #{tahun}
+    </select>
+    
+</mapper>

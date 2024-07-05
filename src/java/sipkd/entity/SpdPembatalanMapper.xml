@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sipkd.entity.SpdPembatalanMapper">
+    <select id="getbanyakvalidasispd"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+      SELECT   COUNT (*) banyak  FROM   (
+        select tmspdsah.I_id as idSpdSah ,
+        tmspd.i_idskpd ,
+        'BTL' as keterangan,
+        tmspd.I_SPDNO_DOK as noDokSpd,
+        tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd ,
+        tmspdsah.D_SPD_SAH as tglSpdSah,
+        tmspd.d_spdno as tglSpd,
+        tmspdsah.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='1'
+        and  not exists (select 1 from tmspprincibtl where  tmspdsah.I_id =  tmspprincibtl.i_idspd)
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd} 
+        
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BTL-BANTUAN' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='2'
+        and  not exists (select 1 from tmspprincibtlbantuan where  tmspdsah.I_id =  tmspprincibtlbantuan.i_idspd)
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd} 
+        
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BL' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='3'
+        and  not exists (select 1 from tmspprincibl where  tmspdsah.I_id =  tmspprincibl.i_idspd)
+        and  not exists (select 1 from tmkontrak where  tmspdsah.I_id =  tmkontrak.i_idspd)
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd}
+        
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BIAYA' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='4'
+        and  not exists (select 1 from tmspprincibiaya where  tmspdsah.I_id =  tmspprincibiaya.i_idspd)
+        and tmspd.c_angg_tahun =#{tahun}
+        and tmspd.i_idskpd =#{idskpd}
+      )
+        
+    </select>    
+    
+    <select id="getlistvalidasispd"   parameterType="java.util.Map" resultType="sipkd.model.SpdPembatalan">
+        select tmspdsah.I_id as idSpdSah ,
+        tmspd.i_idskpd ,
+        'BTL' as keterangan,
+        tmspd.I_SPDNO_DOK as noDokSpd,
+        tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd ,
+        tmspdsah.D_SPD_SAH as tglSpdSah,
+        tmspd.d_spdno as tglSpd,
+        tmspdsah.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='1'
+        and  not exists (select 1 from tmspprincibtl where  tmspdsah.I_id =  tmspprincibtl.i_idspd)
+        and not exists (select 1 from tmspdrincibtl where  tmspdsah.I_id =  tmspdrincibtl.i_idspd and (tmspdrincibtl.c_spd_status = '2' or tmspdrincibtl.c_spd_status = 'P'))
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd} 
+        
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BTL-BANTUAN' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='2'
+        and  not exists (select 1 from tmspprincibtlbantuan where  tmspdsah.I_id =  tmspprincibtlbantuan.i_idspd)
+        and not exists (select 1 from tmspdrincibtlbantuan where  tmspdsah.I_id =  tmspdrincibtlbantuan.i_idspd and (tmspdrincibtlbantuan.c_spd_status = '2' or tmspdrincibtlbantuan.c_spd_status = 'P'))
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd} 
+        
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BL' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='3'
+        and  not exists (select 1 from tmspprincibl where  tmspdsah.I_id =  tmspprincibl.i_idspd)
+        and  not exists (select 1 from tmkontrak where  tmspdsah.I_id =  tmkontrak.i_idspd)
+        and not exists (select 1 from tmspdrincibl where  tmspdsah.I_id =  tmspdrincibl.i_idspd and (tmspdrincibl.c_spd_status = '2' or tmspdrincibl.c_spd_status = 'P'))
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd}
+        
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BIAYA' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='4'
+        and  not exists (select 1 from tmspprincibiaya where  tmspdsah.I_id =  tmspprincibiaya.i_idspd)
+        and not exists (select 1 from tmspdrincibiaya where  tmspdsah.I_id =  tmspdrincibiaya.i_idspd and (tmspdrincibiaya.c_spd_status = '2' or tmspdrincibiaya.c_spd_status = 'P'))
+        and tmspd.c_angg_tahun =#{tahun}
+        and tmspd.i_idskpd =#{idskpd}
+
+    </select>
+    
+      
+    <select id="getBatalById" parameterType="java.lang.Integer"  resultType="sipkd.model.SpdPembatalan">
+        select tmspdsah.i_id as idSpdSah,
+        tmspdsah.d_spd_sah as tglSpdSah,
+        <!--to_char(tmspdsah.d_spd_sah,'dd-MM-yyyy') as tglSpdSah,-->
+        tmspdsah.v_spd,
+        tmspdsah.i_pgun_rekam as peg_rekam,
+        tmspd.I_SPDNO_DOK as noDokSpd,
+        tmspd.d_spdno as tglSpd,
+        tmspd.i_idskpd as idSkpd,
+        trskpd.c_skpd || ' / ' || trskpd.n_skpd  as namaSkpd
+
+        from tmspdsah,tmspd,trskpd
+        where  tmspdsah.I_id = tmspd.I_id
+        and tmspd.i_idskpd = trskpd.i_id
+        and tmspdsah.i_id=#{value}
+
+        
+    </select>
+    
+    <delete id="deleteSpdSah" parameterType="java.lang.Integer" >
+        delete tmspdsah where I_ID = #{value}
+    </delete>
+    
+    <insert id="insertThSpdSah" parameterType="sipkd.model.SpdPembatalan"   >
+        INSERT INTO thspdsah (
+        i_id,
+        d_spd_sah,
+        v_spd,
+        i_pgun_rekam,
+        d_pgun_rekam,
+        i_pgun_batal,
+        d_pgun_batal,
+        e_spd_alasanbatal
+        ) 
+        VALUES (   
+        #{idSpdSah}    
+        ,#{tglSpdSah} 
+        ,#{v_spd}
+        ,#{peg_rekam} 
+        ,#{tglSpdSah}
+        ,#{idEntry}
+        ,sysdate
+        ,#{alasanBatal} )
+    </insert>
+</mapper>

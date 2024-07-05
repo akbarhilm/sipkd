@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sipkd.entity.ProgramMapper">
+    <select id="getlistprogram"      resultType="sipkd.model.RefProgram">
+        SELECT 
+        T.I_ID as idRefProgram,      
+        T.I_IDURUSAN as kodeUrusan, 
+        T.C_PROGRAM as kodeProgram, 
+        T.N_PROGRAM as namaProgram 
+        FROM  TRPROGRAM T
+        order by 1,2
+    </select>
+    <select id="getBanyakAllUrusan"  parameterType="java.util.Map"   resultType="java.lang.Integer">
+        SELECT 
+        count(T.I_ID) as banyak 
+        FROM  TRURUSAN T
+        order by 1
+    </select>
+    <select id="getAllUrusan" parameterType="java.util.Map"  resultType="sipkd.model.RefProgram">
+        SELECT   I_ID AS idRefProgram,
+        C_URUSAN AS kodeUrusan,
+        N_URUSAN AS namaProgram
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   T.I_ID, T.C_URUSAN, T.N_URUSAN
+        FROM    TRURUSAN T
+        ORDER BY   1) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakAllProgram"  parameterType="java.util.Map"   resultType="java.lang.Integer">
+        SELECT count(T.I_ID) as banyak 
+        FROM  TRPROGRAM T
+        WHERE T.I_IDURUSAN='1'
+        order by 1
+    </select>
+    <select id="getAllProgram" parameterType="java.util.Map"  resultType="sipkd.model.RefProgram">
+        SELECT   I_ID AS idRefProgram,
+        C_PROGRAM AS kodeProgram,
+        N_PROGRAM AS namaProgram
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   T.I_ID, T.C_PROGRAM, T.N_PROGRAM
+        FROM    TRPROGRAM T
+        WHERE T.I_IDURUSAN='1'
+        ORDER BY 2) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+</mapper>

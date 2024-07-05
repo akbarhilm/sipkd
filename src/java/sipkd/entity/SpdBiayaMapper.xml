@@ -1,0 +1,682 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sipkd.entity.SpdBiayaMapper"> 
+
+    <resultMap id="spdBTLMasterMap" type="sipkd.model.SpdBTLMaster">
+        <result property="idSpd"  column="I_IDSPD" /> 
+        <result  property="tglSpd"  column="D_SPDNO" />
+        <result  property="noSpd"  column="I_SPDNO"/>
+        <result  property="status"  column="STATUS" />
+        <result  property="tahunAnggaran"   column="C_ANGG_TAHUN"/>
+        <result  property="nilaiSpd"   column="V_SPD"/>
+        <result  property="skpd.idSkpd"  column="I_IDSKPD"  /> 
+    </resultMap>
+    <resultMap id="spdBTLMasterInsertMap" type="sipkd.model.SpdBTLMaster">
+        <result property="idSpd"  column="I_ID" /> 
+        <result  property="tglSpd"  column="D_SPDNO" />
+        <result  property="noSpd"  column="I_SPDNO"/>
+        <result  property="uraian"  column="E_SPD" />
+        <result  property="bulanAwal"  column="C_BULAN_AWAL" />
+        <result  property="bulanAkhir"  column="C_BULAN_AKHIR" />
+        <result  property="tahunAnggaran"   column="C_ANGG_TAHUN"/>  
+        <result  property="skpd.idSkpd"  column="I_IDSKPD"  /> 
+        <result  property="skpd.namaSkpd"  column="N_SKPD"  />         
+        <result  property="pejabatPpkd.namaPegawai"  column="N_PEG"  /> 
+        <result  property="pejabatPpkd.nip"  column="I_NIP"  /> 
+    </resultMap>
+
+    <select id="getAllSkpdBtl"   resultType="sipkd.model.Skpd">
+        SELECT   DISTINCT trskpd.i_id, trskpd.C_SKPD, trskpd.N_SKPD
+        FROM   trskpd, tmdpabiaya, trbas
+        WHERE  trskpd.I_ID = tmdpabiaya.I_IDSKPD
+        AND trbas.I_ID = tmdpabiaya.I_IDBAS
+        AND SUBSTR (trbas.c_akun, 1, 3) IN ('6.2')
+        and #{tahun} between c_tahun_berlaku and c_tahun_berakhir
+        ORDER BY   trskpd.C_SKPD
+    </select>
+
+    <select id="getAllSkpdById"   parameterType="java.lang.Integer" resultType="sipkd.model.Skpd">
+        SELECT   DISTINCT trskpd.i_id, trskpd.C_SKPD, trskpd.N_SKPD
+        FROM   trskpd, tmdpabiaya, trbas
+        WHERE trskpd.I_ID = tmdpabiaya.I_IDSKPD
+        AND trbas.I_ID = tmdpabiaya.I_IDBAS
+        AND SUBSTR (trbas.c_akun, 1, 3) IN ('6.2')
+        and #{tahun} between c_tahun_berlaku and c_tahun_berakhir
+        AND TRSKPD.C_SKPD_LEVEL = 3
+        ORDER BY   trskpd.C_SKPD
+    </select>
+
+    <select id="getPaguDanSisaBiaya"   parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT   XXX.I_IDSKPD,
+        TRSKPD.N_SKPD,
+        SUM (BTL) BTL,
+        SUM (SPD) SPD,
+        SUM (BTL - SPD) SELISIH
+        FROM   (SELECT   I_IDSKPD, (V_ANGG_TAPD) BTL, 0 SPD
+        FROM   TMDPABIAYA INNER JOIN TRBAS ON TRBAS.I_ID =TMDPABIAYA.I_IDBAS   AND  SUBSTR (trbas.c_akun, 1, 3) IN ('6.2')
+        WHERE   C_ANGG_TAHUN = #{tahun}  AND I_IDSKPD = #{idskpd}
+        UNION ALL
+        SELECT   I_IDSKPD, 0 BTL, (V_SPD) SPD
+        FROM   VW_SPDBIAYA_GRID
+        WHERE   C_ANGG_TAHUN = #{tahun} AND I_IDSKPD = #{idskpd}  ) XXX, TRSKPD
+        WHERE   XXX.I_IDSKPD = TRSKPD.I_ID
+        GROUP BY   XXX.I_IDSKPD, TRSKPD.N_SKPD
+        ORDER BY   1
+    </select>
+
+
+    <select id="gettotalpagubyidskpddantahun"   parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT   SUM (tmdpabiaya.v_angg_tapd) AS pagu
+        FROM   tmdpabiaya, trbas, trskpd
+        WHERE   ( (trbas.i_id = tmdpabiaya.i_idbas)
+        AND (trskpd.i_id = tmdpabiaya.i_idskpd))
+        AND SUBSTR (trbas.c_akun, 1, 3) IN ('6.2')
+        AND tmdpabiaya.c_angg_tahun = #{tahun}
+        AND tmdpabiaya.i_idskpd = #{idskpd}
+        GROUP BY   tmdpabiaya.i_idskpd
+    </select>
+
+    <select id="gettotalspdbyidskpddantahun"   parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT   SUM (v_spd) AS tmpVar
+        FROM   tmspd, tmspdrincibiaya, tmspdcetak
+        WHERE       tmspd.I_ID = tmspdrincibiaya.I_IDSPD
+        AND tmspd.I_ID = tmspdcetak.I_ID
+        AND tmspd.c_jenis = '4'
+        AND tmspd.C_ANGG_TAHUN =  #{tahun}
+        AND tmspd.I_IDSKPD = #{idskpd}
+    </select>
+
+    <select id="getAnggaranBtlSkpd"   parameterType="java.util.Map" resultType="sipkd.model.SpdBTLMaster">
+        SELECT   I_IDSKPD AS "skpd.idSkpd",
+        C_ANGG_TAHUN AS tahunAnggaran,
+        D_SPDNO AS tglSpd,
+        I_IDSPD AS idSpd,
+        I_SPDNO AS noSpd,
+        STATUS AS status,
+        V_SPD AS nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        TO_DATE (A.D_SPDNO, 'DD-MM-YYYY') AS D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        A.V_SPD
+        FROM   VW_SPDBIAYA_GRID A
+        WHERE  UPPER (STATUS) != 'VALIDASI'
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        ORDER BY   
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                A.I_SPDNO
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                A.D_SPDNO
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                A.V_SPD
+            </when>
+            <otherwise>
+                A.I_IDSPD
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getBanyakAnggaranBtlSkpd"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (A.I_IDSPD) AS banyak
+        FROM   VW_SPDBIAYA_GRID A
+        WHERE   UPPER (STATUS) != 'VALIDASI'
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+    </select>
+
+    <select id="getTotalAnggaranSkpd"    parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT   SUM (T.V_ANGG_TAPD)
+        FROM    TMDPABIAYA T
+        WHERE   T.I_IDSKPD = #{idskpd} AND T.C_ANGG_TAHUN = #{tahun}
+    </select>
+    <select id="getTotalSPDBySKPDDanTahun"    parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT    NVL(SUM (v_spd),0)  FROM VW_SPDBIAYA_GRID
+        WHERE   c_angg_tahun =  #{tahun} AND i_idskpd = #{idskpd}
+    </select>
+    <select id="getListSPDDetailBySKPDDanTahun"   parameterType="java.util.Map" resultType="sipkd.model.SpdBtlDetail"  >      
+        SELECT   IDBTL AS idBtl,
+        I_IDBAS AS idAkun,
+        c_akun AS kodeAkun,
+        N_AKUN AS namaAkun,
+        nilaiAnggaranSPDSudahAda,
+        nilaiAnggaranTAPD,
+        nilaiAnggaranSPDSisa,
+        nilaiAnggaranSPDBaru
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (    SELECT   XXX.I_IDSKPD,
+        IDBTL,
+        TRSKPD.N_SKPD,
+        I_IDBAS,
+        c_akun,
+        trbas.N_AKUN,
+        SUM (SPD_sdhada) AS nilaiAnggaranSPDSudahAda,
+        SUM (BTL) AS nilaiAnggaranTAPD,
+        SUM (BTL - SPD_sdhada) AS nilaiAnggaranSPDSisa,
+        SUM (BTL - SPD_sdhada) AS nilaiAnggaranSPDBaru
+        FROM   (SELECT   I_IDSKPD,
+        I_ID IDBTL,
+        I_IDBAS,
+        (V_ANGG_TAPD) BTL,
+        0 SPD_sdhada
+        FROM   TMDPABIAYA
+        WHERE   C_ANGG_TAHUN = #{tahun} AND TMDPABIAYA.I_IDskpd = #{idskpd}
+        UNION ALL
+        SELECT   I_IDSKPD,
+        VW_SPDBIAYA.I_IDBIAYA IDBTL,
+        I_IDBAS,
+        0 BTL,
+        (V_SPD) SPD_sdhada
+        FROM   VW_SPDBIAYA
+        WHERE   C_ANGG_TAHUN = #{tahun} AND VW_SPDBIAYA.I_IDskpd = #{idskpd} ) XXX,
+        TRSKPD,
+        trbas
+        WHERE   XXX.I_IDSKPD = TRSKPD.I_ID AND XXX.I_IDBAS = trbas.I_ID and c_akun like '6.2%'
+        GROUP BY   XXX.I_IDSKPD,
+        IDBTL,
+        TRSKPD.N_SKPD,
+        I_IDBAS,
+        c_akun,
+        N_AKUN
+        ORDER BY   1, 4 ) a)
+        WHERE  ROWNUM  &lt;= #{limit} AND rn &gt; #{offset}  
+    </select>
+    <select id="getListSPDDetailBySKPDDanTahunEdit"   parameterType="java.util.Map" resultType="sipkd.model.SpdBtlDetail"  >  
+        SELECT   IDBTL AS idBtl,
+        I_IDBAS AS idAkun,
+        c_akun AS kodeAkun,
+        N_AKUN AS namaAkun,
+        nilaiAnggaranSPDSudahAda,
+        nilaiAnggaranTAPD,
+        nilaiAnggaranSPDSisa,
+        nilaiAnggaranSPDEdit
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (            
+        SELECT   XXX.I_IDSKPD,
+        IDBTL,
+        TRSKPD.N_SKPD,
+        I_IDBAS,
+        c_akun,
+        trbas.N_AKUN,
+        SUM (SPD_sdhada) AS nilaiAnggaranSPDSudahAda,
+        SUM (BTL) AS nilaiAnggaranTAPD,
+        SUM (BTL - SPD_sdhada) AS nilaiAnggaranSPDSisa,
+        SUM (spd) AS nilaiAnggaranSPDEdit
+        FROM   (SELECT   I_IDSKPD,
+        I_ID IDBTL,
+        I_IDBAS,
+        (V_ANGG_TAPD) BTL,
+        0 SPD_sdhada,
+        0 spd
+        FROM   TMDPABIAYA
+        WHERE   C_ANGG_TAHUN = #{tahun} AND TMDPABIAYA.I_IDskpd = #{idskpd}
+        UNION ALL
+        SELECT   I_IDSKPD,
+        VW_SPDBIAYA.I_IDBIAYA IDBTL,
+        I_IDBAS,
+        0 BTL,
+        (V_SPD) SPD_sdhada,
+        0 spd
+        FROM   VW_SPDBIAYA
+        WHERE       C_ANGG_TAHUN = #{tahun}
+        AND VW_SPDBIAYA.I_IDSPD != #{idspd}
+        AND VW_SPDBIAYA.I_IDskpd = #{idskpd}
+        UNION ALL
+        SELECT   I_IDSKPD,
+        VW_SPDBIAYA.I_IDBIAYA IDBTL,
+        I_IDBAS,
+        0 BTL,
+        0 SPD_sdhada,
+        (V_SPD) SPD
+        FROM   VW_SPDBIAYA
+        WHERE       C_ANGG_TAHUN = #{tahun}
+        AND VW_SPDBIAYA.I_IDSPD = #{idspd}
+        AND VW_SPDBIAYA.I_IDskpd = #{idskpd}) XXX,
+        TRSKPD,
+        trbas
+        WHERE   XXX.I_IDSKPD = TRSKPD.I_ID AND XXX.I_IDBAS = trbas.I_ID  and c_akun like '6.2%'
+        GROUP BY   XXX.I_IDSKPD,
+        IDBTL,
+        TRSKPD.N_SKPD,
+        I_IDBAS,
+        c_akun,
+        N_AKUN
+        ORDER BY   1, 4
+
+        ) a)
+        WHERE  ROWNUM  &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    <select id="getAllPejabatPpkd"   parameterType="java.util.Map" resultType="sipkd.model.PejabatPpkd">
+        SELECT   I_ID AS idPejabatPPKD,
+        C_AKTIF AS isAktif,
+        I_NIP AS nip,
+        I_NRK AS nrk,
+        N_PEG AS namaPegawai,
+        N_JABATAN AS namaJabatan,
+        I_PGUN_REKAM AS idEntry,
+        D_PGUN_REKAM AS tglEntry,
+        I_PGUN_UBAH AS idEdit,
+        D_PGUN_UBAH AS tglEdit
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   T.I_ID,
+        T.C_AKTIF,
+        T.I_NIP,
+        T.I_NRK,
+        T.N_PEG,
+        T.N_JABATAN,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.I_PGUN_UBAH,
+        T.D_PGUN_UBAH
+        FROM   TRDOKTTD T
+        WHERE  ( T.C_DOK = #{kodeDok}
+        AND  
+        (  #{nilaispd} &gt;= T.V_DOK_MIN AND  #{nilaispd} &lt;= T.V_DOK_MAX )) OR  T.C_DOK = 'ALL'
+        ORDER BY  
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                I_NIP
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                I_NRK
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                N_PEG
+            </when>
+            <when test="iSortCol_0 == 4 ">
+                N_JABATAN
+            </when>
+            <otherwise>
+                T.I_ID 
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                DESC
+            </when>
+            <otherwise> 
+                ASC
+            </otherwise>
+        </choose>         
+        ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset}    
+    </select>
+
+    <select id="getBanyakPejabatPPKD"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  COUNT(DISTINCT( T.I_ID))  FROM   TRDOKTTD T  WHERE  ( T.C_DOK = #{kodeDok} AND  
+        (  #{nilaispd} &gt;= T.V_DOK_MIN AND  #{nilaispd} &lt;= T.V_DOK_MAX ) ) OR  T.C_DOK = 'ALL'
+    </select>
+
+    <select id="getspdno"   parameterType="java.lang.String"     resultType="java.lang.Integer">
+        SELECT   NVL (MAX (i_spdno), 0) + 1 AS no_spd
+        FROM   tmspd
+        WHERE   c_angg_tahun = #{value}
+    </select>
+
+    <select id="getspdid"     resultType="java.lang.Long">
+        SELECT    SEQ_TMSPD.nextval   from dual
+    </select>
+
+    <select id="getdataspdbtlmaster"  parameterType="java.lang.Integer" resultMap="spdBTLMasterMap" >
+        SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        A.D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        A.V_SPD
+        FROM   VW_SPDBIAYA_GRID A
+        WHERE   A.I_IDSPD = #{param}
+    </select>
+
+    <insert id="insertspdmaster" parameterType="sipkd.model.SpdBTLMaster"   >
+        INSERT INTO TMSPD (
+        I_ID, C_ANGG_TAHUN, I_SPDNO, 
+        D_SPDNO, I_IDSKPD, 
+        C_BULAN_AWAL, C_BULAN_AKHIR, E_SPD, 
+        C_JENIS ) 
+        VALUES (   
+        #{idSpd}    
+        ,#{tahunAnggaran} 
+        ,#{noSpd}
+        ,#{tglSpd} 
+        ,#{skpd.idSkpd}
+        ,#{bulanAwal}
+        ,#{bulanAkhir} 
+        ,REPLACE ( REPLACE (REPLACE (#{uraian} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )
+        ,#{jenis} )
+    </insert>
+    <update id="updatespdmaster" parameterType="sipkd.model.SpdBTLMaster"   >
+        UPDATE  TMSPD
+        SET     
+        C_ANGG_TAHUN  = #{tahunAnggaran} ,
+        I_SPDNO       = #{noSpd},
+        C_JENIS       = #{jenis},
+        D_SPDNO       = #{tglSpd} ,
+        I_IDSKPD      = #{skpd.idSkpd},
+        C_BULAN_AWAL  = #{bulanAwal},
+        C_BULAN_AKHIR = #{bulanAkhir},
+        E_SPD         = REPLACE ( REPLACE (REPLACE (#{uraian} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' ) 
+        WHERE  I_ID          =  #{idSpd}
+    </update>
+    <insert id="insertspddetail" parameterType="sipkd.model.SpdBtlDetail"   >
+        INSERT INTO TMSPDRINCIBIAYA (I_ID,
+        I_IDSPD,
+        I_IDBIAYA,
+        V_SPD,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,I_IDBAS )
+        VALUES   (  SEQ_TMSPDRINCIBTL.nextval 
+        ,#{idSpd}
+        ,#{idBtl}
+        ,#{nilaiAnggaranSPDCurrent}
+        ,#{idEntry}
+        ,#{tglEntry} ,#{idAkun})
+    </insert>
+    <select id="getdataspdbtlmasterinsert"  parameterType="java.lang.Integer" resultMap="spdBTLMasterInsertMap" >        
+        SELECT   T.I_ID,
+        T.C_ANGG_TAHUN,
+        T.I_SPDNO,
+        T.D_SPDNO,
+        T.I_IDSKPD,
+        T.C_BULAN_AWAL||'/'||T.C_ANGG_TAHUN as  C_BULAN_AWAL, 
+        T.C_BULAN_AKHIR||'/'||T.C_ANGG_TAHUN as C_BULAN_AKHIR,
+        T.E_SPD, 
+        S.N_SKPD 
+        FROM          TMSPD T
+        LEFT JOIN
+        TRSKPD S
+        ON S.I_ID = T.I_IDSKPD         
+        WHERE  T.I_ID =  #{param}
+    </select>
+    <select id="getBanyakTotalSPDBySKPDDanTahun"    parameterType="java.util.Map" resultType="java.lang.Integer">  
+        SELECT   NVL(SUM (COUNT (DISTINCT XXX.I_IDBAS)),0) AS banyak
+        FROM   (SELECT   I_IDSKPD,
+        I_IDBAS,
+        (V_ANGG_TAPD) BTL,
+        0 SPD
+        FROM   TMDPABIAYA t
+        WHERE   C_ANGG_TAHUN = #{tahun}
+        UNION ALL
+        SELECT   I_IDSKPD,
+        I_IDBAS,
+        0 BTL,
+        (V_SPD) SPD
+        FROM   VW_SPDBIAYA v
+        WHERE   C_ANGG_TAHUN =  #{tahun} AND V.I_IDSPD &lt; #{idspd} ) XXX,
+        TRSKPD,
+        trbas
+        WHERE       XXX.I_IDSKPD = TRSKPD.I_ID
+        AND TRSKPD.I_ID = #{idskpd}
+        AND XXX.I_IDBAS = trbas.I_ID and c_akun like '6.2%'
+        GROUP BY   XXX.I_IDSKPD,
+        TRSKPD.N_SKPD,
+        I_IDBAS,
+        c_akun,
+        N_AKUN
+    </select>
+    <update id="updatenilaispddetail" parameterType="sipkd.model.SpdBtlDetail"   >
+        UPDATE    TMSPDRINCIBIAYA 
+        SET   V_SPD = #{nilaiAnggaranSPDCurrent},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit}
+        WHERE   I_ID = #{idSpdRinci}
+    </update>
+
+    <select id="getcekspddetailbyidspd"  parameterType="java.lang.Integer" resultType="java.lang.Integer" >
+        SELECT   COUNT (T.I_ID)
+        FROM   TMSPDRINCIBIAYA T
+        WHERE   T.I_IDSPD =  #{param}
+    </select>
+
+    <select id="getcekspddetailbyidspdandidbtl"  parameterType="java.util.Map" resultType="java.lang.Integer" >
+        SELECT   COUNT (T.I_ID)
+        FROM    TMSPDRINCIBIAYA T
+        WHERE   T.I_IDSPD =   #{idSpd} AND 
+        I_IDBIAYA      = #{idBtl}  
+    </select>
+
+    <update id="updatenilaispddetailbyidspdandidbtl" parameterType="sipkd.model.SpdBtlDetail"   >
+        UPDATE TMSPDRINCIBIAYA
+        SET   
+        V_SPD        = #{nilaiAnggaranSPDCurrent},
+        I_PGUN_UBAH  = #{idEdit},
+        D_PGUN_UBAH  = #{tglEdit}
+        WHERE  I_IDSPD      = #{idSpd}  AND 
+        I_IDBIAYA     = #{idBtl}  
+    </update>
+    <insert id="insertspdsah" parameterType="java.util.Map"   >
+        INSERT INTO  TMSPDSAH (I_ID,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        D_SPD_SAH)
+        VALUES   (#{idspd},#{userid},#{tglentry} ,#{tglentry})
+    </insert>
+    <insert id="insertspdcetak" parameterType="java.util.Map"   >
+        INSERT INTO  TMSPDCETAK (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM, 
+        I_IDDOKTTD,A_JASPER_FILE,A_SPDFILE_PDF)  
+        VALUES   (#{idspd},#{userid},#{tglentry} ,#{idpejabatttd} ,#{filejasper},#{filepdf} )
+    </insert>
+    <delete id="hapusspdrincibtl" parameterType="java.lang.Integer"   >
+        delete TMSPDRINCIBIAYA    WHERE   I_ID = #{value} 
+    </delete>
+    <delete id="hapusspdrincibtlbyakundanspd" parameterType="java.util.Map"    >
+        delete TMSPDRINCIBIAYA    WHERE   I_IDBAS = #{idAkun} AND I_IDSPD = #{idSpd} 
+    </delete>
+    <select id="getharikerjaspd"   parameterType="java.sql.Date" resultType="sipkd.model.HariKerja">
+        SELECT   T.D_REKAM as tglRekam,
+        T.D_APPROVE as tglApprove,
+        T.D_CETAK as tglCetak,
+        T.D_SAH as tglSah
+        FROM    TRHARIKERJA T
+        WHERE   C_DOK = 'SPD' AND D_HARI_KERJA = #{value}
+    </select>
+    <delete id="hapusspdrincibtlbyidspd" parameterType="java.lang.Integer"   >
+        delete from TMSPDRINCIBIAYA where I_IDSPD =  #{idSpd} 
+    </delete>
+    <delete id="hapusspdbyidspd" parameterType="java.lang.Integer"   >
+        delete from TMSPD where I_ID = #{idSpd} 
+    </delete>
+    <select id="getlistcetakspdbtl"   parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT   I_IDSKPD,
+        C_ANGG_TAHUN,
+        D_SPDNO,
+        I_IDSPD as idSpd,
+        I_SPDNO as noSpd,
+        STATUS as status,
+        V_SPD as nilaiSpd,
+        D_SPD_CETAK  as tglCetak ,
+        I_IDDOKTTD as idTtd,
+        N_PEG as namaPegawai,
+        I_NIP as nipPegawai,
+        N_JABATAN as namaJabatan, C_STATUS_CETAK as statusCetak,jenis
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        A.D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        A.V_SPD,
+        C.D_SPD_CETAK,
+        C.I_IDDOKTTD,
+        D.N_PEG,
+        D.I_NIP,
+        D.N_JABATAN,
+        C.C_STATUS_CETAK,
+        'BIAYA' AS jenis
+        FROM      VW_SPDBIAYA_GRID A
+        LEFT JOIN
+        TMSPDCETAK C
+        LEFT JOIN
+        TRDOKTTD D
+        ON D.I_ID = C.I_IDDOKTTD
+        ON C.I_ID = A.I_IDSPD
+        WHERE   UPPER (STATUS) != 'VALIDASI'
+        AND c_angg_tahun = #{tahun}   AND i_idskpd = #{idskpd}
+        ORDER BY
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                I_SPDNO
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                D_SPDNO
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                jenis
+            </when>
+            <when test="iSortCol_0 == 4 ">
+                V_SPD
+            </when>
+            <when test="iSortCol_0 == 5 ">
+                STATUS
+            </when>
+            <when test="iSortCol_0 == 6 ">
+                D_SPD_CETAK
+            </when>
+            <when test="iSortCol_0 == 7 ">
+                N_PEG
+            </when>
+            <otherwise>
+                I_IDSPD
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>
+        ) a)  WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    <select id="getbanyakcetakspdbtl"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (DISTINCT (a.i_idspd)) AS banyak
+        FROM  VW_SPDBIAYA_GRID A
+        LEFT JOIN
+        TMSPDCETAK C
+        LEFT JOIN
+        TRDOKTTD D
+        ON D.I_ID = C.I_IDDOKTTD
+        ON C.I_ID = A.I_IDSPD
+        WHERE   UPPER (STATUS) != 'VALIDASI'
+        AND c_angg_tahun = #{tahun}         AND i_idskpd = #{idskpd}
+    </select>
+    <select id="getcetakspdbyidspd"  resultType="java.util.Map"  parameterType="java.lang.Integer">
+        SELECT 
+        T.I_ID as idSpd, 
+        T.D_SPD_CETAK, T.A_SPDFILE_PDF as alamatPdf,
+        T.C_STATUS_CETAK as statusCetak, 
+        T.A_JASPER_FILE as alamatJasper 
+        FROM 
+        TMSPDCETAK T WHERE T.I_ID  =  #{idskpd} AND  T.C_STATUS_CETAK = 2
+    </select>
+    <select id="getlistvalidasispdbtl"   parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT   I_IDSKPD,
+        C_ANGG_TAHUN,
+        D_SPDNO,
+        I_IDSPD as idSpd,
+        I_SPDNO as noSpd,
+        STATUS as status,
+        V_SPD as nilaiSpd,
+        D_SPD_CETAK  as tglCetak ,
+        I_IDDOKTTD as idTtd,
+        N_PEG as namaPegawai,
+        I_NIP as nipPegawai,
+        N_JABATAN as namaJabatan, C_STATUS_CETAK as statusCetak,jenis
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        A.D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        A.V_SPD,
+        C.D_SPD_CETAK,
+        C.I_IDDOKTTD,
+        D.N_PEG,
+        D.I_NIP,
+        D.N_JABATAN,
+        C.C_STATUS_CETAK,
+        'BIAYA' AS jenis
+        FROM      VW_SPDBIAYA_GRID A
+        LEFT JOIN
+        TMSPDCETAK C
+        LEFT JOIN
+        TRDOKTTD D
+        ON D.I_ID = C.I_IDDOKTTD
+        ON C.I_ID = A.I_IDSPD
+        WHERE   UPPER (STATUS) != 'CETAK'
+        AND c_angg_tahun = #{tahun}   
+        AND i_idskpd = #{idskpd}
+        ORDER BY
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                I_SPDNO
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                D_SPDNO
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                jenis
+            </when>
+            <when test="iSortCol_0 == 4 ">
+                V_SPD
+            </when>
+            <when test="iSortCol_0 == 5 ">
+                STATUS
+            </when>
+            <when test="iSortCol_0 == 6 ">
+                D_SPD_CETAK
+            </when>
+            <when test="iSortCol_0 == 7 ">
+                N_PEG
+            </when>
+            <otherwise>
+                I_IDSPD
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>
+        ) a)  WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    <select id="getbanyakvalidasispdbtl"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (DISTINCT (a.i_idspd)) AS banyak
+        FROM      VW_SPDBIAYA_GRID A
+        LEFT JOIN
+        TMSPDCETAK C
+        LEFT JOIN
+        TRDOKTTD D
+        ON D.I_ID = C.I_IDDOKTTD
+        ON C.I_ID = A.I_IDSPD
+        WHERE   UPPER (STATUS) = 'CETAK'
+        AND c_angg_tahun = #{tahun}        
+        AND i_idskpd = #{idskpd}
+    </select>
+</mapper>

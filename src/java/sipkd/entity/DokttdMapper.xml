@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sipkd.entity.DokttdMapper">
+    <select id="getDokttd" parameterType="java.util.Map"
+            resultType="sipkd.model.Dokttd">
+        SELECT   I_ID AS id,
+         C_DOK AS kodeDok,
+         I_NIP AS idNip,
+         I_NRK AS idNrk,
+         N_PEG AS namaPegawai,
+         N_JABATAN AS jabatan,
+         V_DOK_MIN AS nilaiMin,
+         V_DOK_MAX AS nilaiMax,
+         C_AKTIF AS isAktif
+  FROM   (SELECT   ROWNUM AS rn, a.*
+         FROM   (SELECT T.I_ID,
+                        T.C_DOK,
+                        T.I_NIP,
+                        T.I_NRK,
+                        T.N_PEG,
+                        T.N_JABATAN,
+                        T.V_DOK_MIN,
+                        T.V_DOK_MAX,
+                        T.C_AKTIF
+         
+  FROM   TRDOKTTD T
+  )a)     
+    </select>
+    
+    <select id="getCountDokttd" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        select count(i_id) from TRDOKTTD T
+        <if test="dokttd != null and dokttd != '' ">
+            where upper( T.N_PEG) like '%'||upper(#{dokttd})||'%'
+        </if>
+    </select>
+    
+    <insert id="insertDokttd" parameterType="sipkd.model.Dokttd"   >
+        INSERT INTO  TRDOKTTD (I_ID, C_DOK,I_NIP,I_NRK,N_PEG,N_JABATAN,V_DOK_MIN,V_DOK_MAX,C_AKTIF,I_PGUN_REKAM,D_PGUN_REKAM)
+        VALUES ((select max(i_id)+2 from trdokttd),#{kodeDok},#{idNip},#{idNrk},#{namaPegawai},#{jabatan},#{nilaiMin},#{nilaiMax},#{isAktif},#{idEntry},#{tglEntry} )
+    </insert>
+    
+    <select id="getDokttdById" parameterType="java.lang.Integer"
+            resultType="sipkd.model.Dokttd">
+         SELECT   I_ID AS id,
+         C_DOK AS kodeDok,
+         I_NIP AS idNip,
+         I_NRK AS idNrk,
+         N_PEG AS namaPegawai,
+         N_JABATAN AS jabatan,
+         V_DOK_MIN AS nilaiMin,
+         V_DOK_MAX AS nilaiMax,
+         C_AKTIF AS isAktif
+  FROM TRDOKTTD
+  
+  WHERE   I_ID =  #{value}
+    </select>
+    
+    <update id="updateDokttd" parameterType="sipkd.model.Dokttd"   >
+        UPDATE TRDOKTTD
+            SET
+            C_DOK = #{kodeDok},
+            I_NIP = #{idNip},
+            I_NRK = #{idNrk},
+            N_PEG = #{namaPegawai},
+            N_JABATAN = #{jabatan},
+            V_DOK_MIN = #{nilaiMin},
+            V_DOK_MAX = #{nilaiMax},
+            C_AKTIF = #{isAktif}
+            WHERE  I_ID = #{id}
+    </update>
+    
+    <delete id="deleteDokttd" parameterType="java.lang.Integer"   >
+        delete TRDOKTTD     WHERE I_ID      = #{id}
+    </delete>
+    
+</mapper>

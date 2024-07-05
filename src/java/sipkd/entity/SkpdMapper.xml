@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sipkd.entity.SkpdMapper">
+    <select id="getAllSkpd" parameterType="java.util.Map" resultType="sipkd.model.Skpd">
+        SELECT    i_id as idSkpd,C_SKPD as kodeSkpd,N_SKPD as namaSkpd,c_skpd_level as levelSkpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   DISTINCT
+        trskpd.i_id  ,
+        trskpd.C_SKPD  ,
+        trskpd.N_SKPD,
+        trskpd.c_skpd_level  
+        FROM   trskpd 
+        WHERE  #{tahun} between c_tahun_berlaku and c_tahun_berakhir
+        <if test="skpd != null and skpd != '' ">
+            and upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>      
+        ORDER BY 
+        <choose>
+            <when test="iSortCol_0 == 0 ">
+                trskpd.i_id
+            </when>
+            <when test="iSortCol_0 == 1 ">
+                trskpd.C_SKPD
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                trskpd.N_SKPD
+            </when>
+            <otherwise>
+                trskpd.i_id  
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' ">
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>                
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakAllSkpd" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        SELECT   count( DISTINCT
+        trskpd.i_id  ) as banyak
+        FROM   trskpd where #{tahun} between c_tahun_berlaku and c_tahun_berakhir 
+        <if test="skpd != null and skpd != ''">
+            and upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+    </select>
+    <select id="getDetailSkpd" parameterType="java.lang.Integer"
+            resultType="sipkd.model.Skpd"> 
+        SELECT   DISTINCT
+        trskpd.i_id  as idSkpd ,
+        trskpd.C_SKPD as kodeSkpd ,
+        trskpd.N_SKPD  as namaSkpd
+        FROM   trskpd 
+        WHERE        trskpd.i_id = #{id}
+    </select>
+    
+    <select id="getDetailSkpdByLevel"  parameterType="java.util.Map" resultType="sipkd.model.Skpd"> 
+        SELECT   DISTINCT
+        trskpd.i_id  as idSkpd ,
+        trskpd.C_SKPD as kodeSkpd ,
+        trskpd.N_SKPD  as namaSkpd
+        FROM   trskpd 
+        WHERE  C_AKTIF = '1'             
+        AND C_SKPD_LEVEL = #{id} 
+        and #{tahun} between c_tahun_berlaku and c_tahun_berakhir
+    </select>
+     <select id="getAllSkpdBTL" parameterType="java.util.Map"
+            resultType="sipkd.model.Skpd">
+        SELECT    i_id as idSkpd,C_SKPD as kodeSkpd,N_SKPD as namaSkpd,c_skpd_level as levelSkpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   DISTINCT
+        trskpd.i_id  ,
+        trskpd.C_SKPD  ,
+        trskpd.N_SKPD,
+        trskpd.c_skpd_level  
+        FROM   trskpd, tmdpabtl, trbas
+        WHERE       trskpd.I_ID = tmdpabtl.I_IDSKPD
+        AND trbas.I_ID = tmdpabtl.I_IDBAS
+        and tmdpabtl.c_angg_tahun = #{tahun}
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.1', '5.1.2', '5.1.8')
+        <if test="skpd != null and skpd != '' ">
+            and upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>      
+        ORDER BY 
+        <choose>
+            <when test="iSortCol_0 == 0 ">
+                trskpd.i_id
+            </when>
+            <when test="iSortCol_0 == 1 ">
+                trskpd.C_SKPD
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                trskpd.N_SKPD
+            </when>
+            <otherwise>
+                trskpd.i_id  
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' ">
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>                
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+     <select id="getBanyakAllSkpdBTL" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        SELECT   count( DISTINCT
+        trskpd.i_id  ) as banyak
+        FROM   trskpd, tmdpabtl, trbas
+        WHERE       trskpd.I_ID = tmdpabtl.I_IDSKPD
+        AND trbas.I_ID = tmdpabtl.I_IDBAS
+         and tmdpabtl.c_angg_tahun = #{tahun}
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.1', '5.1.2', '5.1.8')
+        <if test="skpd != null and skpd != ''">
+            and upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+    </select>
+</mapper>

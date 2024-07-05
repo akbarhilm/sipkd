@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sipkd.entity.SpdPembatalanRevMapper">
+    <select id="getbanyakvalidasispd"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+      SELECT   COUNT (*) banyak  FROM   (
+        select tmspdsah.I_id as idSpdSah ,
+        tmspd.i_idskpd ,
+        'BTL' as keterangan,
+        tmspd.I_SPDNO_DOK as noDokSpd,
+        tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd ,
+        tmspdsah.D_SPD_SAH as tglSpdSah,
+        tmspd.d_spdno as tglSpd,
+        tmspdsah.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='1'
+       
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd} 
+        and tmspdsah.C_SPD_STATUS = '2'
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BTL-BANTUAN' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='2'
+        
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd} 
+        and tmspdsah.C_SPD_STATUS = '2'
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BL' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='3'
+        
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd}
+        and tmspdsah.C_SPD_STATUS = '2'
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BIAYA' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='4'
+       
+        and tmspd.c_angg_tahun =#{tahun}
+        and tmspd.i_idskpd =#{idskpd}
+        and tmspdsah.C_SPD_STATUS = '2'
+      )
+        
+    </select>    
+    
+    <select id="getlistvalidasispd"   parameterType="java.util.Map" resultType="sipkd.model.SpdPembatalan">
+        select tmspdsah.I_id as idSpdSah ,
+        tmspd.i_idskpd ,
+        'BTL' as keterangan,
+        tmspd.I_SPDNO_DOK as noDokSpd,
+        tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd ,
+        tmspdsah.D_SPD_SAH as tglSpdSah,
+        tmspd.d_spdno as tglSpd,
+        tmspdsah.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='1'
+        
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd} 
+        and tmspdsah.C_SPD_STATUS = '2'
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BTL-BANTUAN' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='2'
+        
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd} 
+        and tmspdsah.C_SPD_STATUS = '2'
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BL' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='3'
+        
+        and tmspd.c_angg_tahun =#{tahun} 
+        and tmspd.i_idskpd =#{idskpd}
+        and tmspdsah.C_SPD_STATUS = '2'
+        union all
+        select tmspdsah.I_id  as idSpdSah ,  tmspd.i_idskpd , 'BIAYA' as keterangan,  tmspd.I_SPDNO_DOK as noDokSpd, tmspd.I_SPDNO as noSpd ,
+        tmspdsah.V_SPD as v_spd , TMSPDSAH.D_SPD_SAH as tglSpdSah, tmspd.d_spdno as tglSpd,TMSPDSAH.I_PGUN_REKAM as peg_rekam
+        from tmspdsah , tmspd 
+        where tmspdsah.I_id = tmspd.I_id
+        and c_jenis ='4'
+        
+        and tmspd.c_angg_tahun =#{tahun}
+        and tmspd.i_idskpd =#{idskpd}
+        and tmspdsah.C_SPD_STATUS = '2'
+
+    </select>
+    
+      
+    <select id="getBatalById" parameterType="java.lang.Integer"  resultType="sipkd.model.SpdPembatalan">
+        select tmspdsah.i_id as idSpdSah,
+        tmspdsah.d_spd_sah as tglSpdSah,
+        <!--to_char(tmspdsah.d_spd_sah,'dd-MM-yyyy') as tglSpdSah,-->
+        tmspdsah.v_spd,
+        tmspdsah.i_pgun_rekam as peg_rekam,
+        tmspd.I_SPDNO_DOK as noDokSpd,
+        tmspd.d_spdno as tglSpd,
+        tmspd.i_idskpd as idSkpd,
+        trskpd.c_skpd || ' / ' || trskpd.n_skpd  as namaSkpd
+
+        from tmspdsah,tmspd,trskpd
+        where  tmspdsah.I_id = tmspd.I_id
+        and tmspd.i_idskpd = trskpd.i_id
+        and tmspdsah.i_id=#{value}
+
+        
+    </select>
+    
+    <delete id="deleteSpdSah" parameterType="java.lang.Integer" >
+        delete tmspdsah where I_ID = #{value}
+    </delete>
+    
+     <update id="updatespdsahbatal" parameterType="java.util.Map"   >
+        UPDATE  TMSPDSAH
+        SET   
+        C_SPD_STATUS           = #{status}
+        wHERE  I_ID  = #{value}    
+               
+    </update>
+    
+    <insert id="insertThSpdSah" parameterType="sipkd.model.SpdPembatalan"   >
+        INSERT INTO thspdsah (
+        i_id,
+        d_spd_sah,
+        v_spd,
+        i_pgun_rekam,
+        d_pgun_rekam,
+        i_pgun_batal,
+        d_pgun_batal,
+        e_spd_alasanbatal
+        ) 
+        VALUES (   
+        #{idSpdSah}    
+        ,#{tglSpdSah} 
+        ,#{v_spd}
+        ,#{peg_rekam} 
+        ,#{tglSpdSah}
+        ,#{idEntry}
+        ,sysdate
+        ,#{alasanBatal} )
+    </insert>
+    
+    
+     <update id="updatespdbatalrincibtl" parameterType="java.util.Map"   >
+        UPDATE  TMSPDRINCIBTL
+        SET   
+        C_SPD_STATUS           = #{stat},
+        D_PGUN_REKAM = #{tglentry}
+        wHERE  I_IDSPD  = #{value}   and C_SPD_STATUS = '2'      
+               
+    </update>
+    
+    <update id="updatespdbatalrincibl" parameterType="java.util.Map"   >
+        UPDATE  TMSPDRINCIBL
+        SET   
+        C_SPD_STATUS           = #{stat},
+        D_PGUN_REKAM = #{tglentry}
+        wHERE  I_IDSPD  = #{value}   and C_SPD_STATUS = '2'    
+               
+    </update>
+    
+    <update id="updatespdbatalrincibtlbantuan" parameterType="java.util.Map"   >
+        UPDATE  TMSPDRINCIBTLBANTUAN
+        SET   
+        C_SPD_STATUS           =  #{stat},
+        D_PGUN_REKAM = #{tglentry}
+        wHERE  I_IDSPD  = #{value}   and C_SPD_STATUS = '2'   
+               
+    </update>
+    
+    <update id="updatespdbatalrincibiaya" parameterType="java.util.Map"   >
+        UPDATE  TMSPDRINCIBIAYA
+        SET   
+        C_SPD_STATUS           = #{stat},
+        D_PGUN_REKAM = #{tglentry}
+        wHERE  I_IDSPD  = #{value}   and C_SPD_STATUS = '2'    
+               
+    </update>
+    
+    
+</mapper>

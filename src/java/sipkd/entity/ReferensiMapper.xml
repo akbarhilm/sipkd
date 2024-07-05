@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sipkd.entity.ReferensiMapper">
+     <select id="getAllSppPaguUp" parameterType="java.util.Map"  resultType="sipkd.model.SppPaguUp">
+        SELECT   I_ID AS id,
+         I_IDSKPD AS "skpd.idSkpd",
+         V_SPP AS nilaiSpp,
+         C_ANGG_TAHUN AS tahun,
+         I_PGUN_REKAM AS idEntry,
+         D_PGUN_REKAM AS tglEntry,
+         I_PGUN_UBAH AS idEdit,
+         D_PGUN_UBAH AS tglEdit,
+         N_SKPD AS "skpd.namaSkpd"
+  FROM   (SELECT   ROWNUM AS rn, a.*
+            FROM   (SELECT   T.I_ID,
+         T.I_IDSKPD,
+         T.V_SPP,
+         T.C_ANGG_TAHUN,
+         T.I_PGUN_REKAM,
+         T.D_PGUN_REKAM,
+         T.I_PGUN_UBAH,
+         T.D_PGUN_UBAH,
+         S.N_SKPD
+  FROM      TRSPPPAGUUP T
+         LEFT JOIN
+            trskpd s
+         ON S.I_ID = T.I_IDSKPD
+         WHERE 1=1 
+          <if test="namaskpd != null and namaskpd != '' ">
+            and upper(S.N_SKPD) like '%'||upper(#{namaskpd})||'%'
+        </if> 
+         <if test="tahun != null and tahun != '' ">
+            and C_ANGG_TAHUN = #{tahun}
+        </if> 
+         ) a)
+WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakSppPaguUp" parameterType="java.util.Map"  resultType="java.lang.Integer">
+    SELECT  count(distinct( T.I_ID)) 
+         FROM   TRSPPPAGUUP T 
+         LEFT JOIN
+            trskpd s
+         ON S.I_ID = T.I_IDSKPD
+         WHERE 1=1 
+          <if test="namaskpd != null and namaskpd != '' ">
+            and upper(S.N_SKPD) like '%'||upper(#{namaskpd})||'%'
+        </if> 
+         <if test="tahun != null and tahun != '' ">
+            and C_ANGG_TAHUN = #{tahun}
+        </if> 
+     </select>  
+     <update id="updateSppPaguUp" parameterType="sipkd.model.SppPaguUp">
+         UPDATE   TRSPPPAGUUP
+   SET   V_SPP = #{nilaiSpp},
+         I_PGUN_UBAH = #{idEdit},
+         D_PGUN_UBAH = #{tglEdit}
+ WHERE   I_ID = #{id}
+     </update>       
+     <select id="getIDSpd" parameterType="java.util.Map"  resultType="java.lang.Integer">
+    SELECT   NVL (MAX (i_spdno), 0) + 1 AS no_spd
+       FROM   tmspd
+      WHERE   c_angg_tahun = #{value}
+     </select>    
+     
+</mapper>
