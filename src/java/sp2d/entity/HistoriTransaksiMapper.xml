@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.HistoriTransaksiMapper">
+    
+    <select id="getRekening" parameterType="java.lang.Integer"  resultType="spp.model.Histori">    
+       select n_rek_bank as namaRekening, i_rek_bank as noRekening, n_wilayah as namaWilayah,c_wil_sp2dproses as kodeWilSp2d From trbank a,trwilayah b 
+       where a.c_wil_sp2dproses = b.c_wilayah  and a.c_wil_sp2dproses = #{id}
+            
+    </select>
+    <select id="getBanyakTransaksiall" parameterType="java.lang.String" resultType="java.lang.Integer">
+       SELECT COUNT(*) AS banyak FROM( SELECT  
+        D_TGL_TRX TRX_TANGGAL, nvl(D_JAM_TRX,'') as TRX_JAM, 
+        E_TRX TRX_KETERANGAN , decode(C_JURNAL, 'C',  V_TRX, 0) as TERIMA , decode(C_JURNAL, 'D',  V_TRX, '0') KELUAR   
+        FROM tmtrxhistoribank 
+        where I_REK_BANK = #{rekening}
+
+        order by  D_TGL_TRX,  D_JAM_TRX)
+    </select>
+    <select id="getTransaksiall" parameterType="java.util.Map" resultType="spp.model.Histori">
+  SELECT    tglTrx,jamTrx, keterangan,terima, keluar,ketBku,namaTujuan
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT  
+        to_char(to_date(D_TGL_TRX,'yyyymmdd'),'dd/MM/YYYY') tglTrx, nvl(D_JAM_TRX,'-') as jamTrx ,n_tujuan as namaTujuan,
+        E_TRX keterangan , decode(C_JURNAL, 'C',  V_TRX, 0) as terima , decode(C_JURNAL, 'D',  V_TRX, '0') keluar, e_bku as ketBku   
+        FROM tmtrxhistoribank 
+        where I_REK_BANK = #{rekening}
+
+        order by  D_TGL_TRX,  D_JAM_TRX
+         ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+      
+    </select>
+     <select id="getSaldoAkhirall" parameterType="java.util.Map" resultType="java.util.Map">
+       SELECT * FROM( SELECT * FROM tmtrxhistoribank WHERE I_REK_BANK = #{rekening} ORDER BY ROWNUM DESC )
+        WHERE   ROWNUM &lt;=1
+        
+    </select>
+    <insert id="getMutasiAll" statementType="CALLABLE" parameterType="java.util.Map" >
+        {CALL proc_ins_TMTRXHISTORIBANK (#{rek}, #{startdate},#{enddate})}
+    </insert>
+    <select id="getListXls" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from (
+        SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+   SELECT I_REK_BANK, D_TGL_TRX, D_JAM_TRX, 
+DECODE(D_TGL_TRX,'-','',substr(D_TGL_TRX,7,2)|| '-'||substr(D_TGL_TRX,5,2)||'-'||substr(D_TGL_TRX,1,4)) AS TANGGAL,
+DECODE(D_JAM_TRX,'-','',substr(D_JAM_TRX,1,2)||':'||substr(D_JAM_TRX,3,2)||':'||substr(D_JAM_TRX,5,2)) AS JAM,
+E_TRX, CREDIT, DEBET, SALDO
+FROM(
+SELECT I_REK_BANK, D_TGL_TRX AS DATE_TRX, D_JAM_TRX AS TIME_TRX, D_TGL_TRX, D_JAM_TRX, E_TRX, CREDIT, DEBET,
+SUM(SALDO - DEBET + CREDIT) OVER(PARTITION BY I_REK_BANK ORDER BY D_TGL_TRX, D_JAM_TRX RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS SALDO
+FROM (
+    SELECT I_REK_BANK, '-' AS D_TGL_TRX, '-' AS D_JAM_TRX, 'SALDO AWAL '||
+          (SELECT Upper(Bulan(substr(MIN(D_TGL_TRX),5,2)))||' '||substr(MIN(D_TGL_TRX),1,4)
+           FROM tmtrxhistoribank
+           WHERE I_REK_BANK = #{rekening}
+		   AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+	   AND substr(D_TGL_TRX,1,4) = #{tahun}) AS E_TRX,
+    0 AS DEBET, 0 AS CREDIT, SUM(SALDO) AS SALDO
+    FROM (
+        SELECT I_REK_BANK, SALDO
+        FROM(
+            SELECT D_TGL_TRX, D_JAM_TRX, I_REK_BANK, V_TRX_SALDOAKHIR AS SALDO
+            FROM tmtrxhistoribank
+            WHERE I_REK_BANK = #{rekening}
+			AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+	    AND substr(D_TGL_TRX,1,4) = #{tahun}
+            ORDER BY D_TGL_TRX DESC, D_JAM_TRX DESC
+            )
+        WHERE ROWNUM = 1
+        UNION ALL
+        SELECT I_REK_BANK, DECODE(C_JURNAL,'D',SUM(V_TRX),'C',-1*SUM(V_TRX)) AS SALDO
+        FROM tmtrxhistoribank
+        WHERE I_REK_BANK = #{rekening}
+		AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+	AND substr(D_TGL_TRX,1,4) = #{tahun}
+        GROUP BY I_REK_BANK, C_JURNAL
+    )
+    GROUP BY I_REK_BANK
+    UNION ALL
+    SELECT I_REK_BANK, D_TGL_TRX, D_JAM_TRX, E_TRX,
+    DECODE(C_JURNAL, 'D', V_TRX, '0') AS DEBET, DECODE(C_JURNAL, 'C', V_TRX, '0') AS CREDIT, 0 AS SALDO
+    FROM tmtrxhistoribank
+    WHERE I_REK_BANK = #{rekening}
+	AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+    AND substr(D_TGL_TRX,1,4) = #{tahun}
+    ORDER BY D_TGL_TRX, D_JAM_TRX
+)
+UNION ALL
+SELECT I_REK_BANK, D_TGL_TRX AS DATE_TRX, '240000' AS TIME_TRX, '-' AS D_TGL_TRX, '-' AS D_JAM_TRX,
+'SALDO AWAL '||Upper(Bulan(trim(to_char(to_number(substr(D_TGL_TRX,5,2))+1,'00'))))||' '||substr(D_TGL_TRX,1,4) AS E_TRX,
+0 AS DEBET, 0 AS CREDIT, SALDO
+FROM (
+SELECT I_REK_BANK, D_TGL_TRX, D_JAM_TRX, 0 AS DEBET, 0 AS CREDIT, SALDO, ROWNUM AS NOBARIS
+FROM (
+SELECT A.I_REK_BANK, A.D_TGL_TRX, A.D_JAM_TRX, 0 AS DEBET, 0 AS CREDIT, A.SALDO
+FROM
+(SELECT I_REK_BANK, D_TGL_TRX, D_JAM_TRX, DEBET, CREDIT,
+ SUM(SALDO - DEBET + CREDIT) OVER(PARTITION BY I_REK_BANK ORDER BY D_TGL_TRX, D_JAM_TRX RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS SALDO
+ FROM
+   (SELECT I_REK_BANK, '-' AS D_TGL_TRX, '-' AS D_JAM_TRX,
+    0 AS DEBET, 0 AS CREDIT, SUM(SALDO) AS SALDO
+    FROM (
+        SELECT I_REK_BANK, SALDO
+        FROM(
+            SELECT D_TGL_TRX, D_JAM_TRX, I_REK_BANK, V_TRX_SALDOAKHIR AS SALDO
+            FROM tmtrxhistoribank
+            WHERE I_REK_BANK = #{rekening}
+			AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+	    AND substr(D_TGL_TRX,1,4) = #{tahun}
+            ORDER BY D_TGL_TRX DESC, D_JAM_TRX DESC
+            )
+        WHERE ROWNUM = 1
+        UNION ALL
+        SELECT I_REK_BANK, DECODE(C_JURNAL,'D',SUM(V_TRX),'C',-1*SUM(V_TRX)) AS SALDO
+        FROM tmtrxhistoribank
+        WHERE I_REK_BANK = #{rekening}
+		AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+	AND substr(D_TGL_TRX,1,4) = #{tahun}
+        GROUP BY I_REK_BANK, C_JURNAL
+    )
+    GROUP BY I_REK_BANK
+    UNION ALL
+    SELECT I_REK_BANK, D_TGL_TRX, D_JAM_TRX,
+    DECODE(C_JURNAL, 'D', V_TRX, '0') AS DEBET, DECODE(C_JURNAL, 'C', V_TRX, '0') AS CREDIT, 0 AS SALDO
+    FROM tmtrxhistoribank
+    WHERE I_REK_BANK = #{rekening}
+	AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+    AND substr(D_TGL_TRX,1,4) = #{tahun}
+    ORDER BY D_TGL_TRX, D_JAM_TRX
+  )) A,
+  (SELECT I_REK_BANK, D_TGL_TRX, MAX(D_JAM_TRX) AS D_JAM_TRX
+   FROM tmtrxhistoribank
+   WHERE I_REK_BANK = #{rekening}
+   AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+   AND substr(D_TGL_TRX,1,4) = #{tahun}
+   AND D_TGL_TRX IN (SELECT MAX(D_TGL_TRX) FROM tmtrxhistoribank WHERE I_REK_BANK = #{rekening}
+   AND substr(D_TGL_TRX,1,4) = #{tahun}
+                     GROUP BY SUBSTR(D_TGL_TRX,1,6) )
+   GROUP BY I_REK_BANK, D_TGL_TRX
+  ) B 
+WHERE A.I_REK_BANK = B.I_REK_BANK
+AND A.D_TGL_TRX = B.D_TGL_TRX 
+AND A.D_JAM_TRX = B.D_JAM_TRX
+ORDER BY A.D_TGL_TRX DESC, A.D_JAM_TRX DESC
+))
+WHERE NOBARIS > 1
+ORDER BY DATE_TRX, TIME_TRX
+)
+ORDER BY DATE_TRX, TIME_TRX)a)
+        
+    </select>
+    
+    <select id="getBanyakListXls" parameterType="java.util.Map" resultType="java.lang.Integer">
+    select count(*) banyak from (
+        select * from(
+        SELECT I_REK_BANK, D_TGL_TRX, D_JAM_TRX, 
+DECODE(D_TGL_TRX,'-','',substr(D_TGL_TRX,7,2)|| '-'||substr(D_TGL_TRX,5,2)||'-'||substr(D_TGL_TRX,1,4)) AS TANGGAL,
+DECODE(D_JAM_TRX,'-','',substr(D_JAM_TRX,1,2)||':'||substr(D_JAM_TRX,3,2)||':'||substr(D_JAM_TRX,5,2)) AS JAM,
+E_TRX, CREDIT, DEBET, SALDO
+FROM(
+SELECT I_REK_BANK, D_TGL_TRX AS DATE_TRX, D_JAM_TRX AS TIME_TRX, D_TGL_TRX, D_JAM_TRX, E_TRX, CREDIT, DEBET,
+SUM(SALDO - DEBET + CREDIT) OVER(PARTITION BY I_REK_BANK ORDER BY D_TGL_TRX, D_JAM_TRX RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS SALDO
+FROM (
+    SELECT I_REK_BANK, '-' AS D_TGL_TRX, '-' AS D_JAM_TRX, 'SALDO AWAL '||
+          (SELECT Upper(Bulan(substr(MIN(D_TGL_TRX),5,2)))||' '||substr(MIN(D_TGL_TRX),1,4)
+           FROM tmtrxhistoribank
+           WHERE I_REK_BANK = #{rekening}
+		   AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+	   AND substr(D_TGL_TRX,1,4) = #{tahun}) AS E_TRX,
+    0 AS DEBET, 0 AS CREDIT, SUM(SALDO) AS SALDO
+    FROM (
+        SELECT I_REK_BANK, SALDO
+        FROM(
+            SELECT D_TGL_TRX, D_JAM_TRX, I_REK_BANK, V_TRX_SALDOAKHIR AS SALDO
+            FROM tmtrxhistoribank
+            WHERE I_REK_BANK = #{rekening}
+			AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+	    AND substr(D_TGL_TRX,1,4) = #{tahun}
+            ORDER BY D_TGL_TRX DESC, D_JAM_TRX DESC
+            )
+        WHERE ROWNUM = 1
+        UNION ALL
+        SELECT I_REK_BANK, DECODE(C_JURNAL,'D',SUM(V_TRX),'C',-1*SUM(V_TRX)) AS SALDO
+        FROM tmtrxhistoribank
+        WHERE I_REK_BANK = #{rekening}
+		AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+	AND substr(D_TGL_TRX,1,4) = #{tahun}
+        GROUP BY I_REK_BANK, C_JURNAL
+    )
+    GROUP BY I_REK_BANK
+    UNION ALL
+    SELECT I_REK_BANK, D_TGL_TRX, D_JAM_TRX, E_TRX,
+    DECODE(C_JURNAL, 'D', V_TRX, '0') AS DEBET, DECODE(C_JURNAL, 'C', V_TRX, '0') AS CREDIT, 0 AS SALDO
+    FROM tmtrxhistoribank
+    WHERE I_REK_BANK = #{rekening}
+	AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+    AND substr(D_TGL_TRX,1,4) = #{tahun}
+    ORDER BY D_TGL_TRX, D_JAM_TRX
+)
+UNION ALL
+SELECT I_REK_BANK, D_TGL_TRX AS DATE_TRX, '240000' AS TIME_TRX, '-' AS D_TGL_TRX, '-' AS D_JAM_TRX,
+'SALDO AWAL '||Upper(Bulan(trim(to_char(to_number(substr(D_TGL_TRX,5,2))+1,'00'))))||' '||substr(D_TGL_TRX,1,4) AS E_TRX,
+0 AS DEBET, 0 AS CREDIT, SALDO
+FROM (
+SELECT I_REK_BANK, D_TGL_TRX, D_JAM_TRX, 0 AS DEBET, 0 AS CREDIT, SALDO, ROWNUM AS NOBARIS
+FROM (
+SELECT A.I_REK_BANK, A.D_TGL_TRX, A.D_JAM_TRX, 0 AS DEBET, 0 AS CREDIT, A.SALDO
+FROM
+(SELECT I_REK_BANK, D_TGL_TRX, D_JAM_TRX, DEBET, CREDIT,
+ SUM(SALDO - DEBET + CREDIT) OVER(PARTITION BY I_REK_BANK ORDER BY D_TGL_TRX, D_JAM_TRX RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS SALDO
+ FROM
+   (SELECT I_REK_BANK, '-' AS D_TGL_TRX, '-' AS D_JAM_TRX,
+    0 AS DEBET, 0 AS CREDIT, SUM(SALDO) AS SALDO
+    FROM (
+        SELECT I_REK_BANK, SALDO
+        FROM(
+            SELECT D_TGL_TRX, D_JAM_TRX, I_REK_BANK, V_TRX_SALDOAKHIR AS SALDO
+            FROM tmtrxhistoribank
+            WHERE I_REK_BANK = #{rekening}
+			AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+	    AND substr(D_TGL_TRX,1,4) = #{tahun}
+            ORDER BY D_TGL_TRX DESC, D_JAM_TRX DESC
+            )
+        WHERE ROWNUM = 1
+        UNION ALL
+        SELECT I_REK_BANK, DECODE(C_JURNAL,'D',SUM(V_TRX),'C',-1*SUM(V_TRX)) AS SALDO
+        FROM tmtrxhistoribank
+        WHERE I_REK_BANK = #{rekening}
+		AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+	AND substr(D_TGL_TRX,1,4) = #{tahun}
+        GROUP BY I_REK_BANK, C_JURNAL
+    )
+    GROUP BY I_REK_BANK
+    UNION ALL
+    SELECT I_REK_BANK, D_TGL_TRX, D_JAM_TRX,
+    DECODE(C_JURNAL, 'D', V_TRX, '0') AS DEBET, DECODE(C_JURNAL, 'C', V_TRX, '0') AS CREDIT, 0 AS SALDO
+    FROM tmtrxhistoribank
+    WHERE I_REK_BANK = #{rekening}
+	AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+    AND substr(D_TGL_TRX,1,4) = #{tahun}
+    ORDER BY D_TGL_TRX, D_JAM_TRX
+  )) A,
+  (SELECT I_REK_BANK, D_TGL_TRX, MAX(D_JAM_TRX) AS D_JAM_TRX
+   FROM tmtrxhistoribank
+   WHERE I_REK_BANK = #{rekening}
+   AND D_TGL_TRX BETWEEN #{tglawal} AND #{tglakhir}
+   AND substr(D_TGL_TRX,1,4) = #{tahun}
+   AND D_TGL_TRX IN (SELECT MAX(D_TGL_TRX) FROM tmtrxhistoribank WHERE I_REK_BANK = #{rekening}
+   AND substr(D_TGL_TRX,1,4) = #{tahun}
+                     GROUP BY SUBSTR(D_TGL_TRX,1,6) )
+   GROUP BY I_REK_BANK, D_TGL_TRX
+  ) B 
+WHERE A.I_REK_BANK = B.I_REK_BANK
+AND A.D_TGL_TRX = B.D_TGL_TRX 
+AND A.D_JAM_TRX = B.D_JAM_TRX
+ORDER BY A.D_TGL_TRX DESC, A.D_JAM_TRX DESC
+))
+WHERE NOBARIS > 1
+ORDER BY DATE_TRX, TIME_TRX
+)
+ORDER BY DATE_TRX, TIME_TRX))
+    </select>
+</mapper>

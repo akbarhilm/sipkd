@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sp2d.entity.RekonBankDkiMapper">
+    
+    <select id="getListRekon"   parameterType="java.util.Map" resultType="java.util.Map"> 
+        <!--  
+        select tmsp2d.c_angg_tahun ||'        '||  tmsp2d.i_id ||'        '||  I_SP2DNO_DOK ||'        '|| tmsp2d.C_WIL_SP2DPROSES ||'        '||  c_skpd ||'        '||  
+        n_skpd ||'        '||  v_spp ||'        '||  TO_CHAR(D_SP2D_SAH, 'DD/Mon/YYYY hh24:mm:ss') ||'        '||  TO_CHAR(D_SP2D_PROSESBANK, 'DD/Mon/YYYY hh24:mm:ss') ||'        '||  
+        substr(E_MSG_KIRIM,(INSTR(E_MSG_KIRIM, '|', 1, 1)+1),(INSTR(E_MSG_KIRIM, '|', 1, 2)-INSTR(E_MSG_KIRIM, '|', 1, 1)-1)) ||'        '||  
+        substr(E_MSG_KIRIM,(INSTR(E_MSG_KIRIM, '|', 1, 2)+1),(INSTR(E_MSG_KIRIM, '|', 1, 3)-INSTR(E_MSG_KIRIM, '|', 1, 2)-1)) as DATA_REKON
+        from tmsp2d, trskpd, tmsp2dbank
+        where tmsp2d.i_idskpd =  trskpd.i_id
+        and tmsp2d.i_id = tmsp2dbank.i_idsp2d
+        and tmsp2d.c_angg_tahun = #{tahun}
+        and tmsp2dbank.c_bank_status = 1
+        and TO_CHAR(D_SP2D_PROSESBANK, 'DD/MM/YYYY') =  #{tanggal}
+        -->
+        <!--
+        select I_BIT11 ||  trim(to_char(I_BIT37 ,'000000000000')) || I_BIT13 || I_BIT12 || trim(to_char(I_BIT4 ,'000000000000000'))  
+        || C_BANK_TUJUAN || I_REK_TUJUAN || N_TUJUAN || A_TUJUAN || I_NPWP_TUJUAN || trim(to_char(I_BIT4 ,'000000000000000'))  || 
+        I_REK_PENGIRIM || N_PENGIRIM || I_BILLING || I_IDSP2D || C_ANGG_TAHUN ||  C_WIL_SP2DPROSES || I_SP2DNO_DOK  || trim(to_char(V_BRUTO ,'000000000000000')) ||
+        trim(to_char(V_POTONGAN ,'000000000000000')) || C_BEBAN || E_SP2D || I_IDSKPD || C_SKPD || N_SKPD || C_AKUN || I_PGUN as DATA_REKON
+        from   tmsp2dbank
+        where c_angg_tahun = #{tahun}
+        and c_bank_status = 1
+        and TO_CHAR(D_SP2D_PROSESBANK, 'DD/MM/YYYY') =  #{tanggal}
+        -->
+        
+        select I_BIT11 ||  trim(to_char(I_BIT37 ,'000000000000')) || I_BIT13 || I_BIT12 ||'00'|| trim(to_char(I_BIT4 ,'000000000000000'))  
+        || C_BANK_TUJUAN as REKON1,
+        
+         I_REK_TUJUAN as NOREK,
+        
+        N_TUJUAN || A_TUJUAN || I_NPWP_TUJUAN || trim(to_char(I_BIT4 ,'000000000000000'))  || 
+        I_REK_PENGIRIM || N_PENGIRIM || I_BILLING || I_IDSP2D || C_ANGG_TAHUN ||  C_WIL_SP2DPROSES || I_SP2DNO_DOK  || trim(to_char(V_BRUTO ,'000000000000000')) ||
+        trim(to_char(V_POTONGAN ,'000000000000000')) || C_BEBAN || E_SP2D || I_IDSKPD || C_SKPD || N_SKPD || C_AKUN || I_PGUN || 'SP2D    ' as REKON2
+        from   tmsp2dbank
+        where c_angg_tahun = 2016
+        and c_bank_status = 1
+        and TO_CHAR(D_SP2D_PROSESBANK, 'DD/MM/YYYY') =  #{tanggal}
+
+    </select>
+  
+    <select id="getBanyakRekon" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (*) AS banyak
+        from ( 
+        select I_BIT11 ||  trim(to_char(I_BIT37 ,'000000000000')) || I_BIT13 || I_BIT12 || trim(to_char(I_BIT4 ,'000000000000000'))  
+        || C_BANK_TUJUAN || I_REK_TUJUAN || N_TUJUAN || A_TUJUAN || I_NPWP_TUJUAN || trim(to_char(I_BIT4 ,'000000000000000'))  || 
+        I_REK_PENGIRIM || N_PENGIRIM || I_BILLING || I_IDSP2D || C_ANGG_TAHUN ||  C_WIL_SP2DPROSES || I_SP2DNO_DOK  || V_BRUTO ||
+        V_POTONGAN || C_BEBAN || E_SP2D || I_IDSKPD || C_SKPD || N_SKPD || C_AKUN || I_PGUN as DATA_REKON
+        from   tmsp2dbank
+        where c_angg_tahun = #{tahun}
+        and c_bank_status = 1
+        and TO_CHAR(D_SP2D_PROSESBANK, 'DD/MM/YYYY') =  #{tanggal}
+        )
+    </select> 
+    
+    
+</mapper>

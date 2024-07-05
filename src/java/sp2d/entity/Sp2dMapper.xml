@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.Sp2dMapper">
+    <select id="getAllSp2dUP" parameterType="java.util.Map"  resultType="spp.model.Sp2d">    
+        SELECT   DISTINCT id_spm AS idspm,
+        I_SPMNO AS noSpm,
+        C_ANGG_TAHUN AS tahun,
+        C_BEBAN AS kodeBeban,
+        C_JENIS AS kodeJenis,
+        id_sp2d AS idSp2d,
+        I_SP2DNO AS nomorSp2d,
+        D_SP2DNO AS tglSp2d,
+        C_WIL_SP2DPROSES AS kodeWilayahProses,
+        V_SP2D AS nilaiSp2d,
+        N_SKPD AS "skpd.namaSkpd"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   S.I_ID AS id_spm,
+        S.I_SPMNO,
+        S.C_ANGG_TAHUN,
+        Spp.C_BEBAN,
+        T.I_ID AS id_sp2d,
+        T.I_SP2DNO,
+        T.D_SP2DNO,
+        T.C_WIL_SP2DPROSES,
+        T.C_SP2D_CETAK,
+        T.C_SP2D_SAH,
+        T.V_SP2D,
+        sk.N_SKPD,
+        SPP.C_JENIS
+        FROM            tmspm s
+        INNER JOIN
+        tmspmcetak spmcetak
+        ON spmcetak.I_ID = s.i_ID
+        INNER JOIN
+        tmspp spp
+        ON SPP.I_ID = S.I_IDSPP
+        INNER JOIN
+        TMSP2D T
+        ON S.I_ID = T.I_IDSPM
+        LEFT JOIN
+        trskpd sk
+        ON sk.I_ID = s.I_IDSKPD
+        WHERE   S.I_IDSKPD = #{idskpd}  AND S.C_ANGG_TAHUN = #{tahun} and ( SPP.C_BEBAN = 'UP'  OR  SPP.C_BEBAN = 'GU' )
+        and D_SPM_TERIMAKPKD is not null
+        and D_PGUN_TERIMA is not null
+                
+        UNION
+        SELECT   S.I_ID AS id_spm,
+        S.I_SPMNO,
+        S.C_ANGG_TAHUN,
+        Spp.C_BEBAN,
+        0 AS id_sp2d,
+        0 AS I_SP2DNO,
+        NULL AS D_SP2DNO,
+        '' AS C_WIL_SP2DPROSES,
+        '' AS C_SP2D_CETAK,
+        '' AS C_SP2D_SAH,
+        0 AS V_SP2D,
+        sk.N_SKPD,
+        SPP.C_JENIS
+        FROM         tmspm s
+        INNER JOIN
+        tmspmcetak spmcetak
+        ON spmcetak.I_ID = s.i_ID  
+        INNER JOIN
+        tmspp spp
+        ON SPP.I_ID = S.I_IDSPP
+        LEFT JOIN
+        trskpd sk
+        ON sk.I_ID = s.I_IDSKPD
+        LEFT JOIN
+        TMSP2D T
+        ON T.I_IDSPM = S.I_ID  
+        WHERE       T.I_IDSPM IS NULL
+        AND S.I_IDSKPD =#{idskpd}
+        AND s.C_ANGG_TAHUN = #{tahun}  and ( SPP.C_BEBAN = 'UP'  OR  SPP.C_BEBAN = 'GU' ) ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    <select id="getBanyakAllSp2dUP" parameterType="java.util.Map"
+            resultType="java.lang.Integer">        
+        SELECT   COUNT (DISTINCT (id_spm))
+        FROM   (SELECT   S.I_ID AS id_spm
+        FROM   tmspm s
+        INNER JOIN
+        tmspmcetak spmcetak
+        ON spmcetak.I_ID = s.i_ID
+        INNER JOIN
+        tmspp spp
+        ON SPP.I_ID = S.I_IDSPP
+        INNER JOIN
+        TMSP2D T
+        ON S.I_ID = T.I_IDSPM
+        LEFT JOIN
+        trskpd sk
+        ON sk.I_ID = s.I_IDSKPD
+        WHERE   S.I_IDSKPD = #{idskpd} AND S.C_ANGG_TAHUN = #{tahun} and  (SPP.C_BEBAN = 'UP'   OR  SPP.C_BEBAN = 'GU' )
+        and D_SPM_TERIMAKPKD is not null
+        and D_PGUN_TERIMA is not null
+        
+        UNION
+        SELECT   S.I_ID AS id_spm
+        FROM            tmspm s
+        INNER JOIN
+        tmspmcetak spmcetak
+        ON spmcetak.I_ID = s.i_ID
+        INNER JOIN
+        tmspp spp
+        ON SPP.I_ID = S.I_IDSPP
+        LEFT JOIN
+        trskpd sk
+        ON sk.I_ID = s.I_IDSKPD
+        LEFT JOIN
+        TMSP2D T
+        ON T.I_IDSPM = S.I_ID
+        WHERE    S.I_IDSKPD = #{idskpd} AND S.C_ANGG_TAHUN = #{tahun} and  T.I_IDSPM IS NULL and  (SPP.C_BEBAN = 'UP'   OR  SPP.C_BEBAN = 'GU' ) )
+    </select>
+    <select id="getSp2dUPById" parameterType="java.lang.Integer"  resultType="spp.model.Sp2d"> 
+        SELECT   T.I_ID AS id, pd.I_ID AS idSp2d,
+        T.C_ANGG_TAHUN AS tahun,
+        T.I_SPPNO AS noSpp,
+        T.D_SPPNO AS tglSpp,
+        T.C_JENIS AS kodeJenis,
+        T.C_BEBAN AS kodeBeban,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        P.N_SKPD AS "skpd.namaSkpd",
+        T.N_PPTK AS namaPptk,
+        T.I_PPTK_NIP AS nipPptk,
+        T.C_UANGMUKA AS kodeUangMuka,
+        T.C_BULAN || '/' || T.C_ANGG_TAHUN AS bulan,
+        T.E_SPP AS keterangan,
+        S.I_SPMNO AS noSpm,
+        S.D_SPMNO AS tglSpm,
+        S.E_SPM AS keteranganSpm,
+        t.C_BANK AS kodeBank,
+        T.N_BANK AS namaBank,
+        t.I_REK_BANK AS noRekeningSPM,
+        PD.I_ID AS idSp2d,
+        PD.I_SP2DNO AS nomorSp2d,
+        PD.D_SP2DNO AS tglSp2d,
+        PD.C_WIL_SP2DPROSES AS kodeWilayahProses,
+        PD.V_SP2D AS nilaiSp2d,
+        PD.C_SP2D_CETAK AS kodeCetak,
+        PD.C_SP2D_SAH AS kodePengesahan,
+        S.I_ID AS idspm,
+        SCETAK.N_PK as namaBendahara,
+        SCETAK.I_NIP_PK as nipBendahara,
+        SCETAK.I_NRK_PK as nrkBendahara, 
+        I_NIP_PA as pejabatTtdSp2d,
+        N_PA as namaPejabatTtdSp2d
+        FROM               TMSPP T
+        INNER JOIN
+        TMSPPCETAK C
+        ON C.I_ID = T.I_ID
+        LEFT JOIN
+        trskpd p
+        ON P.I_ID = T.I_IDSKPD
+        INNER JOIN
+        TMSPM S
+        INNER JOIN
+        TMSPMCETAK scetak
+        ON SCETAK.I_ID = S.I_ID
+        ON S.I_IDSPP = T.I_ID
+        LEFT JOIN
+        TMSp2D pd
+        ON pd.I_IDSPM = S.I_ID
+        WHERE   S.I_ID = #{value}
+    </select>
+    <insert id="insertSp2dRinci" parameterType="spp.model.Sp2d"   >  
+        INSERT INTO TMSP2D (I_ID,
+        I_IDSPM,
+        C_ANGG_TAHUN,
+        I_SP2DNO,
+        D_SP2DNO, 
+        I_NIP_PA,
+        N_PA,
+        V_SP2D,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,C_WIL_SP2DPROSES,I_IDSPP) VALUES     
+        (   SEQ_TMSP2D.NEXTVAL ,#{idspm},
+        #{tahun},               
+        #{nomorSp2d},
+        #{tglSp2d},                
+        #{pejabatTtdSp2d},
+        #{namaPejabatTtdSp2d},
+        round(#{nilaiSp2d},0),
+        #{idEntry},
+        #{tglEntry},'0',#{id})
+    </insert>
+    <select id="getNilaiTotalSPMUP" parameterType="java.lang.Integer"
+            resultType="java.math.BigDecimal">
+        SELECT   NVL (SUM (T.V_SPP), 0) AS jumlah
+        FROM   TMSPPRINCIBL T
+        WHERE
+        T.I_IDSPP =  #{value}
+    </select>
+    <update id="updateSp2dRinci" parameterType="spp.model.Sp2d">
+        UPDATE   TMSP2D
+        SET   I_SP2DNO = #{nomorSp2d},
+        D_SP2DNO = #{tglSp2d}, 
+        I_NIP_PA = #{pejabatTtdSp2d},
+        N_PA = #{namaPejabatTtdSp2d},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = #{tglEntry}
+        WHERE   I_ID = #{idSp2d}
+    </update>
+    <select id="getAllSp2dSah" parameterType="java.util.Map"
+             resultType="spp.model.Sp2d">            
+        SELECT   I_ID AS idSp2d,
+        I_IDSPM AS idspm,
+        I_IDSPP AS id,
+        C_ANGG_TAHUN AS tahun,
+        I_SP2DNO AS nomorSp2d,
+        D_SP2DNO AS tglSp2d,
+        C_WIL_SP2DPROSES AS kodeWilayahProses,
+        I_IDSKPD AS "skpd.idSkpd",
+        C_SP2D_SAH AS kodePengesahan,
+        D_SP2D_SAH AS tglSp2dSah,
+        V_SP2D AS nilaiSp2d
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   T.I_ID,
+        T.I_IDSPM,
+        T.I_IDSPP,
+        T.C_ANGG_TAHUN,
+        T.I_SP2DNO,
+        T.D_SP2DNO,
+        T.C_WIL_SP2DPROSES,
+        T.I_IDSKPD,
+        T.C_SP2D_SAH,
+        T.D_SP2D_SAH,
+        T.V_SP2D
+        FROM   TMSP2D T) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    <select id="getBanyakSp2dSah" parameterType="java.util.Map"
+             resultType="java.lang.Integer">  
+        SELECT   COUNT (T.I_ID)
+        FROM   TMSP2D T
+    </select>
+</mapper>

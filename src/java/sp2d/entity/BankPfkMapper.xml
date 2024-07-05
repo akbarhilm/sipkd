@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.BankPfkMapper">
+    
+    <select id="getListBankInduk" parameterType="java.util.Map"  resultType="spp.model.BankPfk">    
+        SELECT   idBank, kodeBankTransfer, namaBankTransfer, kodeBank, namaBank, alamatBank, kodeBankRtgs, namaBankRtgs
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   i_id as idBank, c_bank_transfer as kodeBankTransfer, n_bank_transfer as namaBankTransfer,
+        c_bank as kodeBank, n_bank as namaBank, a_bank as alamatBank, c_bank_rtgs as kodeBankRtgs, n_bank_rtgs as namaBankRtgs
+        from trbankpfk  where i_idinduk = 0 and c_aktif = 1
+        <if test="nama != null and nama != '' ">
+            and upper(n_bank_transfer) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and c_bank_transfer like '%'||#{kode}||'%'
+        </if>
+        ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset} 
+        order by kodeBankTransfer
+    </select>
+    
+    <select id="getBanyakBankInduk" parameterType="java.util.Map"   resultType="java.lang.Integer">        
+        SELECT COUNT (*) FROM   (
+        SELECT i_id as idBank, c_bank_transfer as kodeBankTransfer, 
+        n_bank_transfer as namaBankTransfer, c_bank as kodeBank, n_bank as namaBank
+        from trbankpfk  where i_idinduk = 0 and c_aktif = 1 
+        <if test="nama != null and nama != '' ">
+            and upper(n_bank_transfer) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and c_bank_transfer like '%'||#{kode}||'%'
+        </if>
+        )
+        
+    </select>
+    
+    <select id="getListBankCabang" parameterType="java.util.Map"  resultType="spp.model.BankPfk">    
+        SELECT   idBank, kodeBank, namaBank, alamatBank, kodeAktif
+        FROM   (SELECT  ROWNUM AS rn, a.*
+        FROM   (SELECT  i_id as idBank, c_bank as kodeBank, n_bank as namaBank, 
+        a_bank as alamatBank, c_aktif as kodeAktif
+        from trbankpfk  where i_idinduk = #{idinduk} 
+        <if test="keterangan == 'NAMAALAMAT' ">
+            and (upper(n_bank) like '%'||upper(#{nama})||'%' or upper(a_bank) like '%'||upper(#{alamat})||'%')
+        </if>
+        
+         <if test="keterangan == 'NAMA' ">
+            and upper(n_bank) like '%'||upper(#{nama})||'%'
+        </if>
+        
+         <if test="keterangan == 'ALAMAT' ">
+            and upper(a_bank) like '%'||upper(#{alamat})||'%'
+        </if>
+        
+        ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset} 
+        order by namaBank
+        
+    </select>
+    
+    <select id="getBanyakBankCabang" parameterType="java.util.Map"   resultType="java.lang.Integer">        
+        SELECT   COUNT (*) FROM   (
+        SELECT  i_id as idBank, c_bank as kodeBank, n_bank as namaBank, 
+        a_bank as alamatBank, c_aktif as kodeAktif
+        from trbankpfk  where i_idinduk = #{idinduk} 
+        <if test="nama != null and nama != '' ">
+            and upper(n_bank) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="alamat != null and alamat != '' ">
+            and upper(a_bank) like '%'||upper(#{alamat})||'%'
+        </if>
+        )
+        
+    </select>
+    
+    <select id="getEditBankCabang" parameterType="java.lang.Integer"  resultType="spp.model.BankPfk"> 
+        select i_id as idBank, c_bank_transfer as kodeBankTransfer, n_bank_transfer as namaBankTransfer, c_aktif as kodeAktif,
+        c_bank as kodeBank, n_bank as namaBank, a_bank as alamatBank, c_bank_rtgs as kodeBankRtgs, n_bank_rtgs as namaBankRtgs
+        from trbankpfk  where i_id = #{value}
+        
+    </select>
+    
+    <insert id="insertBankPfk" parameterType="spp.model.BankPfk"   >  
+        INSERT INTO TRBANKPFK (
+        I_ID,
+        I_IDINDUK,
+        C_BANK_TRANSFER,
+        N_BANK_TRANSFER,
+        C_BANK,
+        N_BANK,
+        C_BANK_RTGS,
+        N_BANK_RTGS,
+        A_BANK,
+        C_AKTIF,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        ) VALUES (   
+        SEQ_TRBANKPFK.NEXTVAL ,
+        #{idInduk},
+        #{kodeBankTransfer},
+        #{namaBankTransfer},
+        #{kodeBank},
+        #{namaBank},
+        #{kodeBankRtgs},
+        #{namaBankRtgs},
+        #{alamatBank},
+        #{kodeAktif},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    
+    <insert id="insertBankPfkUtama" parameterType="spp.model.BankPfk"   >  
+        INSERT INTO TRBANKPFK (
+        I_ID,
+        I_IDINDUK,
+        C_BANK_TRANSFER,
+        N_BANK_TRANSFER,
+        C_BANK,
+        N_BANK,
+        C_BANK_RTGS,
+        N_BANK_RTGS,
+        A_BANK,
+        C_AKTIF,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        ) VALUES (   
+        #{idBank},
+        #{idInduk},
+        #{kodeBankTransfer},
+        #{namaBankTransfer},
+        #{kodeBank},
+        #{namaBank},
+        #{kodeBankRtgs},
+        #{namaBankRtgs},
+        #{alamatBank},
+        #{kodeAktif},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    
+    <update id="updateBankPfk" parameterType="spp.model.BankPfk">
+        UPDATE   TRBANKPFK
+        SET  
+        C_BANK_TRANSFER = #{kodeBankTransfer},
+        N_BANK_TRANSFER = #{namaBankTransfer},
+        C_BANK = #{kodeBank},
+        N_BANK = #{namaBank},
+        C_BANK_RTGS = #{kodeBankRtgs},
+        N_BANK_RTGS = #{namaBankRtgs},
+        A_BANK = #{alamatBank},
+        C_AKTIF = #{kodeAktif},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE   I_ID = #{idBank}
+    </update>
+    
+    <delete id="deleteBankPfk" parameterType="spp.model.BankPfk"  >
+        DELETE TRBANKPFK 
+        WHERE 
+        I_ID = #{idBank}
+        
+    </delete>
+    
+    <select id="getIdBankUtama" parameterType="java.util.Map"   resultType="java.lang.Integer">        
+        select max(i_id)+1 as idBank  from trbankpfk  <!-- where i_idinduk = -1 -->
+       
+    </select>
+    
+</mapper>

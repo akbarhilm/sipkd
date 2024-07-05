@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.SpmTerimaMapper">
+    <select id="getSpmTerima" parameterType="java.util.Map"  resultType="spp.model.SpmTerima">
+        SELECT
+        IID as idSpmCetak,
+        c_wil_sp2dproses as codeWilSp2dproses,
+        i_spmno as iSpmno,
+        i_spmno_dok as iSpmnoDok,
+        c_jenis as codeJenis,
+        c_beban as codeBeban,
+        i_idskpd as iIdskpd,
+        c_skpd as codeSkpd,
+        n_skpd as namaSkpd,
+        d_spm_cetak AS dSpmCetak,
+        e_spm as eSpm,
+        N_PEG_TERIMAKPKD as namaPegTerimakpkd,
+        N_PEG_PEMBERISKPD as namaPegPemberiskpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT  tmspmcetak.i_id as IID ,
+        trskpd.c_wil_sp2dproses as c_wil_sp2dproses ,
+        i_spmno,
+        i_spmno_dok,
+        c_jenis,
+        c_beban,
+        tmspp.i_idskpd as i_idskpd,
+        trskpd.c_skpd as c_skpd ,
+        trskpd.n_skpd as n_skpd ,
+        tmspmcetak.d_spm_cetak AS d_spm_cetak,
+        e_spm,
+        tmspmcetak.N_PEG_TERIMAKPKD as N_PEG_TERIMAKPKD,
+        tmspmcetak.N_PEG_PEMBERISKPD as N_PEG_PEMBERISKPD
+        FROM tmspm INNER JOIN tmspmcetak
+        ON tmspm.i_id = tmspmcetak.i_id AND tmspm.c_angg_tahun = #{tahun}
+        INNER JOIN tmspp
+        ON tmspm.i_idspp = tmspp.i_id AND tmspp.c_angg_tahun = #{tahun}
+        INNER JOIN trskpd ON tmspm.i_idskpd = trskpd.i_id
+        WHERE tmspm.c_angg_tahun = #{tahun}
+        <if test="codeWilSp2dproses != null and codeWilSp2dproses != '' ">
+            AND trskpd.c_wil_sp2dproses = #{codeWilSp2dproses}
+        </if>
+        <if test="kodeskpdfilter != null and kodeskpdfilter != '' ">
+            and upper(trskpd.c_skpd) like '%'||upper(#{kodeskpdfilter})||'%'
+        </if>
+        <if test="namaskpdfilter != null and namaskpdfilter != '' ">
+            and upper(trskpd.n_skpd) like '%'||upper(#{namaskpdfilter})||'%'
+        </if>
+        <if test="nospmfilter != null and nospmfilter != '' ">
+            and tmspm.i_spmno like '%'||(#{nospmfilter})||'%'
+        </if>
+        and not exists (select 1 from  tmsp2d
+        where tmsp2d.i_idspm = tmspmcetak.i_id
+        AND tmsp2d.c_angg_tahun = #{tahun} )
+        ) a) WHERE
+        ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getCountSpmTerima" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        SELECT   count(tmspmcetak.i_id)
+        FROM tmspm INNER JOIN tmspmcetak
+        ON tmspm.i_id = tmspmcetak.i_id AND tmspm.c_angg_tahun = #{tahun}
+        INNER JOIN tmspp
+        ON tmspm.i_idspp = tmspp.i_id AND tmspp.c_angg_tahun = #{tahun}
+        INNER JOIN trskpd ON tmspm.i_idskpd = trskpd.i_id
+        WHERE tmspm.c_angg_tahun = #{tahun}
+        <if test="codeWilSp2dproses != null and codeWilSp2dproses != '' ">
+            AND trskpd.c_wil_sp2dproses = #{codeWilSp2dproses}
+        </if>
+        and not exists (select 1 from  tmsp2d
+        where tmsp2d.i_idspm = tmspmcetak.i_id
+        AND tmsp2d.c_angg_tahun = #{tahun} )
+    </select>
+
+    <select id="getSpmTerimaById" parameterType="java.util.Map"  resultType="spp.model.SpmTerima">
+        SELECT  tmspmcetak.i_id as idSpmCetak ,
+        trskpd.c_wil_sp2dproses as codeWilSp2dproses ,
+        i_spmno as iSpmno,
+        i_spmno_dok as iSpmnoDok,
+        case when c_jenis = 1 then   'BTL'
+        when c_jenis = 2  then 'BTL BANTUAN'
+        when c_jenis = 3  then 'BL'
+        when c_jenis = 4  then 'BIAYA'
+        when c_jenis = 5  then 'RESTITUSI'
+        else   '-'
+        end  as codeJenis,
+        c_beban as codeBeban,
+        tmspp.i_idskpd as iIdskpd,
+        trskpd.c_skpd as codeSkpd ,
+        trskpd.n_skpd as namaSkpd ,
+        tmspmcetak.d_spm_cetak AS dSpmCetak,
+        e_spm as eSpm,
+        tmspmcetak.N_PEG_TERIMAKPKD as namaPegTerimakpkd,
+        tmspmcetak.N_PEG_PEMBERISKPD as namaPegPemberiskpd
+        FROM tmspm INNER JOIN tmspmcetak
+        ON tmspm.i_id = tmspmcetak.i_id
+        INNER JOIN tmspp
+        ON tmspm.i_idspp = tmspp.i_id
+        INNER JOIN trskpd ON tmspm.i_idskpd = trskpd.i_id
+        WHERE  tmspmcetak.i_id = #{id}
+        and not exists (select 1 from  tmsp2d
+        where tmsp2d.i_idspm = tmspmcetak.i_id)
+    </select>
+
+    <update id="updateSpmTerima" parameterType="spp.model.SpmTerima"   >
+        UPDATE tmspmcetak
+        SET
+        I_ID = #{idSpmCetak},
+        c_wil_sp2dproses = #{codeWilSp2dproses},
+        D_SPM_MOHONSKPD = #{tglEdit},
+        D_SPM_TERIMAKPKD = #{tglEdit},
+        N_PEG_TERIMAKPKD = #{namaPegTerimakpkd},
+        N_PEG_PEMBERISKPD = #{namaPegPemberiskpd},
+        I_PGUN_TERIMA = #{idEdit},
+        D_PGUN_TERIMA =#{tglEdit}
+        WHERE  I_ID  = #{idSpmCetak}
+    </update>
+
+    <delete id="delSpmTerima" parameterType="spp.model.SpmTerima"   >
+        UPDATE tmspmcetak
+        SET
+        I_ID = #{idSpmCetak},
+        c_wil_sp2dproses = null,
+        D_SPM_MOHONSKPD = null,
+        D_SPM_TERIMAKPKD = null,
+        N_PEG_TERIMAKPKD = null,
+        N_PEG_PEMBERISKPD = null,
+        I_PGUN_TERIMA = null,
+        D_PGUN_TERIMA = null
+        WHERE  I_ID  = #{idSpmCetak}
+    </delete>
+
+    <select id="getIdSpm" parameterType="java.util.Map"
+            resultType="spp.model.SpmTerima">
+        SELECT tmsp2d.i_idspm as idSpmCetak
+        from tmsp2d
+        WHERE  tmsp2d.i_idspm = #{id}
+    </select>
+
+    <select id="getKodeBank" parameterType="java.util.Map" resultType="spp.model.SpmTerima">
+        select tmspp.c_bank_transfer as kodeBank, tmspp.n_bank as namaBank, tmspp.i_rek_bank as noRekening,
+        decode(tmspp.n_rekan,null,tmspp.n_tujuan, tmspp.n_rekan) namaRekanan, <!--tmspp.n_rekan as namaRekanan, -->
+        tmspp.i_rekan_npwp as npwpRekanan, tmspp.n_tujuan as namaTujuan
+        from tmspp, tmspm
+        where tmspp.i_id =  tmspm.i_idspp
+        and tmspm.c_angg_tahun = #{tahun}
+        and tmspm.i_id = #{idspm}
+    </select>
+
+    <select id="getKodeVA" parameterType="java.util.Map" resultType="spp.model.SpmTerima">
+        select nvl(sum(C_REK_BANKVA),'0')  as kodeVA, I_REKAN_NPWP as  noNpwp,
+        A_REKAN_NPWP as alamatNpwp, N_REKAN_NPWP as namaNpwp, N_NPWP_KOTA as kotaNpwp,
+        n_rekan_bank as namaRekananBank, C_PKP_STATUS as kodePkp
+        from tmkontrak
+        where i_id = (select i_idkontrak from tmspp, tmspm where tmspp.i_id =  tmspm.i_idspp and tmspm.i_id = #{idspm})
+        group by I_REKAN_NPWP, A_REKAN_NPWP, N_REKAN_NPWP, N_NPWP_KOTA, n_rekan_bank, C_PKP_STATUS
+
+    </select>
+
+</mapper>

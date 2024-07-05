@@ -1,0 +1,1256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.SpjMapper">
+    <select id="getSpj" parameterType="java.util.Map"  resultType="spp.model.Spj">
+        SELECT  i_idspj AS idSpj,
+        c_angg_tahun AS tahun,
+        i_idskpd AS "skpd.idSkpd",
+        i_spjno AS noSpj,
+        c_spj_bulan AS bulan,
+        e_spj AS ketSpj,
+        n_skpd AS "skpd.namaSkpd",
+        c_skpd AS "skpd.kodeSkpd",
+        NIHIL AS nihil,
+        sumv_spjbtl AS nilaiSpjBtl,
+        sumv_spjbl AS nilaiSpjBl
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (      
+        SELECT   
+        trskpd.i_id as idskpd,
+        xxxx.i_idspj AS i_idspj,
+        xxxx.c_angg_tahun AS c_angg_tahun,
+        xxxx.i_idskpd AS i_idskpd,
+        xxxx.i_spjno AS i_spjno,
+        xxxx.c_spj_bulan AS c_spj_bulan,
+        xxxx.e_spj AS e_spj,
+        (CASE xxxx.C_SPJ_NIHIL
+        WHEN '0' THEN 'ADA SPJ'
+        WHEN '1' THEN 'NIHIL'
+        WHEN '2' THEN 'NIHIL-NIHIL'
+        ELSE 'TANPA STATUS'  
+        END )   AS NIHIL,         
+        trskpd.n_skpd AS n_skpd,
+        trskpd.c_skpd AS c_skpd,
+        sum(v_spjBTL) AS sumv_spjbtl,
+        sum(v_spjbl) AS sumv_spjbl
+        FROM   (              
+        SELECT   tmspj.i_id i_idspj,
+        tmspj.c_angg_tahun ,
+        tmspj.i_idskpd ,
+        tmspj.i_spjno ,
+        tmspj.c_spj_bulan ,
+        tmspj.e_spj e_spj ,
+        tmspj.C_SPJ_NIHIL, 
+        v_spj AS v_spjbtl,
+        0 AS v_spjbl
+        FROM     tmspj 
+        LEFT JOIN
+        tmspjrincibtl
+        ON tmspjrincibtl.I_IDSPJ = tmspj.I_ID
+        WHERE tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND NOT EXISTS  (SELECT   1 FROM   tmspjcetak  WHERE   tmspj.i_id = tmspjcetak.i_id)
+        UNION ALL
+        SELECT   tmspj.i_id i_idspj,
+        tmspj.c_angg_tahun ,
+        tmspj.i_idskpd ,
+        tmspj.i_spjno ,
+        tmspj.c_spj_bulan ,
+        tmspj.e_spj e_spj ,
+        tmspj.C_SPJ_NIHIL,
+        0 AS v_spjbtl,
+        v_spj AS v_spjbl
+        FROM     tmspj 
+        LEFT JOIN
+        tmspjrincibl
+        ON tmspjrincibl.I_IDSPJ = tmspj.I_ID
+        WHERE tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND NOT EXISTS  (SELECT   1 FROM   tmspjcetak  WHERE   tmspj.i_id = tmspjcetak.i_id)
+        ) xxxx  , trskpd
+        WHERE xxxx.i_idskpd = trskpd.I_ID       
+        GROUP BY           trskpd.i_id ,
+        xxxx.i_idspj ,
+        xxxx.c_angg_tahun,
+        xxxx.i_idskpd ,
+        xxxx.i_spjno,
+        xxxx.c_spj_bulan ,
+        xxxx.e_spj ,
+        xxxx.C_SPJ_NIHIL,
+        trskpd.n_skpd ,
+        trskpd.c_skpd
+        )   a ) zzzz         
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset} 
+        ORDER BY  
+        <choose>
+            <when test="iSortCol_0 == 0 ">
+                idSpj
+            </when>
+            <when test="iSortCol_0 == 1 ">
+                noSpj
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                bulan
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                nilaiSpjBtl
+            </when>
+            <when test="iSortCol_0 == 4 ">
+                nilaiSpjBl
+            </when>
+            <otherwise>
+                idSpj
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose> 
+ 
+    </select>
+    <select id="getBulanByBulan" parameterType="java.lang.Integer"  resultType="java.lang.String">
+        SELECT 
+        C_SPJ_BULAN AS bulan
+        FROM TMSPJ 
+        where I_ID = #{idspj}
+ 
+    </select>
+    <select id="getCountSpj" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(SELECT  i_idspj AS idSpj,
+        c_angg_tahun AS tahun,
+        i_idskpd AS "skpd.idSkpd",
+        i_spjno AS noSpj,
+        c_spj_bulan AS bulan,
+        e_spj AS ketSpj,
+        n_skpd AS "skpd.namaSkpd",
+        c_skpd AS "skpd.kodeSkpd",
+        NIHIL AS nihil,
+        sumv_spjbtl AS nilaiSpjBtl,
+        sumv_spjbl AS nilaiSpjBl
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (      
+        SELECT   
+        trskpd.i_id as idskpd,
+        xxxx.i_idspj AS i_idspj,
+        xxxx.c_angg_tahun AS c_angg_tahun,
+        xxxx.i_idskpd AS i_idskpd,
+        xxxx.i_spjno AS i_spjno,
+        xxxx.c_spj_bulan AS c_spj_bulan,
+        xxxx.e_spj AS e_spj,
+        (CASE xxxx.C_SPJ_NIHIL
+        WHEN '0' THEN 'ADA SPJ'
+        WHEN '1' THEN 'NIHIL'
+        WHEN '2' THEN 'NIHIL-NIHIL'
+        ELSE 'TANPA STATUS'  
+        END )   AS NIHIL,         
+        trskpd.n_skpd AS n_skpd,
+        trskpd.c_skpd AS c_skpd,
+        sum(v_spjBTL) AS sumv_spjbtl,
+        sum(v_spjbl) AS sumv_spjbl
+        FROM   (              
+        SELECT   tmspj.i_id i_idspj,
+        tmspj.c_angg_tahun ,
+        tmspj.i_idskpd ,
+        tmspj.i_spjno ,
+        tmspj.c_spj_bulan ,
+        tmspj.e_spj e_spj ,
+        tmspj.C_SPJ_NIHIL, 
+        v_spj AS v_spjbtl,
+        0 AS v_spjbl
+        FROM     tmspj 
+        LEFT JOIN
+        tmspjrincibtl
+        ON tmspjrincibtl.I_IDSPJ = tmspj.I_ID
+        WHERE tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND NOT EXISTS  (SELECT   1 FROM   tmspjcetak  WHERE   tmspj.i_id = tmspjcetak.i_id)
+        UNION ALL
+        SELECT   tmspj.i_id i_idspj,
+        tmspj.c_angg_tahun ,
+        tmspj.i_idskpd ,
+        tmspj.i_spjno ,
+        tmspj.c_spj_bulan ,
+        tmspj.e_spj e_spj ,
+        tmspj.C_SPJ_NIHIL,
+        0 AS v_spjbtl,
+        v_spj AS v_spjbl
+        FROM     tmspj 
+        LEFT JOIN
+        tmspjrincibl
+        ON tmspjrincibl.I_IDSPJ = tmspj.I_ID
+        WHERE tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND NOT EXISTS  (SELECT   1 FROM   tmspjcetak  WHERE   tmspj.i_id = tmspjcetak.i_id)
+        ) xxxx  , trskpd
+        WHERE xxxx.i_idskpd = trskpd.I_ID       
+        GROUP BY           trskpd.i_id ,
+        xxxx.i_idspj ,
+        xxxx.c_angg_tahun,
+        xxxx.i_idskpd ,
+        xxxx.i_spjno,
+        xxxx.c_spj_bulan ,
+        xxxx.e_spj ,
+        xxxx.C_SPJ_NIHIL,
+        trskpd.n_skpd ,
+        trskpd.c_skpd
+        )   a ) zzzz   )      
+    </select>  
+    <select id="getCountSpjRinci" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from (SELECT   xxxx.C_ANGG_TAHUN AS tahun,
+        xxxx.i_idskpd AS "skpd.idSkpd",
+        I_id AS "kegiatan.idKegiatan",
+        C_KEGIATAN AS "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        sum_sudah_spj AS "spjrinci.sudah_spj",
+        sum_nilai_spj AS "spjrinci.nilai_spj",
+        (CASE beban
+        WHEN 'UP' THEN 'UP/GU'
+        WHEN 'GU' THEN 'UP/GU'
+        WHEN 'LS' THEN 'LS'
+        WHEN 'TU' THEN 'TU'
+        ELSE '---'
+        END)
+        AS kodeBeban
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   XY.C_ANGG_TAHUN,
+        XY.i_idskpd,
+        SUM (sudah_spj) AS sum_sudah_spj,
+        SUM (nilai_spj) AS sum_nilai_spj,
+        tmdpakegiatan.I_id AS I_id,
+        tmdpakegiatan.C_KEGIATAN AS C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN AS N_KEGIATAN,
+        beban
+        FROM   (
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        TMSPJRINCIBL.C_BEBAN beban ,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        tmspjrincibl.v_spj as sudah_spj,
+        0 as nilai_spj 
+        FROM   tmspj,
+        tmspjrincibl,
+        tmdpabl,
+        trbas
+        WHERE   (tmspj.i_id = tmspjrincibl.i_idspj)
+        AND (tmdpabl.i_id =
+        tmspjrincibl.i_idbl)
+        AND (trbas.i_id = tmdpabl.i_idbas)
+        AND tmdpabl.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id &lt;&gt; #{idspj}
+        UNION ALL
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        TMSPJRINCIBL.C_BEBAN ,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        0 as sudah_spj,
+        tmspjrincibl.v_spj nilai_spj
+        FROM   tmspj,
+        tmspjrincibl,
+        tmdpabl,
+        trbas
+        WHERE   ( (tmspj.i_id = tmspjrincibl.i_idspj)
+        AND (tmdpabl.i_id =
+        tmspjrincibl.i_idbl)
+        AND (trbas.i_id = tmdpabl.i_idbas))
+        AND tmdpabl.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id = #{idspj}) xy,
+        tmdpakegiatan
+        WHERE   tmdpakegiatan.I_id = xy.i_idkegiatan
+        GROUP BY   XY.C_ANGG_TAHUN,
+        XY.i_idskpd,
+        tmdpakegiatan.I_ID,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        beban
+        having SUM (nilai_spj) &lt; &gt; 0
+        ) a) xxxx
+        )
+    </select>
+    <!--  <insert id="insertSpjRinci" parameterType="spp.model.Spj"   >  
+        INSERT  INTO TMSPPRINCIBL (I_ID,
+        I_IDSPP,
+        I_IDSPD,
+        I_IDBL,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        V_SPP,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM ) 
+        VALUES     
+        (  SEQ_I_SPPRINCINO.NEXTVAL , #{idspp},
+        #{idSpd},
+        #{idBl},
+        #{kegiatan.idKegiatan},
+        #{akun.idAkun},
+        #{nilaiSpp},
+        #{idEntry},
+        #{tglEntry})
+    </insert> !-->
+    <insert id="insertSpj" parameterType="spp.model.Spj"  useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="idSpj"  >
+        INSERT INTO TMSPJ (
+        I_ID, 
+        C_ANGG_TAHUN, 
+        I_IDSKPD, 
+        I_SPJNO, 
+        C_SPJ_BULAN, 
+        C_SPJ_NIHIL, 
+        E_SPJ) 
+        VALUES ( 
+        SEQ_TMSPJ.NEXTVAL,
+        #{tahun},
+        #{skpd.idSkpd},
+        #{noSpj},
+        #{bulan},
+        #{nihil},
+        #{ketSpj}
+        )
+    </insert>
+    <select id="getCountSpjRinciKegiatan" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT   C_ANGG_TAHUN AS tahun,
+        i_idskpd AS "skpd.idSkpd",
+        i_idkegiatan AS "kegiatan.idKegiatan",
+        i_idbl AS idBl,
+        i_idbas AS "akun.idAkun",
+        c_akun AS "akun.kodeAkun",
+        n_akun AS "akun.namaAkun",
+        sumnilai_SPD AS "spjrinci.nilai_SPD",
+        sumnilai_LS AS "spjrinci.nilai_LS",
+        sumnilai_UPGUTU AS "spjrinci.nilai_UPGUTU",
+        sumsudah_spj AS "spjrinci.sudah_spj",
+        sumsisaSpj AS "spjrinci.SISA_spj",
+        sumnilai_spj AS "spjrinci.nilai_spj"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   C_ANGG_TAHUN AS C_ANGG_TAHUN,
+        i_idskpd AS i_idskpd,
+        i_idkegiatan AS i_idkegiatan,
+        i_idbl AS i_idbl,
+        i_idbas AS i_idbas,
+        c_akun AS c_akun,
+        n_akun AS n_akun,
+        SUM (nilai_SPD) AS sumnilai_SPD,
+        SUM (nilai_LS) AS sumnilai_LS,
+        SUM (nilai_TU) AS sumnilai_UPGUTU,
+        SUM (sudah_spj) AS sumsudah_spj,
+        SUM (nilai_SPD - nilai_LS - nilai_TU - sudah_spj)  AS sumsisaSpj,
+        SUM (nilai_spj) AS sumnilai_spj
+        FROM   (                      
+        SELECT   tmspd.C_ANGG_TAHUN as c_angg_tahun ,
+        tmspd.i_idskpd as i_idskpd,
+        tmspdrincibl.i_idkegiatan,
+        tmspdrincibl.i_idbl,
+        tmspdrincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        tmspdrincibl.v_spd AS nilai_SPD,
+        0 AS nilai_LS,
+        0 AS nilai_TU,
+        0 AS sudah_spj,
+        0 AS nilai_spj
+        FROM   tmspd,
+        tmspdrincibl,
+        tmspdsah,
+        tmspp,
+        TMSPPRINCIBL,
+        TRBAS
+        WHERE   (tmspd.i_id = tmspdsah.i_id)
+        AND (tmspd.i_id = tmspdrincibl.i_idspd)
+        AND (TRBAS.I_ID = tmspdrincibl.i_idbas)
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspd.c_jenis = '3'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspp.C_BEBAN IN ('UP', 'GU')
+        AND tmspdrincibl.i_idkegiatan =   #{idkegiatan}
+        UNION ALL
+        SELECT   tmspp.C_ANGG_TAHUN,
+        tmspp.i_idskpd,
+        tmspprincibl.i_idkegiatan,
+        tmspprincibl.i_idbl,
+        tmspprincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        0 AS nilai_spd,
+        tmspprincibl.v_spp AS nilai_LS,
+        0 AS nilai_TU,
+        0 AS sudah_spj,
+        0 AS nilai_spj
+        FROM   tmspp,
+        tmspm,
+        tmsp2d,
+        tmspprincibl,
+        TRBAS
+        WHERE   (tmspp.i_id = tmspm.i_idspp)
+        AND (tmspm.i_id = tmsp2d.i_id)
+        AND (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (TRBAS.I_ID = tmspprincibl.i_idbas)
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban = 'LS'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idkegiatan = #{idkegiatan}
+        UNION ALL
+        SELECT   tmspp.C_ANGG_TAHUN,
+        tmspp.i_idskpd,
+        tmspprincibl.i_idkegiatan,
+        tmspprincibl.i_idbl,
+        tmspprincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        0 AS nilai_spd,
+        0 AS nilai_LS,
+        tmspprincibl.v_spp AS nilai_TU,
+        0 AS sudah_spj,
+        0 AS nilai_spj
+        FROM   tmspp,
+        tmspm,
+        tmsp2d,
+        tmspprincibl,
+        TRBAS
+        WHERE   (tmspp.i_id = tmspm.i_idspp)
+        AND (tmspm.i_id = tmsp2d.i_id)
+        AND (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (TRBAS.I_ID = tmspprincibl.i_idbas)
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban = 'TU'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idkegiatan =  #{idkegiatan}
+        UNION ALL
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        0 AS nilai_spd,
+        0 AS nilai_LS,
+        0 AS nilai_TU,
+        tmspjrincibl.v_spj sudah_spj,
+        0 spj
+        FROM   tmspj, tmspjrincibl, TRBAS
+        WHERE       tmspj.i_id = tmspjrincibl.i_idspj
+        AND tmspjrincibl.I_IDBAS = TRBAS.I_ID
+        AND tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id &lt;&gt; #{idspj}
+        AND tmspjrincibl.i_idkegiatan =  #{idkegiatan}
+        UNION ALL
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        0 AS nilai_spd,
+        0 AS nilai_LS,
+        0 AS nilai_TU,
+        0 sudah_spj,
+        tmspjrincibl.v_spj spj
+        FROM   tmspj, tmspjrincibl, TRBAS
+        WHERE   tmspj.i_id = tmspjrincibl.i_idspj
+        AND (TRBAS.I_ID = tmspjrincibl.i_idbas)
+        AND tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id = #{idspj}
+        AND tmspjrincibl.i_idkegiatan =  #{idkegiatan} 
+        ) xx                                 
+        GROUP BY   C_ANGG_TAHUN,
+        i_idskpd,
+        i_idkegiatan,
+        i_idbl,
+        i_idbas,
+        c_akun,
+        n_akun          
+        ) a) xxxx
+        )
+    </select>
+    <select id="getBendaharaById" parameterType="java.util.Map"
+            resultType="spp.model.Bendahara"> 
+        SELECT
+        DISTINCT
+        T.I_NIP_PKBLJ || '-' || T.N_PKBLJ AS nama
+        FROM TMDPA T, TRSKPD S
+        WHERE S.I_ID = T.I_IDSKPD AND S.I_ID = #{idskpd}
+        AND T.C_ANGG_TAHUN = #{tahun}
+    </select>
+    <select id="getSpjRinci" parameterType="java.util.Map"  resultType="spp.model.Spj">
+        <!--
+        SELECT   xxxx.C_ANGG_TAHUN AS tahun,
+        xxxx.i_idskpd AS "skpd.idSkpd",
+        I_id AS "kegiatan.idKegiatan",
+        C_KEGIATAN AS "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        sum_nilai_UPGUTU AS "spjrinci.nilai_UPGUTU",
+        sum_sudah_spj AS "spjrinci.sudah_spj",
+        selisih AS "spjrinci.SISA_spj",
+        sum_nilai_spj AS "spjrinci.nilai_spj",
+        idrinci AS "spjrinci.idSpjRinci"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   XY.C_ANGG_TAHUN,
+        XY.i_idskpd,
+        SUM (nilai_UPGUTU) AS sum_nilai_UPGUTU,
+        SUM (sudah_spj) AS sum_sudah_spj,
+        SUM (nilai_UPGUTU - sudah_spj) AS selisih,
+        SUM (nilai_spj) AS sum_nilai_spj,
+        tmdpakegiatan.I_id AS I_id,
+        tmdpakegiatan.C_KEGIATAN AS C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN AS N_KEGIATAN,
+        idrinci
+        FROM   (SELECT   tmspp.C_ANGG_TAHUN,
+        tmspp.i_idskpd,
+        NULL AS idrinci,
+        tmspprincibl.i_idkegiatan,
+        tmspprincibl.i_idbl,
+        tmspprincibl.i_idbas,
+        tmspprincibl.v_spp AS nilai_UPGUTU,
+        0 AS sudah_spj,
+        0 AS nilai_spj
+        FROM   tmspp,
+        tmsp2d,
+        tmspprincibl,
+        tmdpabl,
+        trbas
+        WHERE   (tmspp.i_id = tmsp2d.i_idspp)
+        AND (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (tmdpabl.i_id =
+        tmspprincibl.I_IDBL)
+        AND (trbas.i_id = tmdpabl.i_idbas)
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban &lt;&gt; 'TU'
+        AND tmspp.c_jenis = '3'
+        AND tmdpabl.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        TMSPJRINCIBL.I_ID,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        0 AS nilai_UPGUTU,
+        tmspjrincibl.v_spj sudah_spj,
+        0 spj
+        FROM   tmspj,
+        tmspjrincibl,
+        tmdpabl,
+        trbas
+        WHERE   (tmspj.i_id = tmspjrincibl.i_idspj)
+        AND (tmdpabl.i_id =
+        tmspjrincibl.i_idbl)
+        AND (trbas.i_id = tmdpabl.i_idbas)
+        AND tmdpabl.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id &lt;&gt; #{idspj}
+        UNION ALL
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        TMSPJRINCIBL.I_ID,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        0 AS nilai_UPGUTU,
+        0 sudah_spj,
+        tmspjrincibl.v_spj spj
+        FROM   tmspj,
+        tmspjrincibl,
+        tmdpabl,
+        trbas
+        WHERE   ( (tmspj.i_id = tmspjrincibl.i_idspj)
+        AND (tmdpabl.i_id =
+        tmspjrincibl.i_idbl)
+        AND (trbas.i_id = tmdpabl.i_idbas))
+        AND tmdpabl.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id = #{idspj}) xy,
+        tmdpakegiatan
+        WHERE   tmdpakegiatan.I_id = xy.i_idkegiatan
+        GROUP BY   XY.C_ANGG_TAHUN,
+        XY.i_idskpd,
+        tmdpakegiatan.I_ID,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        idrinci
+        ) a) xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}-->
+        SELECT   xxxx.C_ANGG_TAHUN AS tahun,
+        xxxx.i_idskpd AS "skpd.idSkpd",
+        I_id AS "kegiatan.idKegiatan",
+        C_KEGIATAN AS "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        sum_sudah_spj AS "spjrinci.sudah_spj",
+        sum_nilai_spj AS "spjrinci.nilai_spj",
+        <!--beban AS kodeBeban -->
+        (CASE beban
+        WHEN 'UP' THEN 'UP/GU'
+        WHEN 'GU' THEN 'UP/GU'
+        WHEN 'LS' THEN 'LS'
+        WHEN 'TU' THEN 'TU'
+        ELSE '---'
+        END)
+        AS kodeBeban
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   XY.C_ANGG_TAHUN,
+        XY.i_idskpd,
+        SUM (sudah_spj) AS sum_sudah_spj,
+        SUM (nilai_spj) AS sum_nilai_spj,
+        tmdpakegiatan.I_id AS I_id,
+        tmdpakegiatan.C_KEGIATAN AS C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN AS N_KEGIATAN,
+        beban
+        FROM   (
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        TMSPJRINCIBL.C_BEBAN beban ,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        tmspjrincibl.v_spj as sudah_spj,
+        0 as nilai_spj 
+        FROM   tmspj,
+        tmspjrincibl,
+        tmdpabl,
+        trbas
+        WHERE   (tmspj.i_id = tmspjrincibl.i_idspj)
+        AND (tmdpabl.i_id =
+        tmspjrincibl.i_idbl)
+        AND (trbas.i_id = tmdpabl.i_idbas)
+        AND tmdpabl.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id &lt;&gt; #{idspj}
+        UNION ALL
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        TMSPJRINCIBL.C_BEBAN ,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        0 as sudah_spj,
+        tmspjrincibl.v_spj nilai_spj
+        FROM   tmspj,
+        tmspjrincibl,
+        tmdpabl,
+        trbas
+        WHERE   ( (tmspj.i_id = tmspjrincibl.i_idspj)
+        AND (tmdpabl.i_id =
+        tmspjrincibl.i_idbl)
+        AND (trbas.i_id = tmdpabl.i_idbas))
+        AND tmdpabl.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id = #{idspj}) xy,
+        tmdpakegiatan
+        WHERE   tmdpakegiatan.I_id = xy.i_idkegiatan
+        GROUP BY   XY.C_ANGG_TAHUN,
+        XY.i_idskpd,
+        tmdpakegiatan.I_ID,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        beban
+        having SUM (nilai_spj) &lt; &gt; 0
+        ) a) xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getComboKegiatan" parameterType="java.util.Map"  resultType="spp.model.Spj">
+      
+        SELECT   DISTINCT i_idkegiatan AS "kegiatan.idKegiatan",
+        C_ANGG_TAHUN AS tahunAnggaran,
+        i_idskpd AS "skpd.idSkpd",
+        c_KEGIATAN AS "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        N_PROGRAM AS "program.namaProgram",
+        (CASE C_BEBAN
+        WHEN 'UP' THEN 'UP/GU'
+        WHEN 'GU' THEN 'UP/GU'
+        WHEN 'LS' THEN 'LS'
+        WHEN 'TU' THEN 'TU'
+        ELSE '---'
+        END)
+        AS kodeBeban
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   DISTINCT tmspprincibl.i_idkegiatan,
+        tmspp.C_ANGG_TAHUN,
+        tmspp.i_idskpd,
+        tmdpakegiatan.c_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        trprogram.N_PROGRAM,
+        tmspp.C_BEBAN
+        FROM   tmspp,
+        tmspm,
+        tmsp2d,
+        tmspprincibl,
+        tmdpakegiatan,
+        trprogram
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_id = tmsp2d.I_IDSPM
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND trprogram.i_id = tmdpakegiatan.i_idprogram
+        AND tmdpakegiatan.i_id =
+        tmspprincibl.i_idkegiatan
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban = 'TU'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        <if test="namakegiatan != null and namakegiatan != '' ">
+            AND upper(tmdpakegiatan.N_KEGIATAN) like '%'||upper(#{namakegiatan})||'%'
+        </if>      
+        <if test="namaprogram != null and namaprogram != '' ">
+            AND upper(trprogram.N_PROGRAM) like '%'||upper(#{namaprogram})||'%'
+        </if>                                
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspj, tmspjrincibl
+        WHERE   tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idkegiatan = tmspjrincibl.i_idkegiatan
+        AND tmspjrincibl.C_BEBAN ='TU'
+        AND tmspj.i_id =
+        tmspjrincibl.i_idspj
+        AND tmspj.i_id = #{idspj})
+        UNION ALL
+        SELECT   DISTINCT tmspdrincibl.i_idkegiatan,
+        tmspd.C_ANGG_TAHUN,
+        tmspd.i_idskpd,
+        tmdpakegiatan.c_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        trprogram.N_PROGRAM,
+        tmspp.C_BEBAN
+        FROM   tmspd,
+        tmsp2d,
+        tmspdrincibl,
+        tmdpakegiatan,
+        trprogram,
+        tmspprincibl,
+        tmspp
+        WHERE       tmspp.i_id = tmsp2d.i_idspp
+        AND tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND trprogram.i_id = tmdpakegiatan.i_idprogram
+        AND tmdpakegiatan.i_id =
+        tmspdrincibl.I_IDKEGIATAN
+        AND tmspp.c_beban IN ('UP', 'GU')
+        AND tmspd.c_jenis = '3'
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspj, tmspjrincibl
+        WHERE   tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspdrincibl.i_idkegiatan = tmspjrincibl.i_idkegiatan
+        AND tmspj.i_id = tmspjrincibl.i_idspj
+        AND tmspjrincibl.C_BEBAN ='UP'
+        AND tmspj.i_id = #{idspj})) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <!--<select id="getComboKegiatan" parameterType="java.util.Map"  resultType="spp.model.Spj">
+        SELECT C_ANGG_TAHUN as tahunAnggaran, 
+        i_idskpd as "skpd.idSkpd",  
+        i_idkegiatan as "kegiatan.idKegiatan",
+        c_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        N_PROGRAM as "program.namaProgram", 
+        C_BEBAN as kodeBeban , 
+        V_SPP as nilaiSpp
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT
+        tmspp.C_ANGG_TAHUN,
+        tmspp.i_idskpd,
+        tmspprincibl.i_idkegiatan,
+        tmdpakegiatan.c_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        trprogram.N_PROGRAM,
+        tmspp.C_BEBAN,
+        sum(tmspprincibl.v_spp) v_spp
+        FROM tmspp, tmspm, tmsp2d, tmspprincibl, tmdpakegiatan, trprogram
+        WHERE (tmspp.i_id = tmspm.i_idspp)
+        AND (tmspm.i_id = tmsp2d.I_IDSPM )
+        AND (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (trprogram.i_id = tmdpakegiatan.i_idprogram)
+        AND (tmdpakegiatan.i_id = tmspprincibl.i_idkegiatan)
+        and tmsp2d.c_sp2d_sah ='1'
+        and tmspp.c_beban &lt; &gt;'TU'
+        and tmspp.c_jenis ='3'
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd = #{idskpd}
+        and not exists (select 1 from tmspj , tmspjrincibl
+        where  tmspj.c_angg_tahun = #{tahun}
+        and tmspj.i_idskpd =#{idskpd}
+        and tmspprincibl.i_idkegiatan = tmspjrincibl.i_idkegiatan
+        and tmspj.i_id= tmspjrincibl.i_idspj
+        and tmspj.i_id = #{idspj})
+        <if test="namakegiatan != null and namakegiatan != '' ">
+            AND upper(tmdpakegiatan.N_KEGIATAN) like '%'||upper(#{namakegiatan})||'%'
+        </if>      
+        <if test="namaprogram != null and namaprogram != '' ">
+            AND upper(trprogram.N_PROGRAM) like '%'||upper(#{namaprogram})||'%'
+        </if>   
+        GROUP BY  tmspp.C_ANGG_TAHUN, tmspp.i_idskpd,  tmspprincibl.i_idkegiatan, tmspprincibl.i_idkegiatan,
+        tmdpakegiatan.c_KEGIATAN, tmdpakegiatan.N_KEGIATAN, tmspp.C_BEBAN, trprogram.n_program 
+        ) a) WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select> -->
+    <select id="getSpjRinciKegiatan" parameterType="java.util.Map"  resultType="spp.model.Spj">
+        SELECT   C_ANGG_TAHUN AS tahun,
+        i_idskpd AS "skpd.idSkpd",
+        i_idkegiatan AS "kegiatan.idKegiatan",
+        i_idbl AS idBl,
+        i_idbas AS "akun.idAkun",
+        c_akun AS "akun.kodeAkun",
+        n_akun AS "akun.namaAkun",
+        sumnilai_SPD AS "spjrinci.nilai_SPD",
+        sumnilai_LS AS "spjrinci.nilai_LS",
+        sumnilai_UPGUTU AS "spjrinci.nilai_UPGUTU",
+        sumsudah_spj AS "spjrinci.sudah_spj",
+        sumsisaSpj AS "spjrinci.SISA_spj",
+        sumnilai_spj AS "spjrinci.nilai_spj"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   C_ANGG_TAHUN AS C_ANGG_TAHUN,
+        i_idskpd AS i_idskpd,
+        i_idkegiatan AS i_idkegiatan,
+        i_idbl AS i_idbl,
+        i_idbas AS i_idbas,
+        c_akun AS c_akun,
+        n_akun AS n_akun,
+        SUM (nilai_SPD) AS sumnilai_SPD,
+        SUM (nilai_LS) AS sumnilai_LS,
+        SUM (nilai_TU) AS sumnilai_UPGUTU,
+        SUM (sudah_spj) AS sumsudah_spj,
+        SUM (nilai_SPD - nilai_LS - nilai_TU - sudah_spj)  AS sumsisaSpj,
+        SUM (nilai_spj) AS sumnilai_spj
+        FROM   (                      
+        SELECT   tmspd.C_ANGG_TAHUN as c_angg_tahun ,
+        tmspd.i_idskpd as i_idskpd,
+        tmspdrincibl.i_idkegiatan,
+        tmspdrincibl.i_idbl,
+        tmspdrincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        tmspdrincibl.v_spd AS nilai_SPD,
+        0 AS nilai_LS,
+        0 AS nilai_TU,
+        0 AS sudah_spj,
+        0 AS nilai_spj
+        FROM   tmspd,
+        tmspdrincibl,
+        tmspdsah,
+        tmspp,
+        TMSPPRINCIBL,
+        TRBAS
+        WHERE   (tmspd.i_id = tmspdsah.i_id)
+        AND (tmspd.i_id = tmspdrincibl.i_idspd)
+        AND (TRBAS.I_ID = tmspdrincibl.i_idbas)
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspd.c_jenis = '3'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspp.C_BEBAN IN ('UP', 'GU')
+        AND tmspdrincibl.i_idkegiatan =   #{idkegiatan}
+        UNION ALL
+        SELECT   tmspp.C_ANGG_TAHUN,
+        tmspp.i_idskpd,
+        tmspprincibl.i_idkegiatan,
+        tmspprincibl.i_idbl,
+        tmspprincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        0 AS nilai_spd,
+        tmspprincibl.v_spp AS nilai_LS,
+        0 AS nilai_TU,
+        0 AS sudah_spj,
+        0 AS nilai_spj
+        FROM   tmspp,
+        tmspm,
+        tmsp2d,
+        tmspprincibl,
+        TRBAS
+        WHERE   (tmspp.i_id = tmspm.i_idspp)
+        AND (tmspm.i_id = tmsp2d.i_id)
+        AND (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (TRBAS.I_ID = tmspprincibl.i_idbas)
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban = 'LS'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idkegiatan = #{idkegiatan}
+        UNION ALL
+        SELECT   tmspp.C_ANGG_TAHUN,
+        tmspp.i_idskpd,
+        tmspprincibl.i_idkegiatan,
+        tmspprincibl.i_idbl,
+        tmspprincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        0 AS nilai_spd,
+        0 AS nilai_LS,
+        tmspprincibl.v_spp AS nilai_TU,
+        0 AS sudah_spj,
+        0 AS nilai_spj
+        FROM   tmspp,
+        tmspm,
+        tmsp2d,
+        tmspprincibl,
+        TRBAS
+        WHERE   (tmspp.i_id = tmspm.i_idspp)
+        AND (tmspm.i_id = tmsp2d.i_id)
+        AND (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (TRBAS.I_ID = tmspprincibl.i_idbas)
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban = 'TU'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idkegiatan =  #{idkegiatan}
+        UNION ALL
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        0 AS nilai_spd,
+        0 AS nilai_LS,
+        0 AS nilai_TU,
+        tmspjrincibl.v_spj sudah_spj,
+        0 spj
+        FROM   tmspj, tmspjrincibl, TRBAS
+        WHERE       tmspj.i_id = tmspjrincibl.i_idspj
+        AND tmspjrincibl.I_IDBAS = TRBAS.I_ID
+        AND tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id &lt;&gt; #{idspj}
+        AND tmspjrincibl.i_idkegiatan =  #{idkegiatan}
+        and  tmspjrincibl.c_beban &lt;&gt; (CASE #{beban}
+        WHEN 'UP/GU' THEN 'UP'
+        WHEN 'UP' THEN 'UP'
+        WHEN 'GU' THEN 'UP'
+        WHEN 'LS' THEN 'LS'
+        WHEN 'TU' THEN 'TU'
+        ELSE '---'
+        END)
+        UNION ALL
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        0 AS nilai_spd,
+        0 AS nilai_LS,
+        0 AS nilai_TU,
+        tmspjrincibl.v_spj sudah_spj,
+        0 spj
+        FROM   tmspj, tmspjrincibl, TRBAS
+        WHERE       tmspj.i_id = tmspjrincibl.i_idspj
+        AND tmspjrincibl.I_IDBAS = TRBAS.I_ID
+        AND tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id = #{idspj}
+        AND tmspjrincibl.i_idkegiatan =  #{idkegiatan}
+        and  tmspjrincibl.c_beban &lt;&gt; (CASE #{beban}
+        WHEN 'UP/GU' THEN 'UP'
+        WHEN 'UP' THEN 'UP'
+        WHEN 'GU' THEN 'UP'
+        WHEN 'LS' THEN 'LS'
+        WHEN 'TU' THEN 'TU'
+        ELSE '---'
+        END)
+        UNION ALL
+        SELECT   tmspj.C_ANGG_TAHUN,
+        tmspj.i_idskpd,
+        tmspjrincibl.i_idkegiatan,
+        tmspjrincibl.i_idbl,
+        tmspjrincibl.i_idbas,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        0 AS nilai_spd,
+        0 AS nilai_LS,
+        0 AS nilai_TU,
+        0 sudah_spj,
+        tmspjrincibl.v_spj spj
+        FROM   tmspj, tmspjrincibl, TRBAS
+        WHERE   tmspj.i_id = tmspjrincibl.i_idspj
+        AND (TRBAS.I_ID = tmspjrincibl.i_idbas)
+        AND tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspj.i_id = #{idspj}
+        AND tmspjrincibl.i_idkegiatan =  #{idkegiatan} 
+        and  tmspjrincibl.c_beban = (CASE #{beban}
+        WHEN 'UP/GU' THEN 'UP'
+        WHEN 'UP' THEN 'UP'
+        WHEN 'GU' THEN 'UP'
+        WHEN 'LS' THEN 'LS'
+        WHEN 'TU' THEN 'TU'
+        ELSE '---'
+        END)
+        ) xx                                 
+        GROUP BY   C_ANGG_TAHUN,
+        i_idskpd,
+        i_idkegiatan,
+        i_idbl,
+        i_idbas,
+        c_akun,
+        n_akun          
+        ) a) xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getCountComboKegiatan" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak
+        FROM   
+        ( 
+        SELECT
+        tmspp.C_ANGG_TAHUN,
+        tmspp.i_idskpd,
+        tmspprincibl.i_idkegiatan,
+        tmdpakegiatan.c_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        trprogram.N_PROGRAM,
+        tmspp.C_BEBAN,
+        sum(tmspprincibl.v_spp) v_spp
+        FROM tmspp, tmspm, tmsp2d, tmspprincibl, tmdpakegiatan, trprogram
+        WHERE (tmspp.i_id = tmspm.i_idspp)
+        AND (tmspm.i_id = tmsp2d.I_IDSPM )
+        AND (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (trprogram.i_id = tmdpakegiatan.i_idprogram)
+        AND (tmdpakegiatan.i_id = tmspprincibl.i_idkegiatan)
+         <if test="namakegiatan != null and namakegiatan != '' ">
+            AND upper(tmdpakegiatan.N_KEGIATAN) like '%'||upper(#{namakegiatan})||'%'
+        </if>      
+        <if test="namaprogram != null and namaprogram != '' ">
+            AND upper(trprogram.N_PROGRAM) like '%'||upper(#{namaprogram})||'%'
+        </if>   
+        and tmsp2d.c_sp2d_sah ='1'
+        and tmspp.c_beban &lt; &gt;'TU'
+        and tmspp.c_jenis ='3'
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd =  #{idskpd}
+        and not exists (select 1 from tmspj , tmspjrincibl
+        where  tmspj.c_angg_tahun = #{tahun}
+        and tmspj.i_idskpd = #{idskpd}
+        and tmspprincibl.i_idkegiatan = tmspjrincibl.i_idkegiatan
+        and tmspj.i_id= tmspjrincibl.i_idspj
+        and tmspj.i_id = #{idspj})
+        group by tmspp.C_ANGG_TAHUN,
+        tmspp.i_idskpd,
+        tmspprincibl.i_idkegiatan,
+        tmdpakegiatan.c_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        trprogram.N_PROGRAM,
+        tmspp.C_BEBAN
+        ) 
+    </select>  
+    <select id="getCountBulanSpjByIdSkpdDanBulan" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(i_id) as banyaknya from tmspj
+        WHERE C_SPJ_BULAN = #{bulan}
+        AND I_IDSKPD = #{idskpd}
+    </select>
+    <insert id="insertSpjRinci" parameterType="spp.model.Spj">
+        INSERT INTO TMSPJRINCIBL (
+        I_ID, 
+        I_IDSPJ, 
+        I_IDBL, 
+        I_IDKEGIATAN, 
+        I_IDBAS, 
+        C_BEBAN, 
+        V_SPJ, 
+        I_PGUN_REKAM, 
+        D_PGUN_REKAM) 
+        VALUES ( 
+        SEQ_TMSPJRINCIBL.NEXTVAL, 
+        #{idSpj}, 
+        #{idBl},
+        #{kegiatan.idKegiatan}, 
+        #{akun.idAkun}, 
+        (CASE #{kodeBeban}
+        WHEN 'UP/GU' THEN 'UP'
+        WHEN 'UP' THEN 'UP'
+        WHEN 'GU' THEN 'UP'
+        WHEN 'LS' THEN 'LS'
+        WHEN 'TU' THEN 'TU'
+        ELSE '---'
+        END),
+        #{nilai_spj}, 
+        #{idEntry},
+        #{tglEntry}
+        )
+    </insert>
+    <update id="updateSpj" parameterType="spp.model.Spj"   >
+        UPDATE TMSPJ
+        SET          
+        I_ID = #{idSpj},
+        C_ANGG_TAHUN = #{tahun},
+        I_IDSKPD =  #{skpd.idSkpd},
+        I_SPJNO = #{noSpj}, 
+        C_SPJ_BULAN = #{bulan},
+        C_SPJ_NIHIL =   #{nihil},
+        E_SPJ = #{ketSpj}
+        WHERE  I_ID = #{idSpj}
+    </update>
+    <update id="updateSpjRinci" parameterType="spp.model.Spj">
+        UPDATE TMSPJRINCIBL SET
+        V_SPJ = #{nilai_spj}, 
+        I_PGUN_UBAH = #{idEdit}, 
+        D_PGUN_UBAH =  #{tglEdit}
+        WHERE  I_IDBL  = #{idBl}
+        AND I_IDSPJ = #{idSpj}
+    </update>
+    <delete id="deleteSpjRinci">
+        delete TMSPJRINCIBL WHERE V_SPJ  = 0
+    </delete>
+    <delete id="deleteSpjRinciKegiatan" parameterType="spp.model.Spj">
+        delete TMSPJRINCIBL WHERE
+        C_BEBAN =   (CASE #{kodeBeban}
+        WHEN 'UP/GU' THEN 'UP'
+        WHEN 'UP' THEN 'UP'
+        WHEN 'GU' THEN 'UP'
+        WHEN 'LS' THEN 'LS'
+        WHEN 'TU' THEN 'TU'
+        ELSE '---'
+        END)
+        AND I_IDSPJ = #{idSpj}
+        AND I_IDKEGIATAN = #{kegiatan.idKegiatan} 
+       
+    </delete>
+    <delete id="deleteSpjBlMaster" parameterType="java.lang.Integer">
+        delete TMSPJ where I_ID = #{idSpj}
+    </delete>
+    <delete id="deleteSpjRinciByIdSpj" parameterType="java.lang.Integer">
+        delete TMSPJRINCIBL where I_IDSPJ = #{idSpj}
+    </delete>
+    <delete id="deleteUpdateSpjRinci" parameterType="java.util.Map">
+        delete TMSPJRINCIBL WHERE
+        C_BEBAN =   (CASE #{beban}
+        WHEN 'UP/GU' THEN 'UP'
+        WHEN 'UP' THEN 'UP'
+        WHEN 'GU' THEN 'UP'
+        WHEN 'LS' THEN 'LS'
+        WHEN 'TU' THEN 'TU'
+        ELSE '---'
+        END)
+        AND I_IDSPJ = #{idspj}
+        AND I_IDKEGIATAN = #{idkegiatan}
+    </delete>
+    <select id="getSpjById" parameterType="java.lang.Integer"
+            resultType="spp.model.Spj">
+        SELECT   DISTINCT T.I_NIP_PKBLJ || '-' || T.N_PKBLJ AS "bendahara.nama",
+        S.I_ID AS idSpj,
+        S.C_ANGG_TAHUN AS tahun,
+        S.I_IDSKPD AS "skpd.idSkpd",
+        C.N_SKPD AS "skpd.namaSkpd",
+        S.I_SPJNO AS noSpj,
+        S.C_SPJ_BULAN || '/' || S.C_ANGG_TAHUN AS bulan,
+        S.V_SPJ_UP AS nilaiSpjUp,
+        S.V_SPJ_TU AS nilaiSpjTu,
+        S.C_SPJ_NIHIL AS nihil,
+        S.E_SPJ AS ketSpj,
+        S.I_IDJOUR AS idJour
+        FROM   TMSPJ S, TMDPA T, TRSKPD C
+        WHERE   S.I_ID = #{value} 
+        AND T.I_ID = S.I_IDSKPD
+        AND C.I_ID = S.I_IDSKPD
+    </select>
+    <select id="getBanyakSpjBelumSah" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select  NVL (count(*),0) as banyakspj  from tmspj
+        where  c_angg_tahun =  #{tahun} AND i_idskpd =  #{idskpd} 
+        and not exists (select 1 from tmspjsah 
+        where tmspj.i_id = tmspjsah.i_id  )
+    </select>
+    <select id="getKegiatanById" parameterType="java.util.Map"  resultType="spp.model.Spj">
+        SELECT   DISTINCT tmdpakegiatan.i_id as "kegiatan.idKegiatan",
+        tmdpakegiatan.c_KEGIATAN as "kegiatan.kodeKegiatan",
+        tmdpakegiatan.N_KEGIATAN as "kegiatan.namaKegiatan",
+        trprogram.N_PROGRAM as "program.namaProgram",
+        tmspjrincibl.C_BEBAN as kodeBeban
+        FROM   tmdpakegiatan, trprogram, tmspjrincibl
+        WHERE   tmdpakegiatan.i_id = #{idkegiatan}
+        AND trprogram.i_id = tmdpakegiatan.i_idprogram
+        AND tmspjrincibl.C_BEBAN = #{kodebeban}
+        AND TMDPAKEGIATAN.I_ID = TMSPJRINCIBL.I_IDKEGIATAN
+    </select>
+    <select id="getTotalSpjByIdSkpdAndTahun" parameterType="java.util.Map"  resultType="java.math.BigDecimal">
+        SELECT   sum(total_spj) as total_spj
+        from ( 
+        SELECT   NVL (sum (v_spj), 0) total_spj 
+        FROM  tmspj, tmspjrincibl
+        WHERE tmspj.i_id = tmspjrincibl.i_idspj   
+        and c_angg_tahun =  #{tahun} AND i_idskpd =  #{idskpd} and i_idspj = #{idspj}
+        union all
+        SELECT   NVL (sum (v_spj), 0) 
+        FROM  tmspj, tmspjrincibtl
+        WHERE tmspj.i_id = tmspjrincibtl.i_idspj   
+        and c_angg_tahun =  #{tahun} AND i_idskpd =  #{idskpd} and i_idspj = #{idspj}
+        )
+    </select>
+    
+    <!-- BAGIAN CETAK SPJ BL -->
+    
+    
+    <select id="getSpjCetakBl" parameterType="java.util.Map"  resultType="spp.model.Spj">
+        SELECT tmspj.i_id AS idSpj, 
+        c_angg_tahun AS tahun, 
+        i_idskpd AS idskpd,
+        i_spjno AS noSpj, 
+        c_spj_bulan AS bulan,
+        v_spj_up AS nilaiSpjUp, 
+        v_spj_tu AS nilaiSpjTu,
+        (CASE c_spj_nihil
+        WHEN '0'
+        THEN 'ADA SPJ'
+        WHEN '1'
+        THEN 'NIHIL'
+        WHEN '2'
+        THEN 'NIHIL-NIHIL'
+        ELSE 'TANPA STATUS'
+        END
+        ) AS nihil, 
+        e_spj AS ketSpj, TMSPJCETAK.C_STATUS_CETAK as statusCetak, 
+        to_char(TMSPJCETAK.D_SPJ_CETAK,'dd-mm-yyyy') as  tglCetak
+        FROM TMSPJ 
+        left join 
+        TMSPJCETAK 
+        ON TMSPJCETAK.I_ID = TMSPJ.I_ID
+        WHERE c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        AND NOT EXISTS (SELECT 1
+        FROM TMSPJSAH
+        WHERE TMSPJ.i_id = TMSPJSAH.i_id)
+    </select>
+    <select id="getBanyakgetSpjCetakBl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT tmspj.i_id AS ID, c_angg_tahun AS tahun, i_idskpd AS idskpd,
+        i_spjno AS nospj, c_spj_bulan, v_spj_up, v_spj_tu,
+        c_spj_nihil AS nihil, e_spj, TMSPJCETAK.C_STATUS_CETAK as statusCetak, to_char(TMSPJCETAK.D_SPJ_CETAK,'dd-mm-yyyy') as  tglCetak
+        FROM TMSPJ 
+        left join 
+        TMSPJCETAK 
+        ON TMSPJCETAK.I_ID = TMSPJ.I_ID
+        WHERE c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        AND NOT EXISTS (SELECT 1
+        FROM TMSPJSAH
+        WHERE TMSPJ.i_id = TMSPJSAH.i_id)
+        )
+    </select>
+</mapper>

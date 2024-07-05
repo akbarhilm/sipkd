@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.TrxBankDkiMapper">
+    
+    <select id="getListTransaksi" parameterType="java.util.Map"  resultType="spp.model.TrxBankDki">
+        SELECT   
+        
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT  
+        
+        rskpd.i_id
+        WHERE tmspm.c_angg_tahun = #{tahun} 
+        
+        AND tmsp2d.c_angg_tahun = #{tahun} )
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakTransaksi" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   count(*)  FROM (
+        
+        )
+    </select>
+
+    <update id="updateTransaksi" parameterType="spp.model.TrxBankDki"   >
+        UPDATE TMTRXBANKDKI
+        SET       
+        I_ID = #{idSpmCetak},   
+        c_wil_sp2dproses = #{codeWilSp2dproses},
+        D_SPM_MOHONSKPD = #{tglEdit},
+        D_SPM_TERIMAKPKD = #{tglEdit},
+        N_PEG_TERIMAKPKD = #{namaPegTerimakpkd},
+        N_PEG_PEMBERISKPD = #{namaPegPemberiskpd},
+        I_PGUN_TERIMA = #{idEdit},
+        D_PGUN_TERIMA =#{tglEdit}
+        WHERE  I_ID  = #{idSpmCetak}
+    </update>
+    
+    <select id="getComboUser" parameterType="java.util.Map"  resultType="spp.model.TrxBankDki">
+        select i_id as idUser, i_pgun as namaUser from tmpengguna where i_pgun like 'SP2D%'
+        
+    </select>
+    
+</mapper>

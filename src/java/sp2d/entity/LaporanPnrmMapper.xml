@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sp2d.entity.LaporanPnrmMapper">
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF 
+    </select>
+    
+    <select id="getWilayah"   parameterType="java.util.Map" resultType="spp.model.Sp2d">
+        select c_wilayah as kodeWilayahProses, n_wilayah as namaWilayah
+        from trwilayah where c_aktif = 1
+        order by C_WILAYAH
+    </select>
+    
+    <select id="getBanyakListSkpdPnrm" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   count(*) as banyak from (
+        SELECT DISTINCT i_idskpd, c_skpd, n_skpd
+        FROM (SELECT i_idskpd
+        FROM tmdpadpt
+        WHERE c_angg_tahun = #{tahun}
+        UNION ALL
+        SELECT i_idskpd
+        FROM tmpnrm
+        WHERE c_angg_tahun = #{tahun}) xxx,
+        trskpd
+        WHERE xxx.i_idskpd = trskpd.i_id
+        and  trskpd.c_wil_sp2dproses = #{wilayah}
+        <if test="skpd != null and skpd != '' ">
+            and upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+        
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            and upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>   
+        ORDER BY 2
+            
+        )
+    </select>
+    
+    <select id="getListSkpdPnrm" parameterType="java.util.Map"  resultType="spp.model.Skpd">
+        SELECT    i_idskpd as idSkpd, c_skpd as kodeSkpd, n_skpd as namaSkpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  
+        SELECT DISTINCT i_idskpd, c_skpd, n_skpd
+        FROM (SELECT i_idskpd
+        FROM tmdpadpt
+        WHERE c_angg_tahun = #{tahun}
+        UNION ALL
+        SELECT i_idskpd
+        FROM tmpnrm
+        WHERE c_angg_tahun = #{tahun}) xxx,
+        trskpd
+        WHERE xxx.i_idskpd = trskpd.i_id
+        and  trskpd.c_wil_sp2dproses = #{wilayah}
+        <if test="skpd != null and skpd != '' ">
+            and upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+        
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            and upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>   
+        ORDER BY 2             
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+</mapper>

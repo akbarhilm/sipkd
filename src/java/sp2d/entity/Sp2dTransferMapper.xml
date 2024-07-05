@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sp2d.entity.Sp2dTransferMapper">
+
+    <select id="getlistsp2dtransfer" parameterType="java.util.Map"  resultType="spp.model.Sp2dSahTransfer">
+
+        SELECT distinct id,
+        idskpd,
+        nospp,
+        nospm as "spmUp.noSpm",
+        tglspm as "spmUp.tglSpm",
+        noSp2d as "sp2d.nomorSp2d",
+        tglSp2d as "sp2d.tglSp2d",
+        kodeWil as "sp2d.kodeWilayahProses",
+        potblum as "sp2d.kodeCetakPotongan",
+        potbtl,
+        potbl,
+        kodeBeban,
+        kodeJenis,
+        UPPER(regexp_replace(namaPptk,'[-. ,/]',' ')) as namaPptk,
+        nipPptk,
+        tahun,
+        status_cetak as "sp2d.kodeCetak" ,
+
+        trim(to_char(nilaisp2d,'0000000000000')) as "sp2d.nilaiSp2d",
+        trim(to_char(nilaiPotongan,'0000000000000')) as nilaiPot,
+        trim(to_char(nilaiSpp,'0000000000000')) as nilaiBruto,
+        norekTujuan as rnorekTujuan,
+        trim(to_char(norekPengirim,'000000000000')) as rnorekPengirim,
+        kodeSah, noDokSp2d, nilaiPotongan, nilaiSpp,
+        kodeSkpd, UPPER(namaSkpd) as namaSkpd,
+        '-' AS kodeBilling,
+        UPPER(regexp_replace(namaPengirim,'[-., /]',' ')) as namaPengirim,
+        norekPengirim,
+        kodeBank, norekTujuan,
+        UPPER(regexp_replace(alamat,'[.,/]',' ')) as alamat, npwp ,
+        UPPER(regexp_replace(keteranganSp2d,'[., /]',' ')) as ketSp2d,
+        UPPER(regexp_replace(namaTujuan,'[., /]',' ')) as namaTujuan,
+        nilaiAmountBalance, statusBank, kodeAkun, kodeVA
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   Z.i_idsp2d AS id,
+        Z.i_idskpd AS idskpd,
+        Z.i_sppno AS nospp,
+        Z.i_spmno AS nospm,
+        Z.i_sp2dno AS nosp2d,
+        Z.d_spmno AS tglspm,
+        Z.PPTK AS namaPptk,
+        Z.NPPTK AS nipPptk,
+        Z.d_sp2dno AS tglsp2d,
+        Z.pot_bl_UM AS potblum,
+        Z.pot_btl AS potbtl,
+        Z.POT_bl AS potbl,
+        Z.c_beban AS kodeBeban,
+        Z.k_wil_pros AS kodeWil,
+        Z.C_ANGG_TAHUN AS tahun,
+        (CASE z.c_jenis
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        WHEN '5' THEN 'RESTITUSI'
+        END)
+        AS kodeJenis,
+        status_cetak,
+        status_cetakpotongan,
+        z.nilaisp2d as nilaisp2d,
+        status_sah as kodeSah,
+        noDokSp2d, nilaiPotongan, nilaiSpp,
+        kodeSkpd, namaSkpd, norekPengirim,
+        kodeBank,
+        regexp_replace(norekTujuan,'[-. ,/]','') as norekTujuan,
+        alamat, npwp,
+        substr(keteranganSp2d,0,100) as keteranganSp2d,
+        substr(namaTujuan,0,50) as namaTujuan,
+        nilaiAmountBalance, statusBank, idspp, namaPengirim,
+        (CASE z.c_jenis
+        WHEN '1' THEN (select  nvl(min(c_akun),'-') from tmsp2d, tmspprincibtl, trbas  where tmsp2d.i_idspp =  tmspprincibtl.i_idspp and tmspprincibtl.i_idbas = trbas.i_id and tmsp2d.i_id = z.i_idsp2d)
+        WHEN '2' THEN (select  nvl(min(c_akun),'-') from tmsp2d, tmspprincibtlbantuan, trbas  where tmsp2d.i_idspp =  tmspprincibtlbantuan.i_idspp and tmspprincibtlbantuan.i_idbas = trbas.i_id and tmsp2d.i_id = z.i_idsp2d)
+        WHEN '3' THEN (select  nvl(min(c_akun),'-') from tmsp2d, tmspprincibl, trbas  where tmsp2d.i_idspp =  tmspprincibl.i_idspp and tmspprincibl.i_idbas = trbas.i_id and tmsp2d.i_id = z.i_idsp2d)
+        WHEN '4' THEN (select  nvl(min(c_akun),'-') from tmsp2d, tmspprincibiaya, trbas  where tmsp2d.i_idspp =  tmspprincibiaya.i_idspp and tmspprincibiaya.i_idbas = trbas.i_id and tmsp2d.i_id = z.i_idsp2d)
+        END)
+        AS kodeAkun,
+        kodeVA
+        FROM   (
+        SELECT   tmspp.c_angg_tahun,
+        tmspm.i_idskpd AS i_idskpd,
+        tmspm.i_id AS i_idspm,
+        tmspm.i_idspp AS i_idspp,
+        tmsp2d.i_id AS i_idsp2d,
+        tmspm.i_spmno,
+        tmspm.d_spmno,
+        tmsp2d.i_sp2dno,
+        tmsp2d.d_sp2dno,
+        tmsp2d.c_wil_sp2dproses as k_wil_pros ,
+        tmspp.i_sppno,
+        tmspp.c_beban,
+        tmsp2d.N_KBUD AS PPTK,
+        tmsp2d.I_NIP_KBUD as NPPTK,
+        tmspm.C_UANGMUKA as pot_bl_UM,
+        tmspm.C_POTAYAT as pot_btl,
+        tmspm.C_POTNONAYAT AS POT_bl,
+        tmspp.c_jenis,
+        trbank.n_rek_bank as namaPengirim,
+        (CASE
+        WHEN (NVL (tmsp2d.c_sp2d_cetak, '0') = '1' AND tmsp2d.c_sp2d_sah = '0') THEN 'CETAK'
+        WHEN (NVL (tmsp2d.c_sp2d_cetak, '0') = '1' AND tmsp2d.c_sp2d_sah = '1') THEN  'VALIDASI'
+        <!--
+        CASE
+        WHEN (TMSPP.c_bank_transfer = '111' and length(tmspp.i_rek_bank)> 11 and (tmspp.i_rek_bank like '9%' or tmspp.i_rek_bank like '8%' or tmspp.i_rek_bank like '7%'))
+        THEN
+        'VIRTUAL ACCOUNT'
+        ELSE
+        'VALIDASI'
+        END -->
+        ELSE 'TANPA STATUS'
+        END
+        )
+        AS status_cetak,
+        (CASE NVL (tmsp2d.c_sp2d_cetakpot,
+        '0')
+        WHEN '0'
+        THEN
+        'BELUM CETAK'
+        WHEN '1'
+        THEN
+        'CETAK'
+        ELSE
+        'TANPA STATUS'
+        END)
+        AS status_cetakpotongan,
+        tmsp2d.v_sp2d as nilaisp2d,
+        tmsp2d.c_sp2d_sah as status_sah,
+        tmsp2d.v_spp as nilaiSpp,
+        tmsp2d.v_pot_spm as nilaiPotongan,
+        tmsp2d.i_sp2dno_dok as noDokSp2d,
+        trskpd.c_skpd as kodeSkpd,
+        substr(replace(trskpd.n_skpd,'|',';'),0,100) as namaSkpd,
+        regexp_replace(trbank.i_rek_bank,'[-. /]','') AS norekPengirim,
+        CASE
+        WHEN (tmspp.c_jenis = 3 AND tmspp.c_beban = 'LS') THEN tmkontrak.c_bank_transfer
+        ELSE tmspp.c_bank_transfer
+        END
+        AS kodeBank,
+        CASE
+        WHEN (tmspp.c_jenis = 3 AND tmspp.c_beban = 'LS') THEN tmkontrak.i_rek_bank
+        ELSE  tmspp.i_rek_bank <!-- substr(tmspp.i_rek_bank,0,12) -->
+        END
+        AS norekTujuan,
+        CASE
+        WHEN (tmspp.c_jenis = 3 AND tmspp.c_beban = 'LS') THEN nvl(substr(replace(tmkontrak.a_rekan,'|',';'),0,100),'-')
+        ELSE nvl(substr(replace(tmspp.a_objekpajak,'|',';'),0,100),'-')
+        END
+        AS alamat,
+        CASE
+        WHEN (tmspp.c_jenis = 3 AND tmspp.c_beban = 'LS') THEN nvl(substr(replace(tmkontrak.i_rekan_npwp,'|',';'),0,30),'-')
+        ELSE nvl(substr(replace(tmspp.i_rekan_npwp,'|',';'),0,30),'-')
+        END
+        AS npwp,
+        CASE
+        WHEN (tmspp.c_jenis = 3 AND tmspp.c_beban = 'UP')
+        THEN
+        'Pengisian Kas Bendahara Pengeluaran / Bendahara Pengeluaran Pembantu bulan ' || Bulan (tmspp.c_bulan) || ' ' || tmsp2d.c_angg_tahun
+        WHEN (tmspp.c_jenis = 3 AND tmspp.c_beban = 'GU')
+        THEN
+        'Pengisian Ganti Uang Persediaan Bendahara Pengeluaran / Bendahara Pengeluaran Pembantu bulan ' || Bulan (tmspp.c_bulan) || ' ' || tmsp2d.c_angg_tahun
+        WHEN (tmspp.c_jenis = 3 AND tmspp.c_beban = 'TU')
+        THEN
+        'Tambahan Uang Persediaan Bendahara Pengeluaran / Bendahara Pengeluaran Pembantu'
+        ELSE
+        substr(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(trim(tmspm.e_spm),'  ',' '),'  ',' '),'  ',' '),'  ',' '),CHR(13),''),'|',';'),0,100)
+        END
+        AS keteranganSp2d,
+        CASE
+        WHEN (tmspp.c_jenis = 1)
+        THEN
+        CASE
+        WHEN (tmsp2d.i_idskpd = 761 or tmsp2d.i_idskpd = 1234)
+        THEN
+        tmspp.n_wp
+        ELSE
+        tmspp.n_tujuan
+        <!-- (select distinct nvl(N_REK_BANKSPM,'-') from trskpdbankrek where i_idskpd = #{idskpd}) -->
+        END
+        WHEN (tmspp.c_jenis = 2)
+        THEN
+        tmspp.n_wp
+        WHEN (tmspp.c_jenis = 3)
+        THEN
+        CASE
+        WHEN (tmspm.c_nihil = 0 AND tmspp.c_beban = 'LS')
+        THEN
+        tmkontrak.n_rekan_bank <!-- diubah 030918 karena hasil inq nama tujuan disimpan ke n_rekan_bank-->
+        ELSE
+        tmspp.n_tujuan
+        <!-- (select nvl(N_REK_BANKSPM,'-') from trskpdbankrek where i_idskpd = #{idskpd}) -->
+        END
+        ELSE
+        tmspp.n_tujuan
+        END
+        AS namaTujuan,
+        trim(to_char(v_sp2d,'0000000000000')) as nilaiAmountBalance,
+        tmsp2dbank.c_bank_status as statusBank,
+        tmspp.i_id as idspp,
+        nvl(tmkontrak.C_REK_BANKVA,0) as kodeVA
+        FROM
+        tmspm,
+        tmspmcetak, trskpd,trbank,
+        TMSPP LEFT JOIN  tmkontrak
+        ON TMSPP.i_idkontrak = tmkontrak.i_id,
+        tmsp2d  left join tmsp2dbank on  tmsp2dbank.i_idsp2d = tmsp2d.i_id  and c_bank_status != 1
+
+        WHERE       tmspm.i_idspp = tmspp.i_id
+        AND tmspm.i_id = tmsp2d.i_idspm
+        AND tmspm.i_id = tmspmcetak.i_id
+        and tmsp2d.i_idskpd = trskpd.i_id
+
+        AND tmsp2d.c_sp2d_cetak != '0'
+        AND tmsp2d.c_sp2d_sah != '0' <!-- hanya untuk yang sudah validasi, karena menu validasi dan transfer dipisah -->
+        and not exists (select 1 from tmsp2dbank where i_idsp2d = tmsp2d.i_id and c_bank_status = '1' )
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}
+        and tmsp2d.c_wil_sp2dproses = trbank.c_wil_sp2dproses
+        and trbank.c_wil_sp2dproses = #{kodewilayah}
+        <!-- and tmsp2d.D_PGUN_SAH > to_date('20161206','YYYYMMDD') -->
+
+        and to_char(tmsp2d.D_PGUN_SAH,'YYYYMMDD') = to_char(sysdate,'YYYYMMDD')
+        ) Z)
+        a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        order by noSp2d
+
+    </select>
+
+    <select id="getbanyaksp2dtransfer" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT ( distinct i_idsp2d) AS banyak
+        from
+        ( SELECT tmsp2d.i_id AS i_idsp2d
+        FROM   TMSPP, tmspm,tmsp2d,tmspmcetak
+        WHERE       tmspm.i_idspp = tmspp.i_id
+        AND tmspm.i_id = tmsp2d.i_idspm
+        AND tmspm.i_id = tmspmcetak.i_id
+        <!-- AND tmsp2d.c_sp2d_sah != '1' -->
+        AND tmsp2d.c_sp2d_cetak != '0'
+        and not exists (select 1 from tmsp2dbank where i_idsp2d = tmsp2d.i_id and c_bank_status = 1)
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}
+        and to_char(tmsp2d.D_PGUN_SAH,'YYYYMMDD') = to_char(sysdate,'YYYYMMDD')
+        )
+    </select>
+
+    <insert id="insertSp2dBank" parameterType="spp.model.Sp2dSahTransfer">
+        INSERT INTO TMSP2DBANK (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_BILLING,
+        I_IDSP2D,
+        D_SP2D_KIRIMBANK,
+        V_SP2D_KIRIMBANK,
+        E_MSG_KIRIM,
+        C_BANK_STATUS,
+        I_BIT4,
+        I_BIT11,
+        I_BIT12,
+        I_BIT13,
+        I_BIT37,
+        C_BANK_TUJUAN,
+        I_REK_TUJUAN,
+        N_TUJUAN,
+        A_TUJUAN,
+        I_NPWP_TUJUAN,
+        I_REK_PENGIRIM,
+        N_PENGIRIM,
+        C_WIL_SP2DPROSES,
+        I_SP2DNO_DOK,
+        V_BRUTO,
+        V_POTONGAN,
+        C_BEBAN,
+        E_SP2D,
+        I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        C_AKUN,
+        I_PGUN,
+        I_BIT62
+
+        ) VALUES (
+        SEQ_TMSP2DBANK.NEXTVAL,
+        #{tahun},
+        #{kodeBilling},
+        <!-- #{tahun}||'SP2D'||trim(to_char(SEQ_TMSP2DBANK.nextval, '0000000')),-->
+        #{idSp2d},
+        sysdate,
+        #{nilaiBayar},
+        #{msgKirim},
+        '0',
+        #{bit4},
+        #{bit11},
+        #{bit12},
+        #{bit13},
+        #{bit37},
+        #{kodeBank},
+        #{norekTujuan},
+        #{namaTujuan},
+        #{alamat},
+        #{npwp},
+        #{norekPengirim},
+        #{namaPengirim},
+        #{kodeWilayahProses},
+        #{nodokSp2d},
+        #{nilaiBruto},
+        #{nilaiPot},
+        #{kodeBeban},
+        #{keterangan},
+        #{idskpdRekon},
+        #{kodeSkpd},
+        #{namaSkpd},
+        #{kodeAkun},
+        #{pengguna},
+        #{bit62}
+        )
+    </insert>
+
+    <update id="updateSp2dBank" parameterType="spp.model.Sp2dSahTransfer" >
+        UPDATE TMSP2DBANK
+        SET
+        I_TRX_TERIMABANK = #{trxTerimaBank},
+        D_SP2D_PROSESBANK = to_date(#{tglProses}, 'DD/MM/YY HH24:MI:SS'),
+        V_SP2D_BAYARBANK = #{nilaiBayarBank},
+        E_MSG_TERIMABANK = #{msgTerimaBank},
+        C_BANK_STATUS = #{statusBank}
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSP2D = #{idSp2d}
+        AND C_BANK_STATUS = '0'
+    </update>
+
+    <select id="getSysdate" parameterType="java.util.Map" resultType="spp.model.Sp2dSahTransfer">
+        select to_char(sysdate,'ddmmyy hh24miss') as tglProses from dual
+    </select>
+
+    <select id="getKodeStan" parameterType="java.util.Map" resultType="spp.model.Sp2dSahTransfer">
+        <!--
+        select trim(to_char(SEQ_TMSP2DBANK.nextval ,'000000')) as kodeStan,
+        trim(to_char(SEQ_TMSP2DBANK.nextval ,'0000000000')) as nomorRef
+        from dual
+        -->
+
+        select trim(to_char(nvl(max(I_BIT11),0)+1,'000000')) as kodeStan,
+        trim(to_char(nvl(max(I_BIT11),0)+1,'0000000000')) as nomorRef
+        from tmsp2dbank
+
+    </select>
+
+    <select id="getBanyakTf" parameterType="java.util.Map" resultType="spp.model.Sp2dSahTransfer">
+        select nvl(count(c_bank_status),0) as statusBank
+        from tmsp2dbank where c_angg_tahun = #{tahun}
+        and i_idsp2d = #{idsp2d}
+        and c_bank_status = 1
+
+    </select>
+
+    <insert id="insertSp2dManual" parameterType="spp.model.Sp2dSahTransfer">
+        INSERT INTO TMSP2DBANK (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSP2D,
+        D_SP2D_KIRIMBANK,
+        V_SP2D_KIRIMBANK,
+        E_MSG_TERIMABANK,
+        C_BANK_STATUS,
+        C_BANK_TUJUAN,
+        I_REK_TUJUAN,
+        N_TUJUAN,
+        I_REK_PENGIRIM,
+        N_PENGIRIM,
+        C_WIL_SP2DPROSES,
+        I_SP2DNO_DOK,
+        V_BRUTO,
+        V_POTONGAN,
+        C_BEBAN,
+        E_SP2D,
+        I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        C_AKUN,
+        I_PGUN,
+        I_BIT62,
+        E_MSG_KIRIM
+        ) VALUES (
+        SEQ_TMSP2DBANK.NEXTVAL,
+        #{tahun},
+        #{idSp2d},
+        sysdate,
+        #{nilaiBayar},
+        '00 - Pembayaran SP2D Manual',
+        '1',
+        #{kodeBank},
+        #{norekTujuan},
+        #{namaTujuan},
+        #{norekPengirim},
+        #{namaPengirim},
+        #{kodeWilayahProses},
+        #{nodokSp2d},
+        #{nilaiBruto},
+        #{nilaiPot},
+        #{kodeBeban},
+        #{keterangan},
+        #{idskpdRekon},
+        #{kodeSkpd},
+        #{namaSkpd},
+        #{kodeAkun},
+        #{pengguna},
+        #{bit62},
+        'MANUAL'
+        )
+</insert>
+
+</mapper>

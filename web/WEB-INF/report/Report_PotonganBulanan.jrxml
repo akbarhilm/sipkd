@@ -1,0 +1,742 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Report_PotonganBulanan" pageWidth="935" pageHeight="609" orientation="Landscape" columnWidth="851" leftMargin="42" rightMargin="42" topMargin="42" bottomMargin="42" uuid="3aab420b-78bf-42fc-ba6a-73967a2051b8">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<import value="java.util.*"/>
+	<parameter name="NAMA_DAERAH" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["PROVINSI DAERAH KHUSUS IBUKOTA JAKARTA"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="NAMA_KOTA" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["Jakarta"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["D:\\New SIPKD\\Report\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="TAHUN" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["2015"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="WILAYAH" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="BULAN" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["03"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT C_ANGG_TAHUN, TGL_VALIDASI, BLN_SP2DPROSES, WIL_PROSES, N_WIL_SP2DPROSES, C_JENIS, I_SP2DNO_DOK, I_SPMNO_DOK, N_REKAN, TGL_CETAK, TANGGAL, 
+POT_PPN, POT_PPH22, POT_ASUR, POT_JADIR, POT_JAMSOS, POT_PPH23, POT_PENGTEK, POT_PPNBM, POT_PPH21, POT_PPH4, JUMLAH_SPM, JUMLAH_POT, 
+N_JABATAN_KABID, N_KABID, I_NIP_KABID, N_JABATAN_KASIE, N_KASIE, I_NIP_KASIE, C_SKPD,  JUMLAH_SPM-JUMLAH_POT AS JUMLAH_BAYAR 
+FROM(
+SELECT A.C_ANGG_TAHUN, to_char(A.D_SP2D_SAH,'DD-MM-YYYY') AS TGL_VALIDASI, Upper(Bulan(to_char(A.D_SP2D_SAH,'MM'))) AS BLN_SP2DPROSES,
+Trim(Replace(E.N_JABATAN_KABID,'KEPALA','')) AS WIL_PROSES, A.N_WIL_SP2DPROSES, C.C_JENIS, A.I_SP2DNO_DOK, B.I_SPMNO_DOK, D.N_REKAN, to_char(SYSDATE,'dd-mm-yyyy') AS TGL_CETAK, Tanggal(SYSDATE) AS TANGGAL, 
+NVL((SELECT ROUND(V_POT_SPM) FROM TMSPMPOT WHERE I_IDSPM = A.I_IDSPM AND C_POT_SPM = '11'),0) AS POT_PPN,
+NVL((SELECT ROUND(V_POT_SPM) FROM TMSPMPOT WHERE I_IDSPM = A.I_IDSPM AND C_POT_SPM = '12'),0) AS POT_PPH22,
+NVL((SELECT ROUND(V_POT_SPM) FROM TMSPMPOT WHERE I_IDSPM = A.I_IDSPM AND C_POT_SPM = '13'),0) AS POT_ASUR,
+NVL((SELECT ROUND(V_POT_SPM) FROM TMSPMPOT WHERE I_IDSPM = A.I_IDSPM AND C_POT_SPM = '14'),0) AS POT_JADIR,
+NVL((SELECT ROUND(V_POT_SPM) FROM TMSPMPOT WHERE I_IDSPM = A.I_IDSPM AND C_POT_SPM = '15'),0) AS POT_JAMSOS,
+NVL((SELECT ROUND(V_POT_SPM) FROM TMSPMPOT WHERE I_IDSPM = A.I_IDSPM AND C_POT_SPM = '16'),0) AS POT_PPH23,
+NVL((SELECT ROUND(V_POT_SPM) FROM TMSPMPOT WHERE I_IDSPM = A.I_IDSPM AND C_POT_SPM = '17'),0) AS POT_PENGTEK,
+NVL((SELECT ROUND(V_POT_SPM) FROM TMSPMPOT WHERE I_IDSPM = A.I_IDSPM AND C_POT_SPM = '18'),0) AS POT_PPNBM,
+NVL((SELECT ROUND(V_POT_SPM) FROM TMSPMPOT WHERE I_IDSPM = A.I_IDSPM AND C_POT_SPM = '19'),0) AS POT_PPH21,
+NVL((SELECT ROUND(V_POT_SPM) FROM TMSPMPOT WHERE I_IDSPM = A.I_IDSPM AND C_POT_SPM = '20'),0) AS POT_PPH4,
+NVL((SELECT SUM(V_SPP) FROM TMSPPRINCIBL WHERE I_IDSPP = A.I_IDSPP),0 ) AS JUMLAH_SPM, ROUND(SUM(F.V_POT_SPM)) AS JUMLAH_POT,
+E.N_JABATAN_KABID, E.N_KABID, E.I_NIP_KABID, E.N_JABATAN_KASIE, E.N_KASIE, E.I_NIP_KASIE, (SELECT C_SKPD FROM TRSKPD WHERE I_ID = A.I_IDSKPD) AS C_SKPD
+FROM TMSP2D A, TMSPM B, TMSPP C, TMKONTRAK D, TRDOKPOTTT E, TMSPMPOT F
+WHERE A.C_ANGG_TAHUN = $P{TAHUN}
+AND to_char(A.D_SP2D_SAH,'MM') = $P{BULAN}
+AND A.C_SP2D_SAH = '1'
+AND A.C_WIL_SP2DPROSES = $P{WILAYAH}
+AND A.I_IDSPM = B.I_ID
+AND B.C_POTNONAYAT = '1'
+AND A.I_IDSPP = C.I_ID
+AND C.C_BEBAN = 'LS'
+AND C.I_IDKONTRAK = D.I_ID
+AND A.C_WIL_SP2DPROSES = E.C_WILAYAH
+AND F.I_IDSPM = A.I_IDSPM
+GROUP BY A.C_ANGG_TAHUN, to_char(A.D_SP2D_SAH,'DD-MM-YYYY'), to_char(A.D_SP2D_SAH,'MM'), E.N_JABATAN_KABID, A.N_WIL_SP2DPROSES, C.C_JENIS, A.I_SP2DNO_DOK, B.I_SPMNO_DOK, D.N_REKAN, 
+E.N_JABATAN_KABID, E.N_KABID, E.I_NIP_KABID, E.N_JABATAN_KASIE, E.N_KASIE, E.I_NIP_KASIE, A.I_IDSPM, A.I_IDSPP, A.I_IDSKPD )
+ORDER BY TGL_VALIDASI, I_SP2DNO_DOK]]>
+	</queryString>
+	<field name="C_ANGG_TAHUN" class="java.lang.String"/>
+	<field name="TGL_VALIDASI" class="java.lang.String"/>
+	<field name="BLN_SP2DPROSES" class="java.lang.String"/>
+	<field name="WIL_PROSES" class="java.lang.String"/>
+	<field name="N_WIL_SP2DPROSES" class="java.lang.String"/>
+	<field name="C_JENIS" class="java.lang.String"/>
+	<field name="I_SP2DNO_DOK" class="java.lang.String"/>
+	<field name="I_SPMNO_DOK" class="java.lang.String"/>
+	<field name="N_REKAN" class="java.lang.String"/>
+	<field name="TGL_CETAK" class="java.lang.String"/>
+	<field name="TANGGAL" class="java.lang.String"/>
+	<field name="POT_PPN" class="java.math.BigDecimal"/>
+	<field name="POT_PPH22" class="java.math.BigDecimal"/>
+	<field name="POT_ASUR" class="java.math.BigDecimal"/>
+	<field name="POT_JADIR" class="java.math.BigDecimal"/>
+	<field name="POT_JAMSOS" class="java.math.BigDecimal"/>
+	<field name="POT_PPH23" class="java.math.BigDecimal"/>
+	<field name="POT_PENGTEK" class="java.math.BigDecimal"/>
+	<field name="POT_PPNBM" class="java.math.BigDecimal"/>
+	<field name="POT_PPH21" class="java.math.BigDecimal"/>
+	<field name="POT_PPH4" class="java.math.BigDecimal"/>
+	<field name="JUMLAH_SPM" class="java.math.BigDecimal"/>
+	<field name="JUMLAH_POT" class="java.math.BigDecimal"/>
+	<field name="N_JABATAN_KABID" class="java.lang.String"/>
+	<field name="N_KABID" class="java.lang.String"/>
+	<field name="I_NIP_KABID" class="java.lang.String"/>
+	<field name="N_JABATAN_KASIE" class="java.lang.String"/>
+	<field name="N_KASIE" class="java.lang.String"/>
+	<field name="I_NIP_KASIE" class="java.lang.String"/>
+	<field name="C_SKPD" class="java.lang.String"/>
+	<field name="JUMLAH_BAYAR" class="java.math.BigDecimal"/>
+	<variable name="TOTAL_SPM" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{JUMLAH_SPM}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{JUMLAH_POT}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_BAYAR" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{JUMLAH_BAYAR}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT_PPN" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{POT_PPN}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT_PPH22" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{POT_PPH22}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT_ASUR" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{POT_ASUR}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT_JAMSOS" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{POT_JAMSOS}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT_JADIR" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{POT_JADIR}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT_PPH21" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{POT_PPH21}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT_PPH23" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{POT_PPH23}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT_PPNBM" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{POT_PPNBM}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT_PENGTEK" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{POT_PENGTEK}]]></variableExpression>
+	</variable>
+	<variable name="TOTAL_POT_PPH4" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{POT_PPH4}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="146" splitType="Stretch">
+			<rectangle>
+				<reportElement key="rectangle-1" mode="Opaque" x="0" y="96" width="851" height="50" backcolor="#CCCCCC" uuid="2e3bf685-e528-4a9b-aa53-4808c6311435"/>
+			</rectangle>
+			<image hAlign="Center" vAlign="Middle">
+				<reportElement key="image-1" mode="Transparent" x="0" y="0" width="40" height="41" uuid="c57df893-5e7d-44e5-b26b-d0bb7f943136"/>
+				<imageExpression><![CDATA[$P{SUBREPORT_DIR}+"/LambangDaerah.jpg"]]></imageExpression>
+			</image>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-1" mode="Transparent" x="50" y="0" width="500" height="13" forecolor="#000066" uuid="fdf48124-18d2-4300-8f68-70f68e2aca25"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA["PEMERINTAH "+$P{NAMA_DAERAH}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-1" x="50" y="13" width="500" height="14" forecolor="#000066" uuid="b42859ff-6747-43be-ba8a-a31327a6419d"/>
+				<textElement textAlignment="Left">
+					<font fontName="Times New Roman" size="10" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[BADAN PENGELOLA KEUANGAN DAN ASET DAERAH]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-2" x="0" y="55" width="851" height="15" forecolor="#000066" uuid="6c5694ac-d416-49ba-a44e-8dc3b1295149"/>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="12" isBold="true" isUnderline="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[DAFTAR POTONGAN NON AYAT]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField" x="0" y="73" width="851" height="14" uuid="01aac81f-108f-4909-96b9-48828875c76f"/>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA["BULAN  :   "+$F{BLN_SP2DPROSES}+" "+$P{TAHUN}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-2" x="50" y="27" width="500" height="14" uuid="1a7d4873-8888-4c06-b53a-fca8d2f56477"/>
+				<textElement textAlignment="Left">
+					<font fontName="Times New Roman" size="10" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{WIL_PROSES}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-7" x="2" y="111" width="26" height="14" forecolor="#000066" uuid="bfc4bfc2-275c-48aa-8186-995bc6b1a7d2"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[No.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-8" x="33" y="99" width="185" height="35" forecolor="#000066" uuid="463e5d1d-c65f-464a-99e0-0200f47ecfbf"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[NOMOR SPM  
+NOMOR SP2D   /  TGL VALIDASI
+NAMA PIHAK KETIGA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-9" x="222" y="99" width="86" height="35" forecolor="#000066" uuid="78c8175e-5515-4cd6-ad11-bba15bfed9bc"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[PPN
+PPH Pasal 22
+(Rp)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-10" x="312" y="99" width="86" height="35" forecolor="#000066" uuid="f03e8ade-98f5-4228-9e45-61a1217b4e34"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[ASURANSI
+JAMSOSTEK
+(Rp)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-11" x="403" y="99" width="86" height="35" forecolor="#000066" uuid="cd5e3beb-bccd-4409-b8ba-4d421a1c3089"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[JASA DIREKSI
+PPH Pasal 21
+(Rp)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-12" x="492" y="99" width="86" height="35" forecolor="#000066" uuid="e3b869c4-6b05-4df2-af6e-3fecf8965b01"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[PPH Pasal 23
+PPN BM
+(Rp)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-13" x="582" y="99" width="86" height="35" forecolor="#000066" uuid="8dbfda70-f81f-4e73-abb2-c658475e54e7"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[PENG TEKNIS
+PPH Pasal 4
+(Rp)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-14" x="672" y="99" width="86" height="35" forecolor="#000066" uuid="661180e7-4c59-42a0-9fce-cfdf592964b1"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[JML. SPM
+JML. POTONGAN
+(Rp)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-15" x="763" y="99" width="86" height="35" forecolor="#000066" uuid="7c16fd04-6285-4b80-b42a-2f6b6d304ea0"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[JUMLAH SP2D
+DIBAYARKAN
+(Rp)]]></text>
+			</staticText>
+			<line>
+				<reportElement key="line-1" x="0" y="135" width="851" height="1" uuid="5cd84d78-688b-4cb4-9fb5-879b888331e7"/>
+			</line>
+			<line>
+				<reportElement key="line-2" x="30" y="96" width="1" height="50" uuid="af4dc859-3cf9-4040-927e-aee0eb2a01d8"/>
+			</line>
+			<line>
+				<reportElement key="line-4" x="760" y="96" width="1" height="50" uuid="eb9e778b-0d8f-4d5b-ba56-4717ef074b4a"/>
+			</line>
+			<line>
+				<reportElement key="line-5" x="670" y="96" width="1" height="50" uuid="73ea8f70-e559-4675-8e3d-768bbacb9cbd"/>
+			</line>
+			<line>
+				<reportElement key="line-6" x="580" y="96" width="1" height="50" uuid="b5449488-95b3-4871-bc2f-599b9cc0f39e"/>
+			</line>
+			<line>
+				<reportElement key="line-7" x="490" y="96" width="1" height="50" uuid="41d9982f-70a2-487f-8e55-8d1acf908ef7"/>
+			</line>
+			<line>
+				<reportElement key="line-8" x="400" y="96" width="1" height="50" uuid="b1cf18a9-4748-4e09-9379-918e86e57290"/>
+			</line>
+			<line>
+				<reportElement key="line-9" x="310" y="96" width="1" height="50" uuid="157efff2-ee66-4a42-9fd8-8dfd84e98e88"/>
+			</line>
+			<line>
+				<reportElement key="line-10" x="220" y="96" width="1" height="50" uuid="4cbc03e9-2b14-471c-b660-8e772efeb6d3"/>
+			</line>
+			<staticText>
+				<reportElement key="staticText-16" x="1" y="136" width="28" height="9" forecolor="#006666" uuid="531edec1-d84d-4cda-b123-5d33e8625d4f"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[1]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-17" x="33" y="136" width="185" height="9" forecolor="#006666" uuid="caf7531c-d861-4df1-8660-1a3496f51697"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[2]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-18" x="222" y="136" width="86" height="9" forecolor="#006666" uuid="b1f07efd-1b58-49a5-8a8e-a5f101a13f27"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-19" x="312" y="136" width="86" height="9" forecolor="#006666" uuid="b5be5b5b-6aa6-4582-9797-b0b905af0760"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[4]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-20" x="403" y="136" width="86" height="9" forecolor="#006666" uuid="4bfc905e-5d27-4223-a4ce-8588a8d2cb21"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[5]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-21" x="492" y="136" width="86" height="9" forecolor="#006666" uuid="a445cc7f-d770-4087-b526-9d0e1ecf714f"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[6]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-22" x="582" y="136" width="86" height="9" forecolor="#006666" uuid="de1aabcb-1da5-4186-8b84-0d2516ad4e9a"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[7]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-23" x="672" y="136" width="86" height="9" forecolor="#006666" uuid="2414273b-70e8-41fb-9fd7-5eed123908aa"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[8]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-24" x="763" y="136" width="86" height="9" forecolor="#006666" uuid="c636d2bd-ba73-416d-a88a-ffebc411c0a9"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="5" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[9]]></text>
+			</staticText>
+			<textField evaluationTime="Page" isBlankWhenNull="false">
+				<reportElement key="textField-26" x="770" y="13" width="13" height="11" uuid="c57f5d2e-c68e-4afd-be65-4a1847b4f37a"/>
+				<textElement textAlignment="Left">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="Helvetica"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report" pattern="" isBlankWhenNull="false">
+				<reportElement key="element-4" mode="Transparent" x="788" y="13" width="13" height="11" forecolor="#000000" backcolor="#FFFFFF" uuid="f9d40931-6011-4e4a-8c0c-a972fed585b3"/>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="element-5" mode="Opaque" x="770" y="0" width="80" height="12" forecolor="#FFFFFF" backcolor="#CCCCCC" uuid="f0efec98-12f1-4733-a98b-a2468bc297b1"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="true" isItalic="true" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica-BoldOblique" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Printed by SIPKD]]></text>
+			</staticText>
+			<textField pattern="" isBlankWhenNull="false">
+				<reportElement key="element-6" mode="Transparent" x="800" y="13" width="50" height="11" forecolor="#000000" backcolor="#FFFFFF" uuid="db727cc0-2e56-480f-b511-661843f0559f"/>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="Helvetica" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{TGL_CETAK}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-29" x="783" y="13" width="5" height="11" uuid="12ee4e9d-81fd-4f88-aead-4dd2ea82a14e"/>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="7" pdfFontName="Helvetica"/>
+				</textElement>
+				<text><![CDATA[/]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="38" splitType="Stretch">
+			<rectangle>
+				<reportElement key="rectangle-2" stretchType="RelativeToBandHeight" mode="Transparent" x="0" y="0" width="851" height="38" uuid="abe0b6db-23aa-4be3-9a10-ce7a5323af91"/>
+			</rectangle>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField" x="35" y="2" width="182" height="11" uuid="548fc6a9-d241-4d63-ae97-ba4c99e4f6c8"/>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{I_SPMNO_DOK}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField" x="35" y="14" width="182" height="11" uuid="29a537e5-620e-4348-b70b-f4693f077f08"/>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{I_SP2DNO_DOK}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField" x="35" y="26" width="182" height="11" uuid="beb7a44c-0fd5-481b-8be3-c717dd92bda8"/>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{N_REKAN}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField" x="2" y="2" width="26" height="11" uuid="f6fad757-cb9d-4c65-80ef-80d9287d536c"/>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement key="line-3" stretchType="RelativeToBandHeight" x="30" y="0" width="1" height="38" uuid="8d160071-6bd8-45e5-a202-82ec316512b8"/>
+			</line>
+			<line>
+				<reportElement key="line-11" stretchType="RelativeToBandHeight" x="220" y="0" width="1" height="38" uuid="f38ffd1b-fd69-4808-bcc9-7d5bc6250742"/>
+			</line>
+			<line>
+				<reportElement key="line-12" stretchType="RelativeToBandHeight" x="310" y="0" width="1" height="38" uuid="139afac2-2972-4e66-b899-fa3b74fc40c3"/>
+			</line>
+			<line>
+				<reportElement key="line-13" stretchType="RelativeToBandHeight" x="400" y="0" width="1" height="38" uuid="197db014-8ae2-48fa-bc10-fab0722481f4"/>
+			</line>
+			<line>
+				<reportElement key="line-14" stretchType="RelativeToBandHeight" x="490" y="0" width="1" height="38" uuid="4576b533-c1f2-45ac-9499-4d46c2bf39ed"/>
+			</line>
+			<line>
+				<reportElement key="line-15" stretchType="RelativeToBandHeight" x="580" y="0" width="1" height="38" uuid="88860489-9120-4b02-b7f5-bc37b6e0d28e"/>
+			</line>
+			<line>
+				<reportElement key="line-16" stretchType="RelativeToBandHeight" x="670" y="0" width="1" height="38" uuid="6206f6b3-5ceb-4004-9efe-3d610f29b294"/>
+			</line>
+			<line>
+				<reportElement key="line-17" stretchType="RelativeToBandHeight" x="760" y="0" width="1" height="38" uuid="daa20a38-6b89-47c2-86e1-bdd6f56bb5bb"/>
+			</line>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField" x="221" y="2" width="85" height="11" uuid="ba292931-44f7-457d-9891-0771bc12f0e6"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POT_PPN}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField" x="221" y="14" width="85" height="11" uuid="b1941b06-9a63-4aab-b80d-1182f8ace973"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POT_PPH22}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-3" x="311" y="2" width="85" height="11" uuid="58a52f49-9121-4f6f-896c-14022d9b0222"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POT_ASUR}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-4" x="311" y="14" width="85" height="11" uuid="6f7d40ab-493b-476e-b34e-83660f7fc933"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POT_JAMSOS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-5" x="401" y="2" width="85" height="11" uuid="15b62f3a-528f-4c6b-a3d4-3bb4713afd42"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POT_JADIR}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-6" x="401" y="14" width="85" height="11" uuid="f7bfee11-84d4-40c7-bbb7-7372a590f59c"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POT_PPH21}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-7" x="491" y="2" width="85" height="11" uuid="1c71de58-2722-454c-b124-b6861baeeb91"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POT_PPH23}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-8" x="491" y="14" width="85" height="11" uuid="dbeb9589-4766-4955-aa52-d7b18ae71ba6"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POT_PPNBM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-9" x="581" y="2" width="85" height="11" uuid="fa7877b7-eca0-4223-b6b3-91e7133e3838"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POT_PENGTEK}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-10" x="761" y="14" width="85" height="11" uuid="8044cbcd-c201-4c05-8fb7-2be47e3ff47d"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{JUMLAH_BAYAR}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-11" x="671" y="2" width="85" height="11" uuid="f9b1cf5b-0f01-4080-bafb-cbf9cf7e3997"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{JUMLAH_SPM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-12" x="671" y="14" width="85" height="11" uuid="3c2ccfec-11a7-4c22-ab12-75398e713138"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{JUMLAH_POT}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-13" x="581" y="14" width="85" height="11" uuid="7e1639a6-63fc-48e5-983e-d89de7ebd2be"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{POT_PPH4}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-25" x="165" y="14" width="50" height="11" uuid="82fb3f9a-ecf0-4cf3-8293-472e39a900eb"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{TGL_VALIDASI}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="150" splitType="Stretch">
+			<rectangle>
+				<reportElement key="rectangle-3" mode="Opaque" x="0" y="0" width="851" height="28" backcolor="#CCCCCC" uuid="bd3da734-4777-4a9f-9878-e91c082f8644"/>
+			</rectangle>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField" x="671" y="3" width="85" height="11" uuid="34bd257b-2b01-48f0-bc4d-9ef1d6528246"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_SPM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField" x="671" y="15" width="85" height="11" uuid="2ab81762-1f1a-4ad8-9f39-2d1158f08a20"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField" x="761" y="15" width="85" height="11" uuid="71e4039f-1e8f-4d3f-a940-d188e6827a6c"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_BAYAR}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement key="line-19" x="670" y="0" width="1" height="28" uuid="a6fefdd7-b433-443f-b703-e3a00fa964c4"/>
+			</line>
+			<line>
+				<reportElement key="line-20" x="760" y="0" width="1" height="28" uuid="6f13eea9-4886-404f-8a2c-34d935e58e7b"/>
+			</line>
+			<staticText>
+				<reportElement key="staticText-25" x="162" y="7" width="50" height="14" forecolor="#000066" uuid="1481f3e9-6492-4c52-a185-cc67e56f47fc"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[JUMLAH]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField" x="650" y="50" width="200" height="14" uuid="46be56ff-37bf-489e-a2e2-75da531f2324"/>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{NAMA_KOTA}+", "+$F{TANGGAL}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField" x="650" y="70" width="200" height="25" uuid="8d196c65-c0d3-4347-a3ac-0aced86fdb8f"/>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{N_JABATAN_KASIE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField" x="650" y="120" width="200" height="14" uuid="23480474-61e8-40b2-af25-f29b89b3edd1"/>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isUnderline="true" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{N_KASIE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField" x="650" y="135" width="200" height="14" uuid="6f30b7ca-cb28-4972-adec-b3a8000aed52">
+					<printWhenExpression><![CDATA[new Boolean($F{I_NIP_KASIE}!=null)]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA["NIP. "+$F{I_NIP_KASIE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField" x="30" y="70" width="200" height="25" uuid="bb383a72-6752-49b3-951d-e662abc6d0f5"/>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{N_JABATAN_KABID}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField" x="30" y="120" width="200" height="14" uuid="7095a64a-9a93-4af4-94b8-0729720613a8"/>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isUnderline="true" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{N_KABID}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField" x="30" y="135" width="200" height="14" uuid="9e5e4d1d-9b46-4a74-9dff-894ae65f2719">
+					<printWhenExpression><![CDATA[new Boolean($F{I_NIP_KABID}!=null)]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA["NIP. "+$F{I_NIP_KABID}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-26" x="30" y="55" width="200" height="14" uuid="3331b011-c306-40f4-9fda-2743de837a8b"/>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<text><![CDATA[Mengetahui,]]></text>
+			</staticText>
+			<line>
+				<reportElement key="line-21" x="220" y="0" width="1" height="28" uuid="411edbc0-3acf-4dd3-94d4-ee4410c31d5b"/>
+			</line>
+			<line>
+				<reportElement key="line-22" x="310" y="0" width="1" height="28" uuid="bfaf6db1-398b-4947-8155-631ae6438283"/>
+			</line>
+			<line>
+				<reportElement key="line-23" x="400" y="0" width="1" height="28" uuid="3146cc85-9bc6-449b-87d3-3169b6129b13"/>
+			</line>
+			<line>
+				<reportElement key="line-24" x="490" y="0" width="1" height="28" uuid="1ed4df2f-cdb5-4709-a53b-d9287f93c253"/>
+			</line>
+			<line>
+				<reportElement key="line-25" x="580" y="0" width="1" height="28" uuid="81b0509c-7b8b-401a-8b16-41493b3cca13"/>
+			</line>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-14" x="221" y="3" width="85" height="11" uuid="f8cda390-483d-43de-b7e1-abcf64fb447e"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT_PPN}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-15" x="221" y="15" width="85" height="11" uuid="97d6384e-bcf0-4665-a9a1-0b1a2c583b43"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT_PPH22}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-16" x="311" y="3" width="85" height="11" uuid="c0285e93-8020-40df-ab30-b60765051bef"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT_ASUR}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-17" x="311" y="15" width="85" height="11" uuid="c468864b-eebf-4b4c-be04-0b5ab9b71aa9"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT_JAMSOS}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-18" x="401" y="3" width="85" height="11" uuid="e20e5654-54a1-4c95-abff-659b69a64fed"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT_JADIR}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-19" x="401" y="15" width="85" height="11" uuid="e845a185-a3e2-48bb-8093-ad7cb11bc069"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT_PPH21}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-20" x="491" y="3" width="85" height="11" uuid="60c8ec72-3890-4ad9-848d-265a9940d0b2"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT_PPH23}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-21" x="491" y="15" width="85" height="11" uuid="58129235-aed1-4c8e-844d-34bc2ade6f3b"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT_PPNBM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-22" x="581" y="3" width="85" height="11" uuid="77ad32f5-7d33-4bf7-a15f-c8f24f1ca90d"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT_PENGTEK}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField-23" x="581" y="15" width="85" height="11" uuid="d0b846c6-2aa2-4071-99e3-dd40190237cd"/>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="Times-Bold"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{TOTAL_POT_PPH4}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sp2d.entity.SpdBlMapper"> 
+    <resultMap id="spdBTLMasterMap" type="spp.model.SpdBTLMaster">
+        <result property="idSpd"  column="I_IDSPD" /> 
+        <result  property="tglSpd"  column="D_SPDNO" />
+        <result  property="noSpd"  column="I_SPDNO"/>
+        <result  property="status"  column="STATUS" />
+        <result  property="tahunAnggaran"   column="C_ANGG_TAHUN"/>
+        <result  property="nilaiSpd"   column="V_SPD"/>
+        <result  property="skpd.idSkpd"  column="I_IDSKPD"  /> 
+    </resultMap>
+    <resultMap id="spdBTLMasterInsertMap" type="spp.model.SpdBTLMaster">
+        <result property="idSpd"  column="I_ID" /> 
+        <result  property="tglSpd"  column="D_SPDNO" />
+        <result  property="noSpd"  column="I_SPDNO"/>
+        <result  property="uraian"  column="E_SPD" />
+        <result  property="bulanAwal"  column="C_BULAN_AWAL" />
+        <result  property="bulanAkhir"  column="C_BULAN_AKHIR" />
+        <result  property="tahunAnggaran"   column="C_ANGG_TAHUN"/>  
+        <result  property="skpd.idSkpd"  column="I_IDSKPD"  /> 
+        <result  property="skpd.namaSkpd"  column="N_SKPD"  />         
+        <result  property="pejabatPpkd.namaPegawai"  column="N_PEG"  /> 
+        <result  property="pejabatPpkd.nip"  column="I_NIP"  /> 
+    </resultMap>
+    <select id="getPaguDanSisaBantuanLangsung"   parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT   XXX.I_IDSKPD,
+        TRSKPD.N_SKPD,
+        SUM (BL)  as pagu,
+        SUM (SPD) SPD,
+        SUM (BL - SPD) as vspd
+        FROM   (SELECT   I_IDSKPD, (V_ANGG_TAPD) BL, 0 SPD
+        FROM   TMDPAKEGIATAN
+        WHERE   C_ANGG_TAHUN = #{tahun} AND I_IDSKPD = #{idskpd}
+        UNION ALL
+        SELECT   I_IDSKPD, 0 BL, (V_SPD) SPD
+        FROM   VW_SPDBL_GRID
+        WHERE   C_ANGG_TAHUN = #{tahun} AND I_IDSKPD = #{idskpd} ) XXX, TRSKPD
+        WHERE   XXX.I_IDSKPD = TRSKPD.I_ID
+        GROUP BY   XXX.I_IDSKPD, TRSKPD.N_SKPD
+        ORDER BY   1
+    </select>
+
+    <select id="getBanyakAnggaranBlSkpd"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (A.I_IDSPD) AS banyak
+        FROM   VW_SPDBL_GRID A
+        WHERE   UPPER (STATUS) != 'VALIDASI'
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+    </select>
+
+    <select id="getAnggaranBlSkpd"   parameterType="java.util.Map" resultType="spp.model.SpdBTLMaster">
+        SELECT   I_IDSKPD AS "skpd.idSkpd",
+        C_ANGG_TAHUN AS tahunAnggaran,
+        D_SPDNO AS tglSpd,
+        I_IDSPD AS idSpd,
+        I_SPDNO AS noSpd,
+        STATUS AS status,
+        V_SPD AS nilaiSpd,
+        I_IDKEGIATAN AS kodeKegiatan
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   A.I_IDSKPD,
+        A.C_ANGG_TAHUN,
+        TO_DATE (A.D_SPDNO, 'DD-MM-YYYY') AS D_SPDNO,
+        A.I_IDSPD,
+        A.I_SPDNO,
+        A.STATUS,
+        A.V_SPD,
+        A.I_IDKEGIATAN
+        FROM   VW_SPDBL_GRID A
+        WHERE       UPPER (STATUS) != 'VALIDASI'
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        ORDER BY   
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                A.I_SPDNO
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                A.D_SPDNO
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                A.V_SPD
+            </when>
+            <otherwise>
+                A.I_IDSPD
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getTotalAnggaranSkpd"    parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT   SUM (T.V_ANGG_TAPD)
+        FROM    TMDPAKEGIATAN T
+        WHERE   T.I_IDSKPD = #{idskpd} AND T.C_ANGG_TAHUN = #{tahun}
+    </select>
+
+    <select id="getTotalSPDBySKPDDanTahun"    parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT   NVL (SUM (v_spd), 0)
+        FROM   VW_SPDBL_GRID
+        WHERE   c_angg_tahun = #{tahun} AND i_idskpd =  #{idskpd}
+    </select> 
+    <select id="getTotalPaguBySkpd"    parameterType="java.util.Map" resultType="java.math.BigDecimal">
+       SELECT   T.V_SPP
+  FROM    TRSPPPAGUUP T
+ WHERE   T.I_IDSKPD = #{idskpd} AND T.C_ANGG_TAHUN = #{tahun}
+    </select>
+    
+</mapper>

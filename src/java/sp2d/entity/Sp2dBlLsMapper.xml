@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.Sp2dBlLsMapper">
+    <select id="getSp2dBlLs" parameterType="java.util.Map"  resultType="spp.model.Sp2dBlLs">
+        SELECT   i_idskpd as "skpd.idSkpd",
+        i_idspp as idSpp,
+        i_idspm as idspm,
+        i_spmno as noSpm,
+        d_spmno as tglSpm,
+        e_spm as keteranganSpm,
+        i_sp2dno as noSp2d,
+        d_sp2dno as tanggalSp2d,
+        v_sp2d  as nilaiSp2d,
+        v_sp2d_pot as nilaiPotSp2d,
+        nilai_bersih as nilaiBersihSp2d,
+        STATUS as status,
+        nvl((select N_PEG_TERIMAKPKD from tmspmcetak where i_id = xxxx.i_idspm ),'BELUM ADA') as  terimaSpm
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   tmspm.i_idskpd AS i_idskpd,
+        tmspm.i_idspp, 
+        tmspm.i_id as i_idspm, 
+        tmspm.i_spmno , 
+        to_char (tmspm.d_spmno,'dd-mm-yyyy') as d_spmno,
+        tmspm.e_spm, 
+        null as  i_sp2dno, 
+        null as d_sp2dno, 
+        (select nvl(sum(v_spp),0) from tmspprincibl where  tmspprincibl.i_idspp =  tmspm.i_idspp) as v_sp2d ,
+        (select nvl(sum(v_pot_spm),0) from tmspmpot where  tmspmpot.i_idspm =  tmspm.i_id) as v_sp2d_pot,
+        (   (select nvl(sum(v_spp),0) from tmspprincibl where  tmspprincibl.i_idspp =  tmspm.i_idspp) -  (select nvl(sum(v_pot_spm),0) from tmspmpot where  tmspmpot.i_idspm =  tmspm.i_id)  )    as nilai_bersih,
+        null AS STATUS  
+        from tmspp, tmspm, tmspmcetak
+        where tmspp.i_id = tmspm.i_idspp
+        and tmspm.i_id = tmspmcetak.i_id
+        and tmspp.c_jenis ='3' 
+        and tmspp.c_beban ='LS' 
+        and tmspm.c_angg_tahun = #{tahun}
+        and tmspm.i_idskpd = #{idskpd}
+        and not exists (select 1 from tmsp2d where tmsp2d.i_idspm = tmspm.i_id)
+        and   D_SPM_TERIMAKPKD is not null
+        and D_PGUN_TERIMA is not null
+        UNION ALL
+        select tmspm.i_idskpd as i_idskpd,
+        tmspm.i_idspp, 
+        tmspm.i_id as i_idspm, 
+        tmspm.i_spmno , 
+        to_char (tmspm.d_spmno,'dd-mm-yyyy')  as d_spmno,
+        tmspm.e_spm, 
+        i_sp2dno, 
+        to_char(d_sp2dno,'dd-mm-yyyy') as d_sp2dno,
+        (select nvl(sum(v_spp),0) from tmspprincibl where  tmspprincibl.i_idspp =  tmspm.i_idspp) as v_sp2d ,
+        (select nvl(sum(v_pot_spm),0) from tmspmpot where  tmspmpot.i_idspm =  tmspm.i_id) as v_sp2d_pot ,
+        tmsp2d.v_sp2d as nilai_bersih,
+        'PENGAJUAN' AS STATUS
+        from tmspp, tmspm, tmspmcetak, tmsp2d
+        where tmspp.i_id = tmspm.i_idspp
+        and tmspm.i_id = tmspmcetak.i_id
+        and tmsp2d.i_idspm = tmspm.i_id
+        and tmspp.c_jenis ='3' 
+        and tmspp.c_beban ='LS'
+        and (tmsp2d.C_SP2D_CETAK ='0' and tmsp2d.C_SP2D_CETAKPOT = '0' and tmsp2d.C_SP2D_SAH ='0') 
+        and tmspm.c_angg_tahun = #{tahun}
+        and tmspm.i_idskpd = #{idskpd}
+        and tmsp2d.C_WIL_SP2DPROSES = #{wilproses}
+        
+        ) a)
+        xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getCountSp2dBlLs" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select tmspm.i_idskpd AS i_idskpd,
+        tmspm.i_idspp, 
+        tmspm.i_id as i_idspm, 
+        tmspm.i_spmno , 
+        to_char (tmspm.d_spmno,'dd-mm-yyyy') as d_spmno,
+        tmspm.e_spm, 
+        null as  i_sp2dno, 
+        null as d_sp2dno, 
+        (select nvl(sum(v_spp),0) from tmspprincibl where  tmspprincibl.i_idspp =  tmspm.i_idspp) as v_sp2d ,
+        (select nvl(sum(v_pot_spm),0) from tmspmpot where  tmspmpot.i_idspm =  tmspm.i_id) as v_sp2d_pot,
+        null AS STATUS  
+        from tmspp, tmspm, tmspmcetak
+        where tmspp.i_id = tmspm.i_idspp
+        and tmspm.i_id = tmspmcetak.i_id
+        and tmspp.c_jenis ='3'
+        and tmspp.c_beban ='LS' 
+        and tmspm.c_angg_tahun = #{tahun}
+        and tmspm.i_idskpd = #{idskpd}
+        and not exists (select 1 from tmsp2d where tmsp2d.i_idspm = tmspm.i_id)
+        and D_SPM_TERIMAKPKD is not null
+        and D_PGUN_TERIMA is not null
+        UNION ALL
+        select tmspm.i_idskpd as i_idskpd,
+        tmspm.i_idspp, 
+        tmspm.i_id as i_idspm, 
+        tmspm.i_spmno , 
+        to_char (tmspm.d_spmno,'dd-mm-yyyy')  as d_spmno,
+        tmspm.e_spm, 
+        i_sp2dno, 
+        to_char(d_sp2dno,'dd-mm-yyyy') as d_sp2dno,
+        (select nvl(sum(v_spp),0) from tmspprincibl where  tmspprincibl.i_idspp =  tmspm.i_idspp) as v_sp2d ,
+        (select nvl(sum(v_pot_spm),0) from tmspmpot where  tmspmpot.i_idspm =  tmspm.i_id) as v_sp2d_pot ,
+        'PENGAJUAN' AS STATUS
+        from tmspp, tmspm, tmspmcetak, tmsp2d
+        where tmspp.i_id = tmspm.i_idspp
+        and tmspm.i_id = tmspmcetak.i_id
+        and tmsp2d.i_idspm = tmspm.i_id
+        and tmspp.c_jenis ='3' 
+        and tmspp.c_beban ='LS' 
+        and (tmsp2d.C_SP2D_CETAK ='0' and tmsp2d.C_SP2D_CETAKPOT = '0' and tmsp2d.C_SP2D_SAH ='0') 
+        and tmspm.c_angg_tahun = #{tahun}
+        and tmspm.i_idskpd = #{idskpd}
+        and tmsp2d.C_WIL_SP2DPROSES = #{wilproses}
+        ) 
+       
+    </select>
+    <select id="getSp2dBlLsById" parameterType="java.util.Map"  resultType="spp.model.Sp2dBlLs">
+        SELECT   i_idskpd AS "skpd.idSkpd",
+        n_skpd AS "skpd.namaSkpd",
+        c_skpd AS "skpd.kodeSkpd",
+        i_idspp AS idSpp,
+        i_idspm AS idspm,
+        i_spmno AS noSpm,
+        d_spmno AS tglSpm,
+        e_spm AS keteranganSpm,
+        i_sp2dno AS noSp2d,
+        d_sp2dno AS tanggalSp2d,
+        v_sp2d AS nilaiSp2d,
+        v_sp2d_pot AS nilaiPotSp2d,
+        nilai_bersih as nilaiBersihSp2d,
+        STATUS AS status,
+        nipPenggunaAnggaran,
+        namaPenggunaAnggaran,
+        nrkPenggunaAnggaran
+        FROM   (SELECT   tmspm.i_idskpd AS i_idskpd,
+        TRSKPD.N_SKPD AS n_skpd,
+        TRSKPD.C_SKPD AS c_skpd,
+        TMDPA.I_NIP_PA AS nipPenggunaAnggaran,
+        TMDPA.N_PA AS namaPenggunaAnggaran,
+        TMDPA.I_NRK_PA AS nrkPenggunaAnggaran,
+        tmspm.i_idspp,
+        tmspm.i_id AS i_idspm,
+        tmspm.i_spmno,
+        TO_CHAR (tmspm.d_spmno, 'dd-mm-yyyy') AS d_spmno,
+        tmspm.e_spm,
+        NULL AS i_sp2dno,
+        NULL AS d_sp2dno,
+        (SELECT   NVL (SUM (v_spp), 0)
+        FROM   tmspprincibl
+        WHERE   tmspprincibl.i_idspp = tmspm.i_idspp)
+        AS v_sp2d,
+        (SELECT   NVL (SUM (v_pot_spm), 0)
+        FROM   tmspmpot
+        WHERE   tmspmpot.i_idspm = tmspm.i_id)
+        AS v_sp2d_pot,
+        (   (select nvl(sum(v_spp),0) from tmspprincibl where  tmspprincibl.i_idspp =  tmspm.i_idspp) -  (select nvl(sum(v_pot_spm),0) from tmspmpot where  tmspmpot.i_idspm =  tmspm.i_id)  )    as nilai_bersih,
+        NULL AS STATUS
+        FROM   tmspp,
+        tmspm,
+        tmspmcetak,
+        trskpd,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_beban = 'LS'
+        AND tmdpa.i_idskpd = trskpd.i_id
+        AND tmspm.i_idskpd = TRSKPD.I_ID
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmdpa.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}
+        AND tmspm.i_idspp = #{idspp}
+        AND tmspm.i_id = #{idspm}
+        AND NOT EXISTS (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmsp2d.i_idspm = tmspm.i_id)
+        ) a
+    </select>
+    <select id="getHariKerjaSp2d"   parameterType="java.sql.Date" resultType="spp.model.HariKerja">
+        SELECT   TO_CHAR (D_REKAM, 'dd-mm-yyyy') as tglRekam,
+        TO_CHAR (D_APPROVE, 'dd-mm-yyyy') AS tglApprove,
+        TO_CHAR(D_CETAK,'dd-mm-yyyy') AS tglCetak,
+        TO_CHAR(D_SAH, 'dd-mm-yyyy') AS tglSah
+        FROM   TRHARIKERJA T
+        WHERE C_DOK = 'SP2D'
+        AND TO_CHAR(D_HARI_KERJA,'dd/mm/yyyy') = TO_CHAR(sysdate ,'dd/mm/yyyy')
+    </select>
+    <select id="getCountHariKerjaSp2d"   parameterType="java.sql.Date" resultType="java.lang.Integer">
+        select count(*) as banyakhari from(
+        SELECT   TO_CHAR (D_REKAM, 'dd-mm-yyyy') as tglRekam,
+        TO_CHAR (D_APPROVE, 'dd-mm-yyyy') AS tglApprove,
+        TO_CHAR(D_CETAK,'dd-mm-yyyy') AS tglCetak,
+        TO_CHAR(D_SAH, 'dd-mm-yyyy') AS tglSah
+        FROM   TRHARIKERJA T
+        WHERE C_DOK = 'SP2D'
+        AND TO_CHAR(D_HARI_KERJA,'dd/mm/yyyy') = TO_CHAR(sysdate ,'dd/mm/yyyy')
+        )
+    </select>
+    <select id="getSp2dRinciBlLs" parameterType="java.util.Map"  resultType="spp.model.Sp2dBlLs">       
+        SELECT   kodeKegiatan AS "kegiatan.kodeKegiatan",
+        namaKegiatan AS "kegiatan.namaKegiatan",
+        "akun.kodeAkun" AS "akun.kodeAkun",
+        "akun.namaAkun" AS "akun.namaAkun",
+        nilai_sp2d AS nilaiSp2d
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   NVL (tmdpakegiatan.c_kegiatan, '-') kodeKegiatan,
+        NVL (n_kegiatan, '-') namaKegiatan,
+        c_akun AS "akun.kodeAkun",
+        n_akun AS "akun.namaAkun",
+        v_spp AS nilai_sp2d
+        FROM            TMSPPRINCIBL
+        LEFT JOIN
+        tmdpakegiatan
+        ON tmdpakegiatan.i_id =
+        TMSPPRINCIBL.I_IDKEGIATAN
+        LEFT JOIN
+        trbas
+        ON TMSPPRINCIBL.I_IDBAS = trbas.I_ID
+        INNER JOIN
+        TMSPP
+        ON     tmspp.i_id = TMSPPRINCIBL.i_idspp
+        AND TMSPP.C_BEBAN = 'LS'
+        AND TMSPP.C_JENIS = '3'
+        WHERE   TMSPPRINCIBL.i_idspp = #{idspp} ) a) xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getCountSp2dRinciBlLs" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT nvl(tmdpakegiatan.c_kegiatan, '') kodeKegiatan , nvl(n_kegiatan,'') namaKegiatan ,c_akun as "akun.kodeAkun", n_akun as "akun.namaAkun" , v_spp as nilai_sp2d 
+        FROM TMSPPRINCIBL    left join tmdpakegiatan on tmdpakegiatan.i_id = TMSPPRINCIBL.i_id  
+        left join trbas on  TMSPPRINCIBL.I_IDBAS = trbas.I_ID
+        inner join TMSPP on tmspp.i_id =TMSPPRINCIBL.i_idspp and TMSPP.C_BEBAN ='LS' AND TMSPP.C_JENIS='3'
+        where TMSPPRINCIBL.i_idspp = #{idspp}
+        )
+    </select>
+    
+    <select id="getKbud" parameterType="java.util.Map"  resultType="spp.model.Sp2dBlLs">
+        select c_dok_tt as kodeDokTT, i_nip_kbud as nipKbud,i_nrk_kbud as nrkKbud, n_kbud as namaKbud from TRDOKSP2DTT
+        where c_dok ='SP2D'
+        AND C_DOK_PLH &lt; &gt; '1' 
+        and  TRDOKSP2DTT.C_WIL_SP2DPROSES = #{kodewilayah}
+        UNION ALL
+        select c_dok_tt, i_nip_PLHkbud ,i_nrk_PLHkbud, n_PLHkbud from TRDOKSP2DTT
+        where c_dok ='SP2D'
+        AND C_DOK_PLH = '1' 
+        and  TRDOKSP2DTT.C_WIL_SP2DPROSES = #{kodewilayah}
+    </select>
+    
+    <select id="getCountKbud" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(       
+        select c_dok_tt, i_nip_kbud ,i_nrk_kbud, n_kbud from TRDOKSP2DTT
+        where c_dok ='SP2D'
+        AND C_DOK_PLH &lt; &gt; '1' 
+        and  TRDOKSP2DTT.C_WIL_SP2DPROSES = #{kodewilayah}
+        UNION ALL
+        select c_dok_tt, i_nip_PLHkbud ,i_nrk_PLHkbud, n_PLHkbud from TRDOKSP2DTT
+        where c_dok ='SP2D'
+        AND C_DOK_PLH = '1' 
+        and  TRDOKSP2DTT.C_WIL_SP2DPROSES = #{kodewilayah}
+        )
+    </select>
+    <select id="getSkpdById" parameterType="java.lang.Integer" resultType="spp.model.Skpd">
+        SELECT   I_ID as idSkpd,
+        C_SKPD as kodeSkpd,
+        N_SKPD as namaSkpd
+        FROM   TRSKPD
+        WHERE I_ID = #{value}
+    </select>
+    <insert id="insertSp2dBlLs" parameterType="spp.model.Sp2dBlLs">
+        INSERT INTO TMSP2D (
+        I_ID, 
+        I_IDSPM, 
+        I_IDSPP, 
+        C_ANGG_TAHUN, 
+        I_SP2DNO, 
+        D_SP2DNO, 
+        C_WIL_SP2DPROSES, 
+        N_WIL_SP2DPROSES, 
+        I_IDSKPD, 
+        I_NIP_PA, 
+        I_NRK_PA, 
+        N_PA, 
+        I_NIP_KBUD, 
+        N_KBUD, 
+        C_SP2D_CETAK, 
+        C_SP2D_CETAKPOT, 
+        C_SP2D_SAH, 
+        V_SP2D,
+        V_SPP,
+        V_POT_SPM, 
+        I_PGUN_REKAM, 
+        D_PGUN_REKAM) 
+        VALUES (
+        SEQ_TMSP2D.NEXTVAL,
+        #{idspm},
+        #{idSpp},
+        #{tahun},
+        #{noSp2d},
+        #{tglsp2d},
+        #{kodeWilayah},
+        (CASE #{kodeWilayah}
+        WHEN '0' THEN 'PROVINSI'
+        WHEN '1' THEN 'PUSAT'
+        WHEN '2' THEN 'UTARA'
+        WHEN '3' THEN 'BARAT'
+        WHEN '4' THEN 'SELATAN'
+        WHEN '5' THEN 'TIMUR'
+        WHEN '6' THEN 'P. SERIBU'
+        WHEN '7' THEN 'BALAIKOTA'
+        ELSE ''
+        END),
+        #{skpd.idSkpd},
+        #{nipPenggunaAnggaran},
+        #{nrkPenggunaAnggaran},
+        #{namaPenggunaAnggaran},
+        #{nipKbud},
+        #{namaKbud},
+        '0',
+        '0',
+        '0',
+        round(#{nilaiBersihSp2d},0),
+        round(#{nilaiSp2d},0),
+        round(#{nilaiPotSp2d},0),
+        #{idEntry},
+        #{tglEntry}
+        )
+    </insert>
+    
+    <select id="getSp2dBlLsByIdSp2d" parameterType="java.util.Map" resultType="spp.model.Sp2dBlLs">
+        SELECT   
+        T.I_ID AS id,
+        T.I_IDSPM AS idspm,
+        T.I_IDSPP AS idSpp,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        trskpd.C_SKPD AS "skpd.kodeSkpd",
+        trskpd.N_SKPD AS "skpd.namaSkpd",
+        tmspm.i_spmno AS "noSpm",
+        TO_CHAR (tmspm.d_spmno, 'dd-mm-yyyy') AS tglSpm,
+        T.C_ANGG_TAHUN AS tahun,
+        T.I_SP2DNO AS noSp2d,
+        TO_CHAR (T.D_SP2DNO, 'dd-mm-yyyy') AS tanggalSp2d,
+        T.C_WIL_SP2DPROSES AS kodeWilayah,
+        T.I_NIP_PA AS nipPenggunaAnggaran,
+        T.I_NRK_PA AS nrkPenggunaAnggaran,
+        T.N_PA AS namaPenggunaAnggaran,
+        T.I_NIP_KBUD AS nipKbud,
+        T.N_KBUD AS namaKbud,
+        T.V_SPP AS nilaiSp2d,
+        T.V_POT_SPM AS nilaiPotSp2d,
+        T.V_SP2D AS nilaiBersihSp2d
+        FROM   TMSP2D T, TRSKPD, TMSPM
+        WHERE       
+        T.I_IDSPM = #{idspm}
+        AND T.I_IDSPP = #{idspp}
+        AND T.I_IDSKPD = #{idskpd}
+        AND TRSKPD.I_ID = T.I_IDSKPD
+        AND TMSPM.I_ID = T.I_IDSPM
+        AND T.C_ANGG_TAHUN = #{tahun}
+    </select>
+    
+    <update id="updateSp2dBlLs" parameterType="spp.model.Sp2dBlLs">
+        UPDATE TMSP2D
+        SET          
+        I_NIP_KBUD = #{nipKbud},
+        N_KBUD = #{namaKbud},
+        I_PGUN_UBAH = #{idEdit}, 
+        D_PGUN_UBAH =  #{tglEdit}
+        WHERE  I_ID = #{id}
+    </update>
+    
+    <delete id="deleteSp2dBtlLs" parameterType="spp.model.Sp2dBlLs" >
+        delete TMSP2D WHERE  I_ID = #{id}
+    </delete>
+    
+    <insert id="insertBatalSp2dBtlLs" parameterType="spp.model.Sp2dBlLs">
+        INSERT INTO TMSP2DBATAL (
+        I_ID,
+        I_IDSPM,
+        I_IDSPP,
+        C_ANGG_TAHUN,
+        I_SP2DNO_DOK,
+        I_SP2DNO,
+        D_SP2DNO,
+        C_WIL_SP2DPROSES,
+        N_WIL_SP2DPROSES,
+        I_IDSKPD,
+        I_NIP_PA,
+        I_NRK_PA,
+        N_PA,
+        N_JABATAN_PA,
+        I_NIP_KBUD,
+        N_KBUD,
+        N_JABATAN_KBUD,
+        C_SP2D_CETAK,
+        A_JASPER_FILE,
+        C_SP2D_CETAKPOT,
+        A_JASPER_POT,
+        D_SP2D_CETAK,
+        C_SP2D_SAH,
+        D_SP2D_SAH,
+        V_SP2D,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        I_PGUN_UBAH,
+        D_PGUN_UBAH,
+        I_PGUN_CETAK,
+        D_PGUN_CETAK,
+        I_PGUN_SAH,
+        D_PGUN_SAH,
+        I_JOUR,
+        D_JOUR,
+        I_JOUR_REV,
+        C_JOUR_STAT,
+        I_PGUN_JOUR,
+        D_REKAM_JOUR,
+        V_SPP,
+        V_POT_SPM,
+        E_ALASAN,
+        I_BANO,
+        I_PGUN_BATAL,
+        D_PGUN_BATAL
+        ) 
+        ( select  I_ID,
+        I_IDSPM,
+        I_IDSPP,
+        C_ANGG_TAHUN,
+        I_SP2DNO_DOK,
+        I_SP2DNO,
+        D_SP2DNO,
+        C_WIL_SP2DPROSES,
+        N_WIL_SP2DPROSES,
+        I_IDSKPD,
+        I_NIP_PA,
+        I_NRK_PA,
+        N_PA,
+        N_JABATAN_PA,
+        I_NIP_KBUD,
+        N_KBUD,
+        N_JABATAN_KBUD,
+        C_SP2D_CETAK,
+        A_JASPER_FILE,
+        C_SP2D_CETAKPOT,
+        A_JASPER_POT,
+        D_SP2D_CETAK,
+        C_SP2D_SAH,
+        D_SP2D_SAH,
+        V_SP2D,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        I_PGUN_UBAH,
+        D_PGUN_UBAH,
+        I_PGUN_CETAK,
+        D_PGUN_CETAK,
+        I_PGUN_SAH,
+        D_PGUN_SAH,
+        I_JOUR,
+        D_JOUR,
+        I_JOUR_REV,
+        C_JOUR_STAT,
+        I_PGUN_JOUR,
+        D_REKAM_JOUR,
+        V_SPP,
+        V_POT_SPM,
+        #{alasanBatal},
+        #{noBA},
+        #{idEntry},
+        sysdate
+        from tmsp2d 
+        where i_id = #{id}
+        and C_ANGG_TAHUN = #{tahun}
+        )
+    </insert>
+    
+</mapper>

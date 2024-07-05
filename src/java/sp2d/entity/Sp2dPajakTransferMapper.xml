@@ -1,0 +1,780 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.Sp2dPajakTransferMapper">
+
+    <select id="getListIndex" parameterType="java.util.Map"  resultType="spp.model.Sp2dPajakTransfer">
+        SELECT kodeJenis, idSkpd, idSpmPot, idSp2d, npwpBud, namaBud, alamatBud, kotaBud,
+        noSp2d, tglSp2dSah, kodeTrx, kodePotSpm, nilaiPajak, uraianPajak, noKontrak, npwpRekanan,
+        namaWp, alamatWp, kotaWp, kodeBank, noRekening, namaPengirimBank, kodeJenisSetor,
+        akunPajak, bulanSah, masaPajak, noSk, kodeBilling, tglBillExp, tglBuku, statusBpn,
+        kodeskpd as "skpd.kodeSkpd", idSpmPotFormat, n_skpd as "skpd.namaSkpd", ntb, ntpn,
+        tglBayar, tahunPajak, persenPot
+        FROM   (SELECT   ROWNUM AS rn, a.* FROM   (
+        SELECT tmspp.c_jenis as kodeJenis,
+        tmsp2d.i_idskpd as idSkpd,
+        tmspmpot.i_id  as idSpmPot,
+        tmsp2d.i_id as idSp2d,
+        REGEXP_REPLACE (trdokpottt.i_npwp, '[-. ,/]', '') as npwpBud,
+        SUBSTR (trdokpottt.n_npwp, 0, 30) as namaBud,
+        SUBSTR (trdokpottt.a_npwp, 0, 50) alamatBud,
+        SUBSTR (trdokpottt.n_npwp_kota, 0, 30) kotaBud,
+        TRIM (TO_CHAR (tmsp2d.i_sp2dno, '000000')) AS noSp2d,
+        tmsp2d.d_sp2d_sah as tglSp2dSah,
+        trpotspm.c_trx as kodeTrx,
+        tmspmpot.c_pot_spm as kodePotSpm,
+        tmspmpot.v_pot_spm as nilaiPajak,
+        e_pot_sp2d as uraianPajak,
+        DECODE (tmspp.c_jenis,  '3', tmkontrak.i_kontr, '1', tmspp.i_sppno_dok,  '')  AS noKontrak,
+        NVL (tmkontrak.i_rekan_npwp, '-') AS npwpRekanan,
+        NVL (tmkontrak.n_rekan_npwp, '-') AS namaWp,
+        NVL (tmkontrak.a_rekan_npwp, '-') AS alamatWp,
+        NVL (tmkontrak.n_npwp_kota, '-') AS kotaWp,
+        trbank.c_bank as kodeBank,
+        trbank.i_rek_bank  as noRekening,
+        trbank.n_kpkd AS namaPengirimBank,
+        tmspmpot.c_djp_kjs as kodeJenisSetor,
+        trpotspm.c_djp_map as akunPajak,
+        TO_CHAR (tmsp2d.d_sp2d_sah, 'MM') AS bulanSah,
+        CASE trpotspm.c_trx
+        WHEN 'P1'  THEN
+        case  when  (to_char(tmsp2d.d_sp2d_sah,'dd')  &lt;= '10' and c_jenis  = 1)
+        then
+        decode(trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')),'00','12',trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')))
+        ||decode(trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')),'00','12',trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')))
+        else
+        to_char(tmsp2d.d_sp2d_sah,'mm')||to_char(tmsp2d.d_sp2d_sah,'mm')
+        end
+        ELSE TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')|| TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')
+        END AS masaPajak,
+        '-' AS noSk,
+        nvl(tmspmpot.c_billing,0) AS kodebilling,
+        tmspmpot.d_billing_exp AS tglBillExp,
+        c_bank_buku AS tglBuku,
+        c_bpn_status as statusBpn,
+        c_skpd as kodeskpd,
+        TRIM (TO_CHAR (tmspmpot.i_id, '000000000000000'))  AS idSpmPotFormat,
+        n_skpd,
+        tmspmpot.d_pay as tglBayar,
+        tmspmpot.i_ntb as ntb,
+        tmspmpot.i_ntpn as ntpn,
+        CASE trpotspm.c_trx
+        WHEN 'P1' THEN
+        case  when  (to_char(tmsp2d.d_sp2d_sah,'dd')  &lt;= '10' and c_jenis  = 1 and to_char(tmsp2d.d_sp2d_sah,'mm')  = '01')
+        then
+        TO_NUMBER (tmsp2d.c_angg_tahun)-1
+        else
+        TO_NUMBER (tmsp2d.c_angg_tahun)
+        end
+        ELSE TO_NUMBER (tmsp2d.c_angg_tahun)
+        END AS tahunPajak,
+        tmspmpot.p_pot as persenPot
+        from tmspmpot
+        INNER JOIN trpotspm
+        ON     tmspmpot.c_pot_spm = trpotspm.c_pot_spm
+        AND trpotspm.c_trx BETWEEN 'P0' AND 'P9'
+        AND tmspmpot.v_pot_spm > 0
+        INNER JOIN tmsp2d
+        ON tmsp2d.i_idspm = tmspmpot.i_idspm AND tmsp2d.c_sp2d_sah = '1'
+        INNER JOIN tmspp
+        ON tmsp2d.i_idspp = tmspp.i_id
+        INNER JOIN trbank
+        ON trbank.c_wil_sp2dproses = tmsp2d.c_wil_sp2dproses
+        INNER JOIN trskpd
+        ON trskpd.i_id = tmsp2d.i_idskpd
+        INNER JOIN trdokpottt
+        ON trdokpottt.c_wilayah = tmsp2d.c_wil_sp2dproses
+        LEFT JOIN tmkontrak
+        ON tmkontrak.i_id = tmspp.i_idkontrak
+
+        where tmsp2d.c_angg_tahun = #{tahun}
+        and c_sp2d_sah = 1
+        and tmsp2d.c_wil_sp2dproses = #{wilayah}
+        and to_char(D_SP2D_SAH,'dd/mm/yyyy') = #{tglsah}
+        and (tmspmpot.c_bpn_status is null or tmspmpot.c_bpn_status != 1)
+        <if test="kodeskpdfilter != null and kodeskpdfilter != '' ">
+            and upper(c_skpd) like '%'||upper(#{kodeskpdfilter})||'%'
+        </if>
+        <if test="namaskpdfilter != null and namaskpdfilter != '' ">
+            and upper(n_skpd) like '%'||upper(#{namaskpdfilter})||'%'
+        </if>
+        <if test="nosp2dfilter != null and nosp2dfilter != '' ">
+            and upper(tmsp2d.i_sp2dno_dok) like '%'||upper(#{nosp2dfilter})||'%'
+        </if>
+        order by tmsp2d.d_sp2d_sah
+
+        ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset}
+        order by noSp2d, idSpmPot
+
+
+    </select>
+
+    <select id="getBanyakListIndex" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (*) FROM   (
+        SELECT tmspp.c_jenis as kodeJenis,
+        tmsp2d.i_idskpd as idSkpd,
+        tmspmpot.i_id  as idSpmPot,
+        tmsp2d.i_id as idSp2d,
+        REGEXP_REPLACE (trdokpottt.i_npwp, '[-. ,/]', '') as npwpBud,
+        SUBSTR (trdokpottt.n_npwp, 0, 30) as namaBud,
+        SUBSTR (trdokpottt.a_npwp, 0, 50) alamatBud,
+        SUBSTR (trdokpottt.n_npwp_kota, 0, 30) kotaBud,
+        TRIM (TO_CHAR (tmsp2d.i_sp2dno, '000000')) AS noSp2d,
+        tmsp2d.d_sp2d_sah as tglSp2dSah,
+        trpotspm.c_trx as kodeTrx,
+        tmspmpot.c_pot_spm as kodePotSpm,
+        tmspmpot.v_pot_spm as nilaiPajak,
+        e_pot_sp2d as uraianPajak,
+        DECODE (tmspp.c_jenis,  '3', tmkontrak.i_kontr, '1', tmspp.i_sppno_dok,  '')  AS noKontrak,
+        NVL (tmkontrak.i_rekan_npwp, '-') AS npwpRekanan,
+        NVL (tmkontrak.n_rekan_npwp, '-') AS namaWp,
+        NVL (tmkontrak.a_rekan_npwp, '-') AS alamatWp,
+        NVL (tmkontrak.n_npwp_kota, '-') AS kotaWp,
+        trbank.c_bank as kodeBank,
+        trbank.i_rek_bank  as noRekening,
+        trbank.n_kpkd AS namaPengirimBank,
+        tmspmpot.c_djp_kjs as kodeJenisSetor,
+        trpotspm.c_djp_map as akunPajak,
+        TO_CHAR (tmsp2d.d_sp2d_sah, 'MM') AS bulanSah,
+        CASE trpotspm.c_trx
+        WHEN 'P1'  THEN
+        case  when  (to_char(tmsp2d.d_sp2d_sah,'dd')  &lt;= '10' and c_jenis  = 1)
+        then
+        decode(trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')),'00','12',trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')))
+        ||decode(trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')),'00','12',trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')))
+        else
+        to_char(tmsp2d.d_sp2d_sah,'mm')||to_char(tmsp2d.d_sp2d_sah,'mm')
+        end
+        ELSE TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')|| TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')
+        END AS masaPajak,
+        '-' AS noSk,
+        nvl(tmspmpot.c_billing,0) AS kodebilling,
+        tmspmpot.d_billing_exp AS tglBillExp,
+        c_bank_buku AS tglBuku,
+        c_bpn_status as statusBpn,
+        c_skpd as kodeskpd,
+        TRIM (TO_CHAR (tmspmpot.i_id, '000000000000000'))  AS idSpmPotFormat,
+        n_skpd,
+        tmspmpot.d_pay as tglBayar,
+        tmspmpot.i_ntb as ntb,
+        tmspmpot.i_ntpn as ntpn,
+        CASE trpotspm.c_trx
+        WHEN 'P1' THEN
+        case  when  (to_char(tmsp2d.d_sp2d_sah,'dd')  &lt;= '10' and c_jenis  = 1 and to_char(tmsp2d.d_sp2d_sah,'mm')  = '01')
+        then
+        TO_NUMBER (tmsp2d.c_angg_tahun)-1
+        else
+        TO_NUMBER (tmsp2d.c_angg_tahun)
+        end
+        ELSE TO_NUMBER (tmsp2d.c_angg_tahun)
+        END AS tahunPajak,
+        tmspmpot.p_pot as persenPot
+        from tmspmpot
+        INNER JOIN trpotspm
+        ON     tmspmpot.c_pot_spm = trpotspm.c_pot_spm
+        AND trpotspm.c_trx BETWEEN 'P0' AND 'P9'
+        AND tmspmpot.v_pot_spm > 0
+        INNER JOIN tmsp2d
+        ON tmsp2d.i_idspm = tmspmpot.i_idspm AND tmsp2d.c_sp2d_sah = '1'
+        INNER JOIN tmspp
+        ON tmsp2d.i_idspp = tmspp.i_id
+        INNER JOIN trbank
+        ON trbank.c_wil_sp2dproses = tmsp2d.c_wil_sp2dproses
+        INNER JOIN trskpd
+        ON trskpd.i_id = tmsp2d.i_idskpd
+        INNER JOIN trdokpottt
+        ON trdokpottt.c_wilayah = tmsp2d.c_wil_sp2dproses
+        LEFT JOIN tmkontrak
+        ON tmkontrak.i_id = tmspp.i_idkontrak
+
+        where tmsp2d.c_angg_tahun = #{tahun}
+        and c_sp2d_sah = 1
+        and tmsp2d.c_wil_sp2dproses = #{wilayah}
+        and to_char(D_SP2D_SAH,'dd/mm/yyyy') = #{tglsah}
+        and (tmspmpot.c_bpn_status is null or tmspmpot.c_bpn_status != 1)
+        <if test="kodeskpdfilter != null and kodeskpdfilter != '' ">
+            and upper(c_skpd) like '%'||upper(#{kodeskpdfilter})||'%'
+        </if>
+        <if test="namaskpdfilter != null and namaskpdfilter != '' ">
+            and upper(n_skpd) like '%'||upper(#{namaskpdfilter})||'%'
+        </if>
+        <if test="nosp2dfilter != null and nosp2dfilter != '' ">
+            and upper(tmsp2d.i_sp2dno_dok) like '%'||upper(#{nosp2dfilter})||'%'
+        </if>
+        )
+    </select>
+
+    <insert id="insertPajakBank" parameterType="spp.model.Sp2dPajakTransfer">
+        INSERT INTO TMDJPBANKPROSES (
+        C_ANGG_TAHUN,
+        D_SP2D_KIRIMBANK,
+        I_IDSP2D,
+        I_IDSPMPOT,
+        C_POT_SPM,
+        C_TRX,
+        I_BULKIDREQUEST,
+        I_IDREQUEST,
+        I_IDCHANNEL,
+        I_REK,
+        I_NPWP,
+        N_NPWP,
+        A_NPWP,
+        N_NPWP_KOTA,
+        C_DJP_KJS,
+        C_DJP_MAP,
+        C_MASA_PAJAK,
+        C_TAHUN_PAJAK,
+        I_SK,
+        I_NOP,
+        I_IDENTITASNO,
+        V_PAJAK,
+        I_NPWP_PENYETOR,
+        N_NPWP_PENYETOR,
+        E_PEMBAYARAN,
+        C_RESPONSE,
+        C_DJP_REQUEST,
+        C_APP
+        ) VALUES (
+        #{tahun},
+        systimestamp,
+        #{idSp2d},
+        #{idSpmPot},
+        #{kodePotSpm},
+        #{kodeTrx},
+        #{bulkIdRequest},
+        #{idRequest},
+        #{idChannel},
+        #{noRekening},
+        #{npwpRekanan},
+        #{namaWp},
+        #{alamatWp},
+        #{kotaWp},
+        #{kodeJenisSetor},
+        #{akunPajak},
+        #{masaPajak},
+        #{tahunPajak},
+        #{noSk},
+        #{nop},
+        #{noIdentitas},
+        #{nilaiPajak},
+        #{npwpPenyetor},
+        #{namaPenyetor},
+        #{uraianPajak},
+        '0',
+        #{kodeRequest},
+        #{kodeApp}
+        )
+    </insert>
+
+    <update id="updatePajakBank" parameterType="spp.model.Sp2dPajakTransfer">
+        UPDATE TMDJPBANKPROSES
+        SET
+        I_IDRESPONSE = #{idResponse},
+        I_REK = #{noRekening},
+        I_NPWP = #{npwpRekanan},
+        N_NPWP = #{namaWp},
+        A_NPWP = #{alamatWp},
+        N_NPWP_KOTA = #{kotaWp},
+        C_DJP_KJS = #{kodeJenisSetor},
+        N_DJP_KJS = #{namaKJS},
+        C_DJP_MAP = #{akunPajak},
+        N_DJP_MAP  = #{namaMAP},
+        C_MASA_PAJAK = #{masaPajak},
+        I_SK = #{noSk},
+        I_NOP = #{nop},
+        I_IDENTITASNO = #{noIdentitas},
+        V_PAJAK = #{nilaiPajak},
+        I_NPWP_PENYETOR = #{npwpPenyetor},
+        N_NPWP_PENYETOR = #{namaPenyetor},
+        E_PEMBAYARAN = #{uraianPajak},
+        C_PROSES = #{kodeProses},
+        C_RESPONSE = #{kodeResponse},
+        E_RESPONSE = #{uraianResponse},
+        C_BILLING  = #{kodeBilling},
+        <if test="tglBillExpString != null and tglBillExpString != '' ">
+            D_BILLING_EXP = TO_DATE(#{tglBillExpString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        C_STAN = #{kodeStan},
+        <if test="tglBayarString != null and tglBayarString != '' ">
+            D_PAY = TO_DATE(#{tglBayarString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        <if test="tglTransmisiString != null and tglTransmisiString != '' ">
+            D_PAY_TRASMISI = TO_DATE(#{tglTransmisiString}, 'YYYYMMDDHH24MISS'),
+        </if>
+
+        C_BANK_BUKU = #{tglBuku},
+        I_NTB = #{ntb},
+        I_NTPN = #{ntpn},
+        C_BPN_STATUS = #{statusBpn}
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSP2D = #{idSp2d}
+        AND I_IDSPMPOT = #{idSpmPot}
+        AND I_BULKIDREQUEST = #{bulkIdRequest}
+        AND I_IDREQUEST = #{idRequest}
+
+    </update>
+
+    <update id="updateSpmPot" parameterType="spp.model.Sp2dPajakTransfer">
+        UPDATE TMSPMPOT
+        SET
+        I_BULKIDREQUEST = #{bulkIdRequest},
+        I_IDREQUEST = #{idRequest},
+        C_BILLING  = #{kodeBilling},
+        <if test="tglBillExpString != null and tglBillExpString != '' ">
+            D_BILLING_EXP = TO_DATE(#{tglBillExpString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        C_BANK_BUKU = #{tglBuku},
+        C_BPN_STATUS = #{statusBpn},
+        <if test="tglBayarString != null and tglBayarString != '' ">
+            D_PAY = TO_DATE(#{tglBayarString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        I_NTB = #{ntb},
+        I_NTPN = #{ntpn},
+        C_STAN = #{kodeStan}
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_ID = #{idSpmPot}
+    </update>
+
+    <select id="getTglSp2dSah" parameterType="java.util.Map"  resultType="spp.model.Sp2dPajakTransfer">
+        select distinct to_char(D_SP2D_SAH,'dd/mm/yyyy')as tglSp2dSahFormat, to_char(D_SP2D_SAH,'yyyymmdd') as bulanSah
+        from tmspmpot
+        INNER JOIN trpotspm
+        ON     tmspmpot.c_pot_spm = trpotspm.c_pot_spm
+        AND trpotspm.c_trx BETWEEN 'P0' AND 'P9'
+        AND tmspmpot.v_pot_spm &gt; 0
+        INNER JOIN tmsp2d
+        ON tmsp2d.i_idspm = tmspmpot.i_idspm AND tmsp2d.c_sp2d_sah = '1'
+        INNER JOIN tmspp
+        ON tmsp2d.i_idspp = tmspp.i_id
+        INNER JOIN trbank
+        ON trbank.c_wil_sp2dproses = tmsp2d.c_wil_sp2dproses
+        INNER JOIN trskpd
+        ON trskpd.i_id = tmsp2d.i_idskpd
+        INNER JOIN trdokpottt
+        ON trdokpottt.c_wilayah = tmsp2d.c_wil_sp2dproses
+        LEFT JOIN tmkontrak
+        ON tmkontrak.i_id = tmspp.i_idkontrak
+        where tmsp2d.c_angg_tahun = #{tahun}
+        <if test="kodewil != '0'">
+            and to_char(tmsp2d.D_SP2D_SAH,'yyyymmdd') &gt; '20190118'
+        </if>
+        <if test="kodewil == '0'">
+            and to_char(tmsp2d.D_SP2D_SAH,'yyyymmdd') &gt; '20190114'
+        </if>
+        and tmsp2d.c_wil_sp2dproses = #{kodewil}
+        and (C_BPN_STATUS != 1 or C_BPN_STATUS is null)
+        order by to_char(D_SP2D_SAH,'yyyymmdd')
+    </select>
+
+    <update id="updateSpmPotReInq" parameterType="spp.model.Sp2dPajakTransfer">
+        UPDATE TMSPMPOT
+        SET
+        C_BPN_STATUS = #{statusBpn},
+        I_NTPN = #{ntpn}
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_ID = #{idSpmPot}
+        AND C_BILLING  = #{kodeBilling}
+    </update>
+
+    <select id="getListIndexCetak" parameterType="java.util.Map"  resultType="spp.model.Sp2dPajakTransfer">
+        SELECT kodeJenis, idSkpd, idSpmPot, idSp2d, npwpBud, namaBud, alamatBud, kotaBud,
+        noSp2d, tglSp2dSah, kodeTrx, kodePotSpm, nilaiPajak, uraianPajak, noKontrak, npwpRekanan,
+        namaWp, alamatWp, kotaWp, kodeBank, noRekening, namaPengirimBank, kodeJenisSetor,
+        akunPajak, bulanSah, masaPajak, noSk, kodeBilling, tglBillExp, tglBuku, statusBpn,
+        kodeskpd as "skpd.kodeSkpd", idSpmPotFormat, n_skpd as "skpd.namaSkpd", ntb, ntpn, tglBayar
+        FROM   (SELECT   ROWNUM AS rn, a.* FROM   (
+        SELECT tmspp.c_jenis as kodeJenis,
+        tmsp2d.i_idskpd as idSkpd,
+        tmspmpot.i_id  as idSpmPot,
+        tmsp2d.i_id as idSp2d,
+        REGEXP_REPLACE (trdokpottt.i_npwp, '[-. ,/]', '') as npwpBud,
+        SUBSTR (trdokpottt.n_npwp, 0, 30) as namaBud,
+        SUBSTR (trdokpottt.a_npwp, 0, 50) alamatBud,
+        SUBSTR (trdokpottt.n_npwp_kota, 0, 30) kotaBud,
+        TRIM (TO_CHAR (tmsp2d.i_sp2dno, '000000')) AS noSp2d,
+        tmsp2d.d_sp2d_sah as tglSp2dSah,
+        trpotspm.c_trx as kodeTrx,
+        tmspmpot.c_pot_spm as kodePotSpm,
+        tmspmpot.v_pot_spm as nilaiPajak,
+        e_pot_sp2d as uraianPajak,
+        DECODE (tmspp.c_jenis,  '3', tmkontrak.i_kontr, '1', tmspp.i_sppno_dok,  '')  AS noKontrak,
+        NVL (tmkontrak.i_rekan_npwp, '-') AS npwpRekanan,
+        NVL (tmkontrak.n_rekan_npwp, '-') AS namaWp,
+        NVL (tmkontrak.a_rekan_npwp, '-') AS alamatWp,
+        NVL (tmkontrak.n_npwp_kota, '-') AS kotaWp,
+        trbank.c_bank as kodeBank,
+        trbank.i_rek_bank  as noRekening,
+        trbank.n_kpkd AS namaPengirimBank,
+        tmspmpot.c_djp_kjs as kodeJenisSetor,
+        trpotspm.c_djp_map as akunPajak,
+        TO_CHAR (tmsp2d.d_sp2d_sah, 'MM') AS bulanSah,
+        CASE trpotspm.c_trx
+        WHEN 'P1'  THEN
+        case  when  (to_char(tmsp2d.d_sp2d_sah,'dd')  &lt;= '10' and c_jenis  = 1)
+        then
+        decode(trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')),'00','12',trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')))
+        ||decode(trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')),'00','12',trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')))
+        else
+        to_char(tmsp2d.d_sp2d_sah,'mm')||to_char(tmsp2d.d_sp2d_sah,'mm')
+        end
+        ELSE TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')|| TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')
+        END AS masaPajak,
+        '-' AS noSk,
+        nvl(tmspmpot.c_billing,0) AS kodebilling,
+        tmspmpot.d_billing_exp AS tglBillExp,
+        c_bank_buku AS tglBuku,
+        c_bpn_status as statusBpn,
+        c_skpd as kodeskpd,
+        TRIM (TO_CHAR (tmspmpot.i_id, '000000000000000'))  AS idSpmPotFormat,
+        n_skpd,
+        tmspmpot.d_pay as tglBayar,
+        tmspmpot.i_ntb as ntb,
+        tmspmpot.i_ntpn as ntpn,
+        CASE trpotspm.c_trx
+        WHEN 'P1' THEN
+        case  when  (to_char(tmsp2d.d_sp2d_sah,'dd')  &lt;= '10' and c_jenis  = 1 and to_char(tmsp2d.d_sp2d_sah,'mm')  = '01')
+        then
+        TO_NUMBER (tmsp2d.c_angg_tahun)-1
+        else
+        TO_NUMBER (tmsp2d.c_angg_tahun)
+        end
+        ELSE TO_NUMBER (tmsp2d.c_angg_tahun)
+        END AS tahunPajak,
+        tmspmpot.p_pot as persenPot
+        from tmspmpot
+        INNER JOIN trpotspm
+        ON     tmspmpot.c_pot_spm = trpotspm.c_pot_spm
+        AND trpotspm.c_trx BETWEEN 'P0' AND 'P9'
+        AND tmspmpot.v_pot_spm > 0
+        INNER JOIN tmsp2d
+        ON tmsp2d.i_idspm = tmspmpot.i_idspm AND tmsp2d.c_sp2d_sah = '1'
+        INNER JOIN tmspp
+        ON tmsp2d.i_idspp = tmspp.i_id
+        INNER JOIN trbank
+        ON trbank.c_wil_sp2dproses = tmsp2d.c_wil_sp2dproses
+        INNER JOIN trskpd
+        ON trskpd.i_id = tmsp2d.i_idskpd
+        INNER JOIN trdokpottt
+        ON trdokpottt.c_wilayah = tmsp2d.c_wil_sp2dproses
+        LEFT JOIN tmkontrak
+        ON tmkontrak.i_id = tmspp.i_idkontrak
+
+        where tmsp2d.c_angg_tahun = #{tahun}
+        and c_sp2d_sah = 1
+        and tmsp2d.c_wil_sp2dproses = #{wilayah}
+        and to_char(D_SP2D_SAH,'dd/mm/yyyy') = #{tglsah}
+        and (tmspmpot.c_bpn_status = 1 or tmspmpot.c_bpn_status = 2)
+        <if test="kodeskpdfilter != null and kodeskpdfilter != '' ">
+            and upper(c_skpd) like '%'||upper(#{kodeskpdfilter})||'%'
+        </if>
+        <if test="namaskpdfilter != null and namaskpdfilter != '' ">
+            and upper(n_skpd) like '%'||upper(#{namaskpdfilter})||'%'
+        </if>
+        <if test="nosp2dfilter != null and nosp2dfilter != '' ">
+            and upper(tmsp2d.i_sp2dno_dok) like '%'||upper(#{nosp2dfilter})||'%'
+        </if>
+        ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getBanyakListIndexCetak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (*) FROM   (
+        SELECT tmspp.c_jenis as kodeJenis,
+        tmsp2d.i_idskpd as idSkpd,
+        tmspmpot.i_id  as idSpmPot,
+        tmsp2d.i_id as idSp2d,
+        REGEXP_REPLACE (trdokpottt.i_npwp, '[-. ,/]', '') as npwpBud,
+        SUBSTR (trdokpottt.n_npwp, 0, 30) as namaBud,
+        SUBSTR (trdokpottt.a_npwp, 0, 50) alamatBud,
+        SUBSTR (trdokpottt.n_npwp_kota, 0, 30) kotaBud,
+        TRIM (TO_CHAR (tmsp2d.i_sp2dno, '000000')) AS noSp2d,
+        tmsp2d.d_sp2d_sah as tglSp2dSah,
+        trpotspm.c_trx as kodeTrx,
+        tmspmpot.c_pot_spm as kodePotSpm,
+        tmspmpot.v_pot_spm as nilaiPajak,
+        e_pot_sp2d as uraianPajak,
+        DECODE (tmspp.c_jenis,  '3', tmkontrak.i_kontr, '1', tmspp.i_sppno_dok,  '')  AS noKontrak,
+        NVL (tmkontrak.i_rekan_npwp, '-') AS npwpRekanan,
+        NVL (tmkontrak.n_rekan_npwp, '-') AS namaWp,
+        NVL (tmkontrak.a_rekan_npwp, '-') AS alamatWp,
+        NVL (tmkontrak.n_npwp_kota, '-') AS kotaWp,
+        trbank.c_bank as kodeBank,
+        trbank.i_rek_bank  as noRekening,
+        trbank.n_kpkd AS namaPengirimBank,
+        tmspmpot.c_djp_kjs as kodeJenisSetor,
+        trpotspm.c_djp_map as akunPajak,
+        TO_CHAR (tmsp2d.d_sp2d_sah, 'MM') AS bulanSah,
+        CASE trpotspm.c_trx
+        WHEN 'P1'  THEN
+        case  when  (to_char(tmsp2d.d_sp2d_sah,'dd')  &lt;= '10' and c_jenis  = 1)
+        then
+        decode(trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')),'00','12',trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')))
+        ||decode(trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')),'00','12',trim(to_char(to_number(to_char(tmsp2d.d_sp2d_sah,'mm')-1),'00')))
+        else
+        to_char(tmsp2d.d_sp2d_sah,'mm')||to_char(tmsp2d.d_sp2d_sah,'mm')
+        end
+        ELSE TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')|| TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')
+        END AS masaPajak,
+        '-' AS noSk,
+        nvl(tmspmpot.c_billing,0) AS kodebilling,
+        tmspmpot.d_billing_exp AS tglBillExp,
+        c_bank_buku AS tglBuku,
+        c_bpn_status as statusBpn,
+        c_skpd as kodeskpd,
+        TRIM (TO_CHAR (tmspmpot.i_id, '000000000000000'))  AS idSpmPotFormat,
+        n_skpd,
+        tmspmpot.d_pay as tglBayar,
+        tmspmpot.i_ntb as ntb,
+        tmspmpot.i_ntpn as ntpn,
+        CASE trpotspm.c_trx
+        WHEN 'P1' THEN
+        case  when  (to_char(tmsp2d.d_sp2d_sah,'dd')  &lt;= '10' and c_jenis  = 1 and to_char(tmsp2d.d_sp2d_sah,'mm')  = '01')
+        then
+        TO_NUMBER (tmsp2d.c_angg_tahun)-1
+        else
+        TO_NUMBER (tmsp2d.c_angg_tahun)
+        end
+        ELSE TO_NUMBER (tmsp2d.c_angg_tahun)
+        END AS tahunPajak,
+        tmspmpot.p_pot as persenPot
+        from tmspmpot
+        INNER JOIN trpotspm
+        ON     tmspmpot.c_pot_spm = trpotspm.c_pot_spm
+        AND trpotspm.c_trx BETWEEN 'P0' AND 'P9'
+        AND tmspmpot.v_pot_spm > 0
+        INNER JOIN tmsp2d
+        ON tmsp2d.i_idspm = tmspmpot.i_idspm AND tmsp2d.c_sp2d_sah = '1'
+        INNER JOIN tmspp
+        ON tmsp2d.i_idspp = tmspp.i_id
+        INNER JOIN trbank
+        ON trbank.c_wil_sp2dproses = tmsp2d.c_wil_sp2dproses
+        INNER JOIN trskpd
+        ON trskpd.i_id = tmsp2d.i_idskpd
+        INNER JOIN trdokpottt
+        ON trdokpottt.c_wilayah = tmsp2d.c_wil_sp2dproses
+        LEFT JOIN tmkontrak
+        ON tmkontrak.i_id = tmspp.i_idkontrak
+
+        where tmsp2d.c_angg_tahun = #{tahun}
+        and c_sp2d_sah = 1
+        and tmsp2d.c_wil_sp2dproses = #{wilayah}
+        and to_char(D_SP2D_SAH,'dd/mm/yyyy') = #{tglsah}
+        and (tmspmpot.c_bpn_status = 1 or tmspmpot.c_bpn_status = 2)
+        <if test="kodeskpdfilter != null and kodeskpdfilter != '' ">
+            and upper(c_skpd) like '%'||upper(#{kodeskpdfilter})||'%'
+        </if>
+        <if test="namaskpdfilter != null and namaskpdfilter != '' ">
+            and upper(n_skpd) like '%'||upper(#{namaskpdfilter})||'%'
+        </if>
+        <if test="nosp2dfilter != null and nosp2dfilter != '' ">
+            and upper(tmsp2d.i_sp2dno_dok) like '%'||upper(#{nosp2dfilter})||'%'
+        </if>
+        )
+    </select>
+
+    <select id="getTglSp2dSahCetak" parameterType="java.util.Map"  resultType="spp.model.Sp2dPajakTransfer">
+        select distinct to_char(D_SP2D_SAH,'dd/mm/yyyy')as tglSp2dSahFormat, to_char(D_SP2D_SAH,'yyyymmdd') as bulanSah
+        from tmspmpot
+        INNER JOIN trpotspm
+        ON     tmspmpot.c_pot_spm = trpotspm.c_pot_spm
+        AND trpotspm.c_trx BETWEEN 'P0' AND 'P9'
+        AND tmspmpot.v_pot_spm &gt; 0
+        INNER JOIN tmsp2d
+        ON tmsp2d.i_idspm = tmspmpot.i_idspm AND tmsp2d.c_sp2d_sah = '1'
+        INNER JOIN tmspp
+        ON tmsp2d.i_idspp = tmspp.i_id
+        INNER JOIN trbank
+        ON trbank.c_wil_sp2dproses = tmsp2d.c_wil_sp2dproses
+        INNER JOIN trskpd
+        ON trskpd.i_id = tmsp2d.i_idskpd
+        INNER JOIN trdokpottt
+        ON trdokpottt.c_wilayah = tmsp2d.c_wil_sp2dproses
+        LEFT JOIN tmkontrak
+        ON tmkontrak.i_id = tmspp.i_idkontrak
+        where tmsp2d.c_angg_tahun = #{tahun}
+        <!--        <if test="kodewil != '0'">
+            and to_char(tmsp2d.D_SP2D_SAH,'yyyymmdd') &gt; '20190118'
+        </if>
+        <if test="kodewil == '0'">
+            and to_char(tmsp2d.D_SP2D_SAH,'yyyymmdd') &gt; '20190114'
+        </if>-->
+        and tmsp2d.c_wil_sp2dproses = #{kodewil}
+        <!--and (tmspmpot.c_bpn_status = 1 or tmspmpot.c_bpn_status = 2)-->
+        order by to_char(D_SP2D_SAH,'yyyymmdd')
+    </select>
+
+    <update id="updateCountCetak" parameterType="spp.model.Sp2dPajakTransfer">
+        UPDATE TMSPMPOT
+        SET
+        Q_POT_CETAK = Q_POT_CETAK + 1
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_ID = #{idSpmPot}
+    </update>
+    <update id="updateInquiry" parameterType="java.util.Map">
+        UPDATE TMSPMPOT
+        SET i_npwp = #{npwprekanan},
+        n_npwp = #{namawp},
+        a_npwp = #{alamatwp},
+        C_DJP_KJS = #{kjs},
+        C_DJP_MAP = #{map},
+        C_MASA_PAJAK = #{masapajak}
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_ID = #{idapp}
+    </update>
+    <select id="getPajak" parameterType="java.util.Map"  resultType="spp.model.Sp2dPajakTransfer">
+        select TAHUN_PAJAK as tahunPajak, MASA as masaPajak, C_SKPD as "skpd.kodeSkpd",
+        N_SKPD as "skpd.namaSkpd",to_char(D_SP2D_SAH,'dd/mm/yyyy')as tglSp2dSahFormat,
+        I_SP2DNO_FORMAT as noSp2d, C_DJP_KJS as namaKJS , C_DJP_MAP as namaMAP, E_POT_SP2D as uraianPajak
+        from VW_DRAFT_PAJAKONLINE_SP2D
+        where I_IDSPMPOT = #{idspmpot}
+    </select>
+    
+    <update id="updatePajakBankCreateBilling" parameterType="spp.model.Sp2dPajakTransfer">
+        UPDATE TMDJPBANKPROSES
+        SET
+        I_IDRESPONSE = #{idResponse},
+        I_BULKIDREQUEST = #{bulkIdRequest},
+        I_IDREQUEST = #{idRequest},
+        N_DJP_KJS = #{namaKJS},
+        N_DJP_MAP  = #{namaMAP},
+        C_PROSES = #{kodeProses},
+        C_RESPONSE = #{kodeResponse},
+        E_RESPONSE = #{uraianResponse},
+        C_BILLING  = #{kodeBilling},
+        <if test="tglBillExpString != null and tglBillExpString != '' ">
+            D_BILLING_EXP = TO_DATE(#{tglBillExpString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        C_STAN = #{kodeStan}
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSP2D = #{idSp2d}
+        AND I_IDSPMPOT = #{idSpmPot}
+        <!-- sama dengan insert awal -->
+        AND I_BULKIDREQUEST = #{bulkIdRequest}
+        AND I_IDREQUEST = #{idRequest}
+        AND C_DJP_REQUEST = #{kodeRequest}
+        AND C_BILLING IS NULL
+    </update>
+    
+    <update id="updatePajakBankPaymentBilling" parameterType="spp.model.Sp2dPajakTransfer">
+        UPDATE TMDJPBANKPROSES
+        SET
+        I_BULKIDREQUEST = #{bulkIdRequest},
+        I_IDREQUEST = #{idRequest},
+        I_IDRESPONSE = #{idResponse},
+        C_PROSES = #{kodeProses},
+        C_STAN = #{kodeStan},
+        D_PAY = TO_DATE(#{tglBayarString}, 'YYYYMMDDHH24MISS'),
+        D_PAY_TRASMISI = TO_DATE(#{tglTransmisiString}, 'YYYYMMDDHH24MISS'),
+        C_BANK_BUKU = #{tglBuku},
+        I_NTB = #{ntb},
+        I_NTPN = #{ntpn},
+        C_BPN_STATUS = #{statusBpn},
+        C_DJP_REQUEST = #{kodeRequest}
+
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSP2D = #{idSp2d}
+        AND I_IDSPMPOT = #{idSpmPot}
+        <!-- yg berhasil create billing-->
+        AND C_RESPONSE = '00'   
+        AND C_DJP_REQUEST = '1' 
+        AND C_BILLING  = #{kodeBilling}
+    </update>
+    
+    <update id="updatePajakBankReInquiryBilling" parameterType="spp.model.Sp2dPajakTransfer">
+        UPDATE TMDJPBANKPROSES
+        SET
+        I_BULKIDREQUEST = #{bulkIdRequest},
+        I_IDREQUEST = #{idRequest},
+        I_IDRESPONSE = #{idResponse},
+        C_PROSES = #{kodeProses},
+        C_STAN = #{kodeStan},
+        D_PAY = TO_DATE(#{tglBayarString}, 'YYYYMMDDHH24MISS'),
+        D_PAY_TRASMISI = TO_DATE(#{tglTransmisiString}, 'YYYYMMDDHH24MISS'),
+        C_BANK_BUKU = #{tglBuku},
+        I_NTPN = #{ntpn},
+        C_BPN_STATUS = #{statusBpn},
+        C_DJP_REQUEST = #{kodeRequest}
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSP2D = #{idSp2d}
+        AND I_IDSPMPOT = #{idSpmPot}
+        <!-- yg berhasil payment billing namun tidak dapat ntpn-->
+        AND C_RESPONSE = '00'
+        AND C_DJP_REQUEST = '2'
+        AND C_BILLING  = #{kodeBilling}
+    </update>
+    
+    <update id="updateSpmPotCreateBilling" parameterType="spp.model.Sp2dPajakTransfer">
+        UPDATE TMSPMPOT
+        SET
+        I_BULKIDREQUEST = #{bulkIdRequest},
+        I_IDREQUEST = #{idRequest},
+        C_BILLING  = #{kodeBilling},
+        <if test="tglBillExpString != null and tglBillExpString != '' ">
+            D_BILLING_EXP = TO_DATE(#{tglBillExpString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        
+        C_STAN = #{kodeStan}
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_ID = #{idSpmPot}
+        AND C_BILLING IS NULL
+    </update>
+    
+    <update id="updateSpmPotPaymentBilling" parameterType="spp.model.Sp2dPajakTransfer">
+        UPDATE TMSPMPOT
+        SET
+        I_BULKIDREQUEST = #{bulkIdRequest},
+        I_IDREQUEST = #{idRequest},
+        C_BANK_BUKU = #{tglBuku},
+        C_BPN_STATUS = #{statusBpn},
+        <if test="tglBayarString != null and tglBayarString != '' ">
+            D_PAY = TO_DATE(#{tglBayarString}, 'YYYYMMDDHH24MISS'),
+        </if>
+        I_NTB = #{ntb},
+        I_NTPN = #{ntpn},
+        C_STAN = #{kodeStan}
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_ID = #{idSpmPot}
+        AND C_BILLING  = #{kodeBilling}
+    </update>
+    
+    <insert id="insertJson" parameterType="spp.model.Sp2dPajakJson">
+        INSERT INTO TMSP2DPAJAKJSON (
+        I_ID,
+        I_IDAPP,
+        C_APP,
+        C_ANGG_TAHUN,
+        E_JSON_REQUEST,
+        E_JSON_RESPONSE,
+        D_REQUEST,
+        D_RESPONSE,
+        <if test="error != null and error != '' ">
+            E_ERROR,
+        </if>
+        C_ACTION,
+        D_PGUN_REKAM
+        )VALUES(
+        SEQ_TMSP2DPAJAKJSON.nextval,
+        #{idApp},
+        #{kodeApp},
+        #{tahun},
+        #{jsonRequest},
+        #{jsonResponse},
+        #{timeRequest},
+        #{timeResponse},
+        <if test="error != null and error != '' ">
+            #{error},
+        </if>
+        #{kodeAction},
+        SYSDATE
+        )
+    </insert>
+</mapper>

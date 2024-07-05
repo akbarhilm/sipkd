@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.SkpdMapper">
+    <select id="getAllSkpdBL" parameterType="java.util.Map"
+            resultType="spp.model.Skpd">
+        SELECT  
+        I_IDSKPD as idSkpd,
+        N_SKPD as namaSkpd,
+        N_SKPD_PENDEK as namaSkpdPendek,
+        C_SKPD as kodeSkpd,
+        C_SKPD_LEVEL as "level",
+        C_AKTIF as isAktif
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT  DISTINCT T.I_IDSKPD,
+        P.N_SKPD,
+        P.N_SKPD_PENDEK,
+        P.C_SKPD,
+        P.C_SKPD_LEVEL,P.C_AKTIF
+        FROM       TMDPAKEGIATAN T
+        INNER JOIN
+        trskpd p
+        ON P.I_ID = T.I_IDSKPD  WHERE P.C_AKTIF = 1
+        <if test="skpd != null and skpd != '' ">
+            AND upper(P.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+        ORDER BY  
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                P.C_SKPD
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                P.N_SKPD
+            </when>                                    
+            <otherwise>
+                T.I_IDSKPD
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>   ) a)  WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakSkpdBL" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        SELECT   COUNT (DISTINCT T.I_IDSKPD) AS BANYAK
+        FROM       TMDPAKEGIATAN T
+        INNER JOIN
+        trskpd p
+        ON P.I_ID = T.I_IDSKPD WHERE P.C_AKTIF = 1
+        <if test="skpd != null and skpd != '' ">
+            AND  upper(P.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+    </select>
+    <select id="getDetailSkpdById" parameterType="java.lang.Integer"
+            resultType="spp.model.Skpd"> 
+        SELECT   DISTINCT
+        trskpd.i_id  as idSkpd ,
+        trskpd.C_SKPD as kodeSkpd ,
+        trskpd.N_SKPD  as namaSkpd
+        FROM   trskpd 
+        WHERE   trskpd.i_id = #{id}
+    </select>
+    <select id="getAllPejabatPpkd"   parameterType="java.util.Map" resultType="spp.model.PejabatPpkd">
+        SELECT   I_ID AS idPejabatPPKD,
+        C_AKTIF AS isAktif,
+        I_NIP AS nip,
+        I_NRK AS nrk,
+        N_PEG AS namaPegawai,
+        N_JABATAN AS namaJabatan,
+        I_PGUN_REKAM AS idEntry,
+        D_PGUN_REKAM AS tglEntry,
+        I_PGUN_UBAH AS idEdit,
+        D_PGUN_UBAH AS tglEdit
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   T.I_ID,
+        T.C_AKTIF,
+        T.I_NIP,
+        T.I_NRK,
+        T.N_PEG,
+        T.N_JABATAN,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.I_PGUN_UBAH,
+        T.D_PGUN_UBAH
+        FROM   TRDOKTTD T
+        WHERE  ( T.C_DOK = #{kodeDok}
+        AND  
+        (  #{nilaispd} &gt;= T.V_DOK_MIN AND  #{nilaispd} &lt;= T.V_DOK_MAX )) OR  T.C_DOK = 'ALL'
+        ORDER BY  
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                I_NIP
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                I_NRK
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                N_PEG
+            </when>
+            <when test="iSortCol_0 == 4 ">
+                N_JABATAN
+            </when>
+            <otherwise>
+                T.I_ID 
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                DESC
+            </when>
+            <otherwise> 
+                ASC
+            </otherwise>
+        </choose>         
+        ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset}    
+    </select>
+    
+    <select id="getBanyakPejabatPPKD"  parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  COUNT(DISTINCT( T.I_ID))  FROM   TRDOKTTD T  WHERE  ( T.C_DOK = #{kodeDok} AND  
+        (  #{nilaispd} &gt;= T.V_DOK_MIN AND  #{nilaispd} &lt;= T.V_DOK_MAX ) ) OR  T.C_DOK = 'ALL'
+    </select>
+    <select id="getAllSkpdRoot"  
+            resultType="java.util.Map">         
+        SELECT   I_ID AS "key",   N_SKPD AS "title", 'true' as "lazy" , 'true' as "folder" ,c_skpd as "kodeskpd",c_unitkerja as "kodeunit"
+        FROM   TRSKPD T
+        WHERE   T.I_IDINDUK = 0 
+    </select>
+    <select id="getAllSkpdAnak"  parameterType="java.util.Map"
+            resultType="java.util.Map">         
+        SELECT   I_ID AS "key",
+        N_SKPD AS "title",
+        CASE
+        WHEN (SELECT   COUNT (x.I_ID)
+        FROM   TRSKPD x
+        WHERE   X.I_IDINDUK = T.I_ID) > 0
+        THEN
+        'true'
+        ELSE
+        'false'
+        END as  "lazy",
+        'true' AS "folder",c_skpd as "kodeskpd",c_unitkerja as "kodeunit"
+        FROM   TRSKPD T
+        WHERE   T.I_IDINDUK = #{induk}
+    </select>
+    <select id="getSkpdAll" parameterType="java.util.Map"   resultType="spp.model.Skpd">
+        SELECT   idSkpd,
+        kodeSkpd,
+        namaSkpd,
+        levelSkpd,
+        kodeWilayah
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT   I_IDSKPD as idSkpd,
+        C_SKPD as kodeSkpd,
+        N_SKPD as namaSkpd,
+        C_SKPD_LEVEL as levelSkpd,
+        TRSKPD.C_WIL as kodeWilayah
+        FROM   TRSKPD, TMDPA
+        WHERE   TMDPA.C_ANGG_TAHUN = #{tahun} AND TRSKPD.I_ID = TMDPA.I_IDSKPD
+        <if test="skpd != null and skpd != '' ">
+            AND upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            AND upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>
+        ORDER BY C_SKPD,N_SKPD  )a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakSkpdAll" parameterType="java.util.Map"   resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT I_IDSKPD, C_SKPD, N_SKPD, TRSKPD.C_WIL FROM TRSKPD, TMDPA 
+        WHERE TMDPA.C_ANGG_TAHUN= #{tahun}  
+        AND TRSKPD.I_ID = TMDPA.I_IDSKPD
+        <if test="skpd != null and skpd != '' ">
+            AND upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            AND upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>
+        )
+    </select>
+    <select id="getSkpdWil" parameterType="java.util.Map"   resultType="spp.model.Skpd">
+        SELECT   idSkpd,
+        kodeSkpd,
+        namaSkpd,
+        levelSkpd,
+        kodeWilayah
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  
+        SELECT I_IDSKPD as idSkpd, 
+        C_SKPD as kodeSkpd, 
+        C_SKPD_LEVEL as levelSkpd,
+        N_SKPD as namaSkpd, 
+        TRSKPD.C_WIL as kodeWilayah 
+        FROM TRSKPD, TMDPA 
+        WHERE TMDPA.C_ANGG_TAHUN = #{tahun} 
+        AND TRSKPD.I_ID = TMDPA.I_IDSKPD
+        AND TRSKPD.C_WIL_SP2DPROSES = #{kodewilayah}
+        <if test="skpd != null and skpd != '' ">
+            AND upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            AND upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>
+        ORDER BY C_SKPD,N_SKPD )a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+      
+    </select>
+    <select id="getBanyakSkpdWil" parameterType="java.util.Map"   resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT I_IDSKPD, C_SKPD, N_SKPD, TRSKPD.C_WIL FROM TRSKPD, TMDPA 
+        WHERE TMDPA.C_ANGG_TAHUN = #{tahun}
+        AND TRSKPD.I_ID = TMDPA.I_IDSKPD
+        AND TRSKPD.C_WIL_SP2DPROSES = #{kodewilayah}
+        <if test="skpd != null and skpd != '' ">
+            AND upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            AND upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>
+        )
+    </select>
+    
+    <select id="getSkpdBantuan" parameterType="java.util.Map"   resultType="spp.model.Skpd">
+        SELECT   
+        i_id as idSkpd,
+        c_skpd as kodeSkpd,
+        n_skpd as namaSkpd,
+        c_wil as kodeWilayah
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   DISTINCT trskpd.i_id,
+        c_skpd,
+        n_skpd,
+        c_wil
+        FROM   tmspm,
+        tmspp,
+        tmspprincibtlbantuan,
+        tmspmcetak,
+        trskpd
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmspprincibtlbantuan.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD = trskpd.i_id
+        AND TMSPMCETAK.C_STATUS_CETAK = '1'
+        <if test="skpd != null and skpd != '' ">
+            AND upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            AND upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>
+        AND tmspp.c_jenis = '2'
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   TMSP2D.I_IDSPM = TMSPM.I_ID and C_SP2D_CETAK='1')) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+      
+    </select>
+    <select id="getBanyakSkpdBantuan" parameterType="java.util.Map"   resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select distinct trskpd.i_id, c_skpd,n_skpd, c_wil from tmspm, tmspp,tmspprincibtlbantuan, tmspmcetak, trskpd 
+        where tmspp.i_id = tmspm.i_idspp
+        and tmspp.i_id = tmspprincibtlbantuan.i_idspp
+        and tmspm.i_id = tmspmcetak.i_id 
+        and TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD = trskpd.i_id
+        and  TMSPMCETAK.C_STATUS_CETAK='1'
+        <if test="skpd != null and skpd != '' ">
+            AND upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            AND upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>
+        and tmspp.c_jenis ='2'
+        and not exists (select 1 from tmsp2d where TMSP2D.I_IDSPM = TMSPM.I_ID and C_SP2D_CETAK='1')
+        )
+    </select>
+</mapper>

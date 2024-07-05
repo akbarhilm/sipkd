@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sp2d.entity.SpdAndroidMapper">
+    <select id="getSpdAndroid" parameterType="java.util.Map"
+            resultType="spp.model.Spd">
+        
+         SELECT   
+        I_ID as idSpd,
+        C_ANGG_TAHUN as tahunAnggaran,
+        I_SPDNO as idSpdNo,
+        C_JENIS as kodeJenis,
+        D_SPDNO as tanggalSpd, 
+        I_IDSKPD as idSkpd,
+        C_BULAN_AWAL as kodeBulanAwal,
+        C_BULAN_AKHIR as kodeBulanAkhir,
+        E_SPD as ketSpd,
+        N_SKPD as namaSkpd, 
+        N_SKPD_PENDEK as namaSkpdPendek
+        FROM   (
+        SELECT   
+        T.I_ID,
+        T.C_ANGG_TAHUN,
+        T.I_SPDNO,
+        T.C_JENIS,
+        T.D_SPDNO,
+        T.I_IDSKPD,
+        T.C_BULAN_AWAL,
+        T.C_BULAN_AKHIR,
+        T.E_SPD,
+        S.N_SKPD,
+        S.N_SKPD_PENDEK
+        FROM   TMSPD T
+        INNER JOIN  TRSKPD S ON S.I_ID = T.I_IDSKPD
+        ORDER BY T.I_IDSKPD
+        
+        ) a
+
+       
+    </select>
+    
+    <select id="getCountSpdAndroid" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        select count(i_id) from TMSPD T
+        where 1=1   
+        <if test="tahun != null and tahun != '' ">
+            AND upper(T.C_ANGG_TAHUN) like '%'||upper(#{tahun})||'%'
+        </if>
+        <if test="nospd != null and nospd != '' ">
+            AND T.D_SPDNO = #{nospd}
+        </if>
+        <if test="idskpd != null and idskpd != '' ">
+            AND T.I_IDSKPD = #{idskpd}
+        </if>       
+    </select>
+</mapper>

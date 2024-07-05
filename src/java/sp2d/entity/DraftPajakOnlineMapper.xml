@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.DraftPajakOnlineMapper">
+    
+    <select id="getListDraftPajakOnline" parameterType="java.util.Map" resultType="java.util.Map">
+    select rn,c_angg_tahun as tahun, c_jenis as kodeJenis,i_idskpd as idSkpd,i_idspmpot as idSpmpot,i_idspmpot_format as idSpmpotformat,idsp2d as idSp2d,
+    c_skpd as kodeSkpd,n_skpd as namaSkpd,c_wil_sp2dproses as kodeWilsp2d,i_npwp_bud as noNpwpbud, n_npwp_bud as namaNpwpbud,a_npwp_bud as alamatNpwpbud,
+    a_npwp_budkota as kotaNpwnbud,nama_penyetor as namaPenyetor, i_sp2dno as noSp2d,nosp2dformat as noSp2dformat,d_sp2d_sah as tglSp2dsah,c_sp2d_sah as kodeSp2dsah,
+    c_trx as kodeTrans,c_pot_spm as kodePotspm,v_pot_spm as nilaiPotspm, e_pot_sp2d as ketPotsp2d,i_kontr as kontrak, i_npwp_wp as noNpwprekan, n_npwp_wp as namaNpwprekan,
+    a_rekan_npwp as alamatNpwprekan, n_npwp_kota as kotaNpwnrekan,c_bankkpd as kodeBankkpkd, i_rek_bankkpkd as noRekeningkpkd,c_djp_kjs as kodeDpjkjs,c_djp_map as kodeDjpmap,
+    bulan_spp as bulanSpp,bulan_sp2d_sah as bulanSp2dsah, masa,tahun_pajak as tahunPajak,no_sk as noSk,kodebilling as kodeBilling,tglbilling_expired as tglBillingexp,
+    tanggal_buku as tglBuku, bpn_status as bpnStatus,d_pay as dPay,q_pot_cetak as qPotcetak, i_ntb as noNtb,i_ntpn as noNtpn, i_bulkidrequest as noBulkreq,p_pot as persenPot,
+    c_beban as kodeBeban 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+    SELECT tmsp2d.c_angg_tahun, tmspp.c_jenis, tmsp2d.i_idskpd,
+    tmspmpot.i_id i_idspmpot,
+    TRIM (TO_CHAR (tmspmpot.i_id, '000000000000000')
+    ) AS i_idspmpot_format,
+    tmsp2d.i_id idsp2d, c_skpd, n_skpd, tmsp2d.c_wil_sp2dproses,
+    REGEXP_REPLACE (trdokpottt.i_npwp, '[-. ,/]', '') i_npwp_bud,
+    SUBSTR (trdokpottt.n_npwp, 0, 30) n_npwp_bud,
+    SUBSTR (trdokpottt.a_npwp, 0, 50) a_npwp_bud,
+    SUBSTR (trdokpottt.n_npwp_kota, 0, 30) a_npwp_budkota,
+    trbank.n_kpkd AS nama_penyetor, tmsp2d.i_sp2dno,
+    TRIM (TO_CHAR (tmsp2d.i_sp2dno, '000000')) AS nosp2dformat,
+    tmsp2d.d_sp2d_sah, tmsp2d.c_sp2d_sah, trpotspm.c_trx,
+    tmspmpot.c_pot_spm, tmspmpot.v_pot_spm, e_pot_sp2d,
+    DECODE (tmspp.c_jenis,
+    '3', tmkontrak.i_kontr,
+    '1', tmspp.i_sppno_dok,
+    ''
+    ) AS i_kontr,
+    NVL (tmkontrak.i_rekan_npwp, '-') AS i_npwp_wp,
+    NVL (tmkontrak.n_rekan_npwp, '-') AS n_npwp_wp,
+    NVL (tmkontrak.a_rekan_npwp, '-') AS a_rekan_npwp,
+    NVL (tmkontrak.n_npwp_kota, '-') AS n_npwp_kota,
+    trbank.c_bank c_bankkpd, trbank.i_rek_bank i_rek_bankkpkd,
+    trpotspm.c_djp_kjs, trpotspm.c_djp_map, tmspp.c_bulan AS bulan_spp,
+    TO_CHAR (tmsp2d.d_sp2d_sah, 'MM') AS bulan_sp2d_sah,
+    CASE trpotspm.c_trx
+    WHEN 'P1'
+    THEN DECODE
+    (c_jenis,
+    '1', DECODE (TRIM (TO_CHAR (tmspp.c_bulan - 1, '00')),
+    '00', '12',
+    TRIM (TO_CHAR (tmspp.c_bulan - 1, '00'))
+    )
+    || DECODE (TRIM (TO_CHAR (tmspp.c_bulan - 1, '00')),
+    '00', '12',
+    TRIM (TO_CHAR (tmspp.c_bulan - 1, '00'))
+    ),
+    tmspp.c_bulan || tmspp.c_bulan
+    )
+    ELSE    TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')
+    || TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')
+    END AS masa,
+    CASE trpotspm.c_trx
+    WHEN 'P1'
+    THEN TO_NUMBER
+    (DECODE (TRIM (TO_CHAR (tmspp.c_bulan - 1, '00')),
+    '00', tmsp2d.c_angg_tahun - 1,
+    tmsp2d.c_angg_tahun
+    )
+    )
+    ELSE TO_NUMBER (tmsp2d.c_angg_tahun)
+    END AS tahun_pajak,
+    '' AS no_sk, tmspmpot.c_billing AS kodebilling,
+    tmspmpot.d_billing_exp AS tglbilling_expired,
+    c_bank_buku AS tanggal_buku, c_bpn_status bpn_status,
+    tmspmpot.d_pay, tmspmpot.q_pot_cetak, tmspmpot.i_ntb,
+    tmspmpot.i_ntpn, tmspmpot.i_bulkidrequest, tmspmpot.p_pot, TMSPP.C_BEBAN
+    FROM tmspmpot INNER JOIN trpotspm
+    ON tmspmpot.c_pot_spm = trpotspm.c_pot_spm
+    AND trpotspm.c_trx between 'P0' and 'P9'
+    AND tmspmpot.v_pot_spm > 0
+    INNER JOIN tmsp2d
+    ON tmsp2d.i_idspm = tmspmpot.i_idspm AND tmsp2d.c_sp2d_sah = '1'
+    INNER JOIN tmspp ON tmsp2d.i_idspp = tmspp.i_id
+    INNER JOIN trbank ON trbank.c_wil_sp2dproses =
+    tmsp2d.c_wil_sp2dproses
+    INNER JOIN trskpd ON trskpd.i_id = tmsp2d.i_idskpd
+    INNER JOIN trdokpottt ON trdokpottt.c_wilayah =
+    tmsp2d.c_wil_sp2dproses
+    LEFT JOIN tmkontrak ON tmkontrak.i_id = tmspp.i_idkontrak
+    where tmsp2d.c_wil_sp2dproses =#{wil}
+    and to_char(tmsp2d.D_SP2D_SAH,'YYYYMMDD') = #{tglsp2dsah}
+    )a)
+    </select>
+    
+    <select id="getBanyakDraftPajakOnline" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) from(
+    select c_angg_tahun as tahun, c_jenis as kodeJenis,i_idskpd as idSkpd,i_idspmpot as idSpmpot,i_idspmpot_format as idSpmpotformat,idsp2d as idSp2d,
+    c_skpd as kodeSkpd,n_skpd as namaSkpd,c_wil_sp2dproses as kodeWilsp2d,i_npwp_bud as noNpwpbud, n_npwp_bud as namaNpwpbud,a_npwp_bud as alamatNpwpbud,
+    a_npwp_budkota as kotaNpwnbud,nama_penyetor as namaPenyetor, i_sp2dno as noSp2d,nosp2dformat as noSp2dformat,d_sp2d_sah as tglSp2dsah,c_sp2d_sah as kodeSp2dsah,
+    c_trx as kodeTrans,c_pot_spm as kodePotspm,v_pot_spm as nilaiPotspm, e_pot_sp2d as ketPotsp2d,i_kontr as kontrak, i_npwp_wp as noNpwprekan, n_npwp_wp as namaNpwprekan,
+    a_rekan_npwp as alamatNpwprekan, n_npwp_kota as kotaNpwnrekan,c_bankkpd as kodeBankkpkd, i_rek_bankkpkd as noRekeningkpkd,c_djp_kjs as kodeDpjkjs,c_djp_map as kodeDjpmap,
+    bulan_spp as bulanSpp,bulan_sp2d_sah as bulanSp2dsah, masa,tahun_pajak as tahunPajak,no_sk as noSk,kodebilling as kodeBilling,tglbilling_expired as tglBillingexp,
+    tanggal_buku as tglBuku, bpn_status as bpnStatus,d_pay as dPay,q_pot_cetak as qPotcetak, i_ntb as noNtb,i_ntpn as noNtpn, i_bulkidrequest as noBulkreq,p_pot as persenPot,
+    c_beban as kodeBeban from(
+    SELECT tmsp2d.c_angg_tahun, tmspp.c_jenis, tmsp2d.i_idskpd,
+    tmspmpot.i_id i_idspmpot,
+    TRIM (TO_CHAR (tmspmpot.i_id, '000000000000000')
+    ) AS i_idspmpot_format,
+    tmsp2d.i_id idsp2d, c_skpd, n_skpd, tmsp2d.c_wil_sp2dproses,
+    REGEXP_REPLACE (trdokpottt.i_npwp, '[-. ,/]', '') i_npwp_bud,
+    SUBSTR (trdokpottt.n_npwp, 0, 30) n_npwp_bud,
+    SUBSTR (trdokpottt.a_npwp, 0, 50) a_npwp_bud,
+    SUBSTR (trdokpottt.n_npwp_kota, 0, 30) a_npwp_budkota,
+    trbank.n_kpkd AS nama_penyetor, tmsp2d.i_sp2dno,
+    TRIM (TO_CHAR (tmsp2d.i_sp2dno, '000000')) AS nosp2dformat,
+    tmsp2d.d_sp2d_sah, tmsp2d.c_sp2d_sah, trpotspm.c_trx,
+    tmspmpot.c_pot_spm, tmspmpot.v_pot_spm, e_pot_sp2d,
+    DECODE (tmspp.c_jenis,
+    '3', tmkontrak.i_kontr,
+    '1', tmspp.i_sppno_dok,
+    ''
+    ) AS i_kontr,
+    NVL (tmkontrak.i_rekan_npwp, '-') AS i_npwp_wp,
+    NVL (tmkontrak.n_rekan_npwp, '-') AS n_npwp_wp,
+    NVL (tmkontrak.a_rekan_npwp, '-') AS a_rekan_npwp,
+    NVL (tmkontrak.n_npwp_kota, '-') AS n_npwp_kota,
+    trbank.c_bank c_bankkpd, trbank.i_rek_bank i_rek_bankkpkd,
+    trpotspm.c_djp_kjs, trpotspm.c_djp_map, tmspp.c_bulan AS bulan_spp,
+    TO_CHAR (tmsp2d.d_sp2d_sah, 'MM') AS bulan_sp2d_sah,
+    CASE trpotspm.c_trx
+    WHEN 'P1'
+    THEN DECODE
+    (c_jenis,
+    '1', DECODE (TRIM (TO_CHAR (tmspp.c_bulan - 1, '00')),
+    '00', '12',
+    TRIM (TO_CHAR (tmspp.c_bulan - 1, '00'))
+    )
+    || DECODE (TRIM (TO_CHAR (tmspp.c_bulan - 1, '00')),
+    '00', '12',
+    TRIM (TO_CHAR (tmspp.c_bulan - 1, '00'))
+    ),
+    tmspp.c_bulan || tmspp.c_bulan
+    )
+    ELSE    TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')
+    || TO_CHAR (tmsp2d.d_sp2d_sah, 'MM')
+    END AS masa,
+    CASE trpotspm.c_trx
+    WHEN 'P1'
+    THEN TO_NUMBER
+    (DECODE (TRIM (TO_CHAR (tmspp.c_bulan - 1, '00')),
+    '00', tmsp2d.c_angg_tahun - 1,
+    tmsp2d.c_angg_tahun
+    )
+    )
+    ELSE TO_NUMBER (tmsp2d.c_angg_tahun)
+    END AS tahun_pajak,
+    '' AS no_sk, tmspmpot.c_billing AS kodebilling,
+    tmspmpot.d_billing_exp AS tglbilling_expired,
+    c_bank_buku AS tanggal_buku, c_bpn_status bpn_status,
+    tmspmpot.d_pay, tmspmpot.q_pot_cetak, tmspmpot.i_ntb,
+    tmspmpot.i_ntpn, tmspmpot.i_bulkidrequest, tmspmpot.p_pot, TMSPP.C_BEBAN
+    FROM tmspmpot INNER JOIN trpotspm
+    ON tmspmpot.c_pot_spm = trpotspm.c_pot_spm
+    AND trpotspm.c_trx between 'P0' and 'P9'
+    AND tmspmpot.v_pot_spm > 0
+    INNER JOIN tmsp2d
+    ON tmsp2d.i_idspm = tmspmpot.i_idspm AND tmsp2d.c_sp2d_sah = '1'
+    INNER JOIN tmspp ON tmsp2d.i_idspp = tmspp.i_id
+    INNER JOIN trbank ON trbank.c_wil_sp2dproses =
+    tmsp2d.c_wil_sp2dproses
+    INNER JOIN trskpd ON trskpd.i_id = tmsp2d.i_idskpd
+    INNER JOIN trdokpottt ON trdokpottt.c_wilayah =
+    tmsp2d.c_wil_sp2dproses
+    LEFT JOIN tmkontrak ON tmkontrak.i_id = tmspp.i_idkontrak
+    where tmsp2d.c_wil_sp2dproses =#{wil}
+    and to_char(tmsp2d.D_SP2D_SAH,'YYYYMMDD') = #{tglsp2dsah}
+    ))
+    </select>
+</mapper>

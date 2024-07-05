@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sp2d.entity.StatusSpmMapper">
+    
+    <select id="getSp2dWilayah" parameterType="java.lang.String"  resultType="spp.model.StatusSpm">
+        select i_id,wilayahSp2d,nodokSpm, jenis,  beban, idSkpd,kodeSkpd,namaSkpd,tanggalCetak,tglterimaKpkd,tanggalSp2d,noSp2d,jumlahHari,ketSpm 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( SELECT   tmspmcetak.i_id, trskpd.c_wil_sp2dproses as wilayahSp2d, i_spmno_dok as nodokSpm,c_jenis as jenis, c_beban as beban,
+        tmspp.i_idskpd as idSkpd, trskpd.c_skpd as kodeSkpd, trskpd.n_skpd as namaSkpd,
+        TO_CHAR (tmspmcetak.d_spm_cetak, 'dd-mm-yyyy')  as tanggalCetak,
+        TO_CHAR (tmspmcetak.d_spm_terimakpkd,
+        'dd-mm-yyyy'
+        ) AS  tglterimaKpkd,
+        NVL (d_sp2dno, '') AS tanggalSp2d, i_sp2dno AS noSp2d,
+        (TO_DATE (SYSDATE) - TO_DATE (tmspmcetak.d_spm_terimakpkd)
+        ) AS jumlahHari,
+        e_spm as ketSpm
+        FROM tmspm INNER JOIN tmspmcetak
+        ON tmspm.i_id = tmspmcetak.i_id AND tmspm.c_angg_tahun = #{tahun}
+        INNER JOIN tmspp
+        ON tmspm.i_idspp = tmspp.i_id AND tmspp.c_angg_tahun = #{tahun}
+        INNER JOIN trskpd ON tmspm.i_idskpd = trskpd.i_id
+        LEFT JOIN tmsp2d
+        ON tmsp2d.i_idspm = tmspmcetak.i_id
+        AND tmsp2d.c_sp2d_sah = '0'
+        AND trskpd.c_wil_sp2dproses = tmsp2d.c_wil_sp2dproses
+        AND tmsp2d.c_angg_tahun = #{tahun}
+        WHERE tmspm.c_angg_tahun = #{tahun}
+        <if test="wilayahsp2d != null and wilayahsp2d != '' ">
+
+        and trskpd.c_wil_sp2dproses like '%'||#{wilayahsp2d}||'%'
+             </if>
+        AND n_peg_terimakpkd IS NOT NULL
+        AND tmspmcetak.d_spm_terimakpkd IS NOT NULL)a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        ORDER BY jumlahHari DESC, kodeSkpd ASC
+    </select>
+    
+    <select id="getBanyakSp2dWilayah" parameterType="java.lang.String"  resultType="java.lang.Integer">
+      select count(*) from(  
+     select i_id,wilayahSp2d,nodokSpm, jenis,  beban, idSkpd,kodeSkpd,namaSkpd,tanggalCetak,tglterimaKpkd,tanggalSp2d,noSp2d,jumlahHari,ketSpm 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( SELECT   tmspmcetak.i_id, trskpd.c_wil_sp2dproses as wilayahSp2d, i_spmno_dok as nodokSpm,c_jenis as jenis, c_beban as beban,
+        tmspp.i_idskpd as idSkpd, trskpd.c_skpd as kodeSkpd, trskpd.n_skpd as namaSkpd,
+        TO_CHAR (tmspmcetak.d_spm_cetak, 'dd-mm-yyyy')  as tanggalCetak,
+        TO_CHAR (tmspmcetak.d_spm_terimakpkd,
+        'dd-mm-yyyy'
+        ) AS  tglterimaKpkd,
+        NVL (d_sp2dno, '') AS tanggalSp2d, i_sp2dno AS noSp2d,
+        (TO_DATE (SYSDATE) - TO_DATE (tmspmcetak.d_spm_terimakpkd)
+        ) AS jumlahHari,
+        e_spm as ketSpm
+        FROM tmspm INNER JOIN tmspmcetak
+        ON tmspm.i_id = tmspmcetak.i_id AND tmspm.c_angg_tahun = #{tahun}
+        INNER JOIN tmspp
+        ON tmspm.i_idspp = tmspp.i_id AND tmspp.c_angg_tahun = #{tahun}
+        INNER JOIN trskpd ON tmspm.i_idskpd = trskpd.i_id
+        LEFT JOIN tmsp2d
+        ON tmsp2d.i_idspm = tmspmcetak.i_id
+        AND tmsp2d.c_sp2d_sah = '0'
+        AND trskpd.c_wil_sp2dproses = tmsp2d.c_wil_sp2dproses
+        AND tmsp2d.c_angg_tahun = #{tahun}
+        WHERE tmspm.c_angg_tahun = #{tahun}
+         <if test="wilayahsp2d != null and wilayahsp2d != '' ">
+
+        and trskpd.c_wil_sp2dproses like '%'||#{wilayahsp2d}||'%'
+             </if>
+        AND n_peg_terimakpkd IS NOT NULL
+        AND tmspmcetak.d_spm_terimakpkd IS NOT NULL)a))
+    </select>
+</mapper>

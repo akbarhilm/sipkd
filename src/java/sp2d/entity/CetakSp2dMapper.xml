@@ -1,0 +1,703 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sp2d.entity.CetakSp2dMapper">
+
+    <update  parameterType="java.util.Map" id="updatenamafile">
+        UPDATE TMSP2d    SET
+        A_PDF_PATH = #{filepdf},
+        N_PDF_FILE = #{namaFile}
+        WHERE C_Sp2d_sah = 1 and i_id = #{idsp2d}
+    </update>
+
+    <select id="getsp2dsahbyidsp2d"  parameterType="java.lang.Integer" resultType="java.util.Map" >
+        SELECT   T.I_ID,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.D_SP2D_SAH,
+        T.V_SP2D
+        FROM    TMSP2D T
+        WHERE   T.I_ID =  #{idspd}
+    </select>
+
+    <select id="getnamaWilayah"  parameterType="java.lang.String" resultType="java.lang.String" >
+        select n_wilayah as namwil from trwilayah where c_wilayah = #{kodwil}
+    </select>
+
+    <select id="getskpdid" parameterType="java.util.Map"  resultType="java.lang.String">
+        SELECT I_IDSKPD
+        FROM TMSP2D
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_SP2DNO = #{ns}
+        AND C_WIL_SP2DPROSES = #{kpros}
+
+    </select>
+
+    <select id="getNoBa" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select nvl(sum(i_id),0) from tmsp2dbatal
+        where i_id =#{idsp2d}
+        and i_idspp = #{idspp}
+        and c_angg_tahun = #{tahun}
+        and i_bano = #{noba}
+    </select>
+
+
+    <select id="getsp2dsahid"  parameterType="java.lang.Integer" resultType="java.util.Map" >
+        SELECT to_char('B') || to_char(I_ID,'000000000') AS ID
+        from   TMSP2D
+        WHERE   I_ID =  #{idspd}
+    </select>
+
+
+    <select id="getsp2dsahnomor"  parameterType="java.lang.Integer" resultType="java.util.Map" >
+        SELECT to_char(T.c_wil_sp2dproses) || to_char(T.I_SP2DNO,'000000') || '/SP2D/' || Romawi(to_char(T.D_SP2D_CETAK,'MM')) || to_char(T.D_SP2D_CETAK,'/YYYY') as I_SP2DNO
+        from       TMSP2D T
+        WHERE   T.I_ID =  #{idspd}
+    </select>
+
+
+    <select id="getlistsp2dcetak" parameterType="java.util.Map"  resultType="spp.model.SppUp">
+        SELECT distinct  id as id,
+        idsp2d as "sp2d.idSp2d",
+        idskpd as "skpd.idSkpd",
+        nospp as noSpp,
+        nospm as "spmUp.noSpm",
+        tglspm as "spmUp.tglSpm",
+        noSp2d as "sp2d.nomorSp2d",
+        tglSp2d as "sp2d.tglSp2d",
+        potblum as "sp2d.kodeCetakPotongan",
+
+        kodeBeban as kodeBeban,
+        kodeJenis as kodeJenis,
+        namaPptk as namaPptk,
+        nipPptk as nipPptk,
+        tahun as tahun,
+        status_cetak as "sp2d.kodeCetak" ,
+        nilaisp2d as "sp2d.nilaiSp2d",
+        kodeNihil
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT Z.i_idspp AS id,
+        Z.i_idsp2d AS idsp2d,
+        Z.i_idskpd AS idskpd,
+        Z.i_sppno AS nospp,
+        Z.i_spmno AS nospm,
+        Z.i_sp2dno AS nosp2d,
+        Z.d_spmno AS tglspm,
+        Z.PPTK AS namaPptk,
+        Z.NPPTK AS nipPptk,
+        Z.d_sp2dno AS tglsp2d,
+
+        Z.pot_bl_UM AS potblum,
+        Z.pot_btl AS potbtl,
+        Z.POT_bl AS potbl,
+        Z.c_beban AS kodeBeban,
+        Z.C_ANGG_TAHUN AS tahun,
+        (CASE z.c_jenis
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        WHEN '5' THEN 'RESTITUSI'
+        END)
+        AS kodeJenis,
+        status_cetak,
+        status_cetakpotongan,
+        z.nilaisp2d as nilaisp2d,
+        kodeNihil
+        FROM   (SELECT   tmspp.c_angg_tahun,
+        tmspm.i_idskpd AS i_idskpd,
+        tmspm.i_id AS i_idspm,
+        tmspm.i_idspp AS i_idspp,
+        tmsp2d.i_id AS i_idsp2d,
+        tmspm.i_spmno,
+        tmspm.d_spmno,
+        tmsp2d.i_sp2dno,
+        tmsp2d.d_sp2dno as d_sp2dno,
+        tmspp.i_sppno,
+        tmspp.c_beban,
+        tmsp2d.N_KBUD AS PPTK,
+        tmsp2d.I_NIP_KBUD as NPPTK,
+        tmspm.C_UANGMUKA as pot_bl_UM,
+        tmspm.C_POTAYAT as pot_btl,
+        tmspm.C_POTNONAYAT AS POT_bl,
+        tmspp.c_jenis,
+        (CASE NVL (tmsp2d.c_sp2d_cetak, '0')
+        WHEN '0' THEN 'BELUM CETAK'
+        WHEN '1' THEN 'CETAK'
+        ELSE 'TANPA STATUS'
+        END)
+        AS status_cetak,
+        (CASE NVL (tmsp2d.c_sp2d_cetakpot,
+        '0')
+        WHEN '0'
+        THEN
+        'BELUM CETAK'
+        WHEN '1'
+        THEN
+        'CETAK'
+        ELSE
+        'TANPA STATUS'
+        END)
+        AS status_cetakpotongan,
+        tmsp2d.v_sp2d as nilaisp2d,
+        tmspm.c_nihil as kodeNihil
+
+        FROM   TMSPP,
+        tmspm,
+        tmsp2d,
+        tmspmcetak
+        WHERE       tmspm.i_idspp = tmspp.i_id
+        AND tmspm.i_id = tmsp2d.i_idspm
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmsp2d.c_sp2d_sah != '1'
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}) Z
+        )
+        a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+
+    <select id="getbanyaksp2dcetak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT ( distinct i_idsp2d) AS banyak
+        from
+        ( SELECT tmsp2d.i_id AS i_idsp2d
+        FROM   TMSPP, tmspm,tmsp2d,tmspmcetak
+        WHERE       tmspm.i_idspp = tmspp.i_id
+        AND tmspm.i_id = tmsp2d.i_idspm
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmsp2d.c_sp2d_sah != '1'
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}
+        )
+    </select>
+
+    <select id="getlistsp2dsah" parameterType="java.util.Map"  resultType="spp.model.SppUp">
+        SELECT   id,
+        idskpd,
+        idspp as "sp2d.idSpp",
+        kodeUmk as "sp2d.kodeUmk",
+        idkontrak as "sp2d.idKontrak",
+        nospp,
+        nospm as "spmUp.noSpm",
+        tglspm as "spmUp.tglSpm",
+        noSp2d as "sp2d.nomorSp2d",
+        tglSp2d as "sp2d.tglSp2d",
+        kodeWil as "sp2d.kodeWilayahProses",
+        potblum as "sp2d.kodeCetakPotongan",
+        potbtl,
+        potbl,
+        kodeBeban,
+        kodeJenis,
+        namaPptk,
+        nipPptk,
+        tahun,
+        status_cetak as "sp2d.kodeCetak" ,
+        nilaisp2d as "sp2d.nilaiSp2d"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   Z.i_idsp2d AS id,
+        Z.i_idskpd AS idskpd,
+        Z.i_sppno AS nospp,
+        Z.i_spmno AS nospm,
+        Z.i_sp2dno AS nosp2d,
+        Z.d_spmno AS tglspm,
+        Z.PPTK AS namaPptk,
+        Z.NPPTK AS nipPptk,
+        Z.d_sp2dno AS tglsp2d,
+        Z.pot_bl_UM AS potblum,
+        Z.pot_btl AS potbtl,
+        Z.POT_bl AS potbl,
+        Z.c_beban AS kodeBeban,
+        Z.k_wil_pros AS kodeWil,
+        Z.C_ANGG_TAHUN AS tahun,
+        (CASE z.c_jenis
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        WHEN '5' THEN 'RESTITUSI'
+        END)
+        AS kodeJenis,
+        status_cetak,
+        status_cetakpotongan,
+        z.nilaisp2d as nilaisp2d,
+        z.i_idspp as idspp,
+        z.c_uangmuka as kodeUmk,
+        z.i_idkontrak as idkontrak
+        FROM   (SELECT   tmspp.c_angg_tahun,
+        tmspm.i_idskpd AS i_idskpd,
+        tmspm.i_id AS i_idspm,
+        tmspm.i_idspp AS i_idspp,
+        tmsp2d.i_id AS i_idsp2d,
+        tmspm.i_spmno,
+        tmspm.d_spmno,
+        tmsp2d.i_sp2dno,
+        tmsp2d.d_sp2dno,
+        tmsp2d.c_wil_sp2dproses as k_wil_pros ,
+        tmspp.i_sppno,
+        tmspp.c_beban,
+        tmsp2d.N_KBUD AS PPTK,
+        tmsp2d.I_NIP_KBUD as NPPTK,
+        tmspm.C_UANGMUKA as pot_bl_UM,
+        tmspm.C_POTAYAT as pot_btl,
+        tmspm.C_POTNONAYAT AS POT_bl,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        tmspp.i_idkontrak,
+        (CASE NVL (tmsp2d.c_sp2d_cetak, '0')
+        <!--WHEN '0' THEN 'BELUM CETAK'-->
+        WHEN '1' THEN 'CETAK'
+        ELSE 'TANPA STATUS'
+        END)
+        AS status_cetak,
+        (CASE NVL (tmsp2d.c_sp2d_cetakpot,
+        '0')
+        WHEN '0'
+        THEN
+        'BELUM CETAK'
+        WHEN '1'
+        THEN
+        'CETAK'
+        ELSE
+        'TANPA STATUS'
+        END)
+        AS status_cetakpotongan,
+        tmsp2d.v_sp2d as nilaisp2d
+
+        FROM   TMSPP,
+        tmspm,
+        tmsp2d,
+        tmspmcetak
+        WHERE       tmspm.i_idspp = tmspp.i_id
+        AND tmspm.i_id = tmsp2d.i_idspm
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmsp2d.c_sp2d_sah != '1'
+        AND tmsp2d.c_sp2d_cetak != '0'
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}) Z
+        )
+        a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+
+    <select id="getbanyaksp2dsah" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT ( distinct i_idsp2d) AS banyak
+        from
+        ( SELECT tmsp2d.i_id AS i_idsp2d
+        FROM   TMSPP, tmspm,tmsp2d,tmspmcetak
+        WHERE       tmspm.i_idspp = tmspp.i_id
+        AND tmspm.i_id = tmsp2d.i_idspm
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmsp2d.c_sp2d_sah != '1'
+        AND tmsp2d.c_sp2d_cetak != '0'
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}
+        )
+    </select>
+
+    <update id="updatesp2dcetak" parameterType="java.util.Map" >
+
+        UPDATE TMSP2D
+        SET
+        I_PGUN_CETAK = #{userid},
+        D_PGUN_CETAK = #{tgluserid},
+        <!-- A_JASPER_FILE = #{filejasper},
+        A_SPPFILE_PDF = #{filepdf},-->
+        D_SP2D_CETAK = #{tglc},
+        c_sp2d_cetak = '1',
+        c_sp2d_cetakpot = '1',
+        C_KBUD_STATUS = (select C_KBUD_STATUS from trdoksp2dtt where exists(select 1 from tmsp2d where i_id = #{id} and C_WIL_SP2DPROSES = trdoksp2dtt.C_WIL_SP2DPROSES )),
+        <!-- c_status_camel = #{statcam},-->
+        I_SP2DNO_DOK = C_WIL_SP2DPROSES || to_char(I_SP2DNO,'000000') || '/SP2D/' || Romawi(to_char(SYSDATE,'MM')) || '/' || to_char(SYSDATE,'YYYY')
+        WHERE  I_ID = #{id}
+
+    </update>
+
+    <!-- ini tidak dipakai tp belum dihapus buat history-->
+    <update id="updatesp2dcetak1" parameterType="java.util.Map" >
+
+        UPDATE TMSP2D
+        SET
+        A_PDF_PATH = #{filepdf},
+        c_sp2d_cetak = '1',
+        c_sp2d_cetakpot = '1',
+        c_status_camelval = #{statcam},
+        I_SP2DNO_DOK = C_WIL_SP2DPROSES || to_char(I_SP2DNO,'000000') || '/SP2D/' || Romawi(to_char(SYSDATE,'MM')) || '/' || to_char(SYSDATE,'YYYY')
+        WHERE  I_ID = #{idspd}
+
+    </update>
+
+
+    <update id="updatesp2dsah" parameterType="java.util.Map" >
+
+        UPDATE TMSP2D
+        SET
+        I_PGUN_SAH = #{userid},
+        D_PGUN_SAH = #{tgluserid},
+        D_SP2D_SAH = #{tglc},
+        c_sp2d_sah = '1'
+        WHERE  I_ID = #{idspd}
+
+    </update>
+
+    <update id="deletesp2dcetak" parameterType="java.util.Map" >
+
+        UPDATE TMSP2D
+        SET
+        <!-- A_JASPER_FILE ='',
+        A_SPPFILE_PDF ='',
+        c_status_camel = '0',-->
+        D_SP2D_CETAK = '',
+        c_sp2d_cetak = '0',
+        c_sp2d_cetakpot = '0'
+        WHERE  I_ID = #{idspd}
+
+    </update>
+
+
+    <select id="getbanyaksp2dcetakbtl3" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count (*)
+        from tmspprincibtl,trbas
+        where  tmspprincibtl.i_idspp = #{value}
+        and tmspprincibtl.i_idbas = trbas.i_id
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.8')
+        and TMSPPRINCIBTL.V_SPP &gt; 0
+
+    </select>
+
+    <select id="getbanyaksp2dcetakbtl4" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count (*)
+        from tmspprincibtl,trbas
+        where  tmspprincibtl.i_idspp = #{value}
+        and tmspprincibtl.i_idbas = trbas.i_id
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.2')
+        and TMSPPRINCIBTL.V_SPP &gt; 0
+
+    </select>
+
+
+    <select id="getbanyaksp2dcetakres3" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count (*)
+        from tmspprincipnrm,trbas
+        where  tmspprincipnrm.i_idspp = #{value}
+        and tmspprincipnrm.i_idbas = trbas.i_id
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.8')
+        and tmspprincipnrm.V_SPP &gt; 0
+
+    </select>
+
+
+    <select id="getharikerjaspp"   parameterType="java.sql.Date" resultType="spp.model.HariKerja">
+        SELECT   T.D_REKAM AS tglRekam,
+        T.D_APPROVE AS tglApprove,
+        T.D_CETAK AS tglCetak,
+        T.D_SAH AS tglSah
+        FROM   TRHARIKERJA T
+        WHERE   C_DOK = 'SPP' AND D_HARI_KERJA = #{value}
+    </select>
+
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5, N_BPKD
+        from   TRDOKREFF
+    </select>
+
+    <select id="getlistsp2dbatalsah"   parameterType="java.util.Map" resultType="spp.model.Sp2dBatal">
+        SELECT i_id as idSp2d,
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        i_sp2dno as noSp2d,
+        e_spp as keterangan,
+        v_spp as nilaiSpp,
+        v_pot_spm as nilaiPotSpm,
+        v_sp2d as nilaiSp2d,
+        c_beban as kodeBeban,
+        c_jenis as kodeJenis
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT tmsp2d.i_id, c_skpd, n_skpd, i_sp2dno, tmspp.e_spp, tmsp2d.v_spp,
+        v_pot_spm, v_sp2d, tmspp.c_beban, tmspp.c_jenis
+        FROM tmsp2d, tmspp, tmspm, trskpd
+        WHERE tmsp2d.i_idspp = tmspp.i_id
+        AND tmsp2d.i_idspm = tmspm.i_id
+        AND tmsp2d.i_idskpd = trskpd.i_id
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmsp2d.c_angg_tahun = #{tahun}
+        AND tmsp2d.c_wil_sp2dproses = #{wilproses}
+        AND TO_CHAR (tmsp2d.d_sp2d_sah, 'YYYYMMDD') = TO_CHAR ((select sysdate from dual), 'YYYYMMDD')
+        and not exists (select 1 from tmsp2dbank where tmsp2d.i_id=tmsp2dbank.i_idsp2d and tmsp2dbank.C_BANK_STATUS='1')
+        ORDER BY  i_sp2dno
+        )
+        a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getbanyaksp2dbatalsah"   parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(distinct i_id) as banyak
+        from
+        (SELECT tmsp2d.i_id, c_skpd, n_skpd, i_sp2dno, tmspp.e_spp, tmsp2d.v_spp,
+        v_pot_spm, v_sp2d, tmspp.c_beban, tmspp.c_jenis
+        FROM tmsp2d, tmspp, tmspm, trskpd
+        WHERE tmsp2d.i_idspp = tmspp.i_id
+        AND tmsp2d.i_idspm = tmspm.i_id
+        AND tmsp2d.i_idskpd = trskpd.i_id
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmsp2d.c_angg_tahun = #{tahun}
+        AND tmsp2d.c_wil_sp2dproses = #{wilproses}
+        AND TO_CHAR (tmsp2d.d_sp2d_sah, 'YYYYMMDD') = TO_CHAR ((select sysdate from dual), 'YYYYMMDD')
+        and not exists (select 1 from tmsp2dbank where tmsp2d.i_id=tmsp2dbank.i_idsp2d and tmsp2dbank.C_BANK_STATUS='1')
+        ORDER BY  i_sp2dno)
+    </select>
+    <select id="getSp2dByIdSp2d"   parameterType="java.lang.Integer" resultType="spp.model.Sp2dBatal">
+        select
+        tmsp2d.I_ID as idSp2d,
+        tmsp2d.I_IDSPM as idSpm,
+        tmsp2d.I_IDSPP as idSpp,
+        tmsp2d.C_ANGG_TAHUN as tahunAnggaran,
+        tmsp2d.I_SP2DNO_DOK as noDokSp2d,
+        tmsp2d.I_SP2DNO as noSp2d,
+        tmsp2d.D_SP2DNO as tanggalSp2d,
+        tmsp2d.C_WIL_SP2DPROSES as kodeWilayahProses,
+        tmsp2d.N_WIL_SP2DPROSES as namaWilayahProses,
+        tmsp2d.I_IDSKPD as "skpd.idSkpd",
+        tmsp2d.I_NIP_PA as nipPenggunaAnggaran,
+        tmsp2d.I_NRK_PA as nrkPenggunaAnggaran,
+        tmsp2d.N_PA as namaPenggunaAnggaran,
+        tmsp2d.N_JABATAN_PA as jabatanPenggunaAnggaran,
+        tmsp2d.I_NIP_KBUD as nipKbud,
+        tmsp2d.N_KBUD as namaKbud,
+        tmsp2d.N_JABATAN_KBUD as jabatanKbud,
+        tmsp2d.C_SP2D_CETAK as kodeCetak,
+        tmsp2d.C_SP2D_CETAKPOT as kodeCetakPot,
+        tmsp2d.D_SP2D_CETAK as tanggalCetak,
+        tmsp2d.C_SP2D_SAH as kodeSp2dSah,
+        tmsp2d.D_SP2D_SAH as tanggalSp2dSah,
+        tmsp2d.V_SP2D as nilaiSp2d,
+        tmsp2d.I_JOUR as noJurnal,
+        tmsp2d.D_JOUR as tanggalJurnal,
+        tmsp2d.I_JOUR_REV as noJurnalRev,
+        tmsp2d.C_JOUR_STAT as statusJurnal,
+        tmsp2d.D_REKAM_JOUR as tanggalJurnalProses,
+        tmsp2d.V_SPP as nilaiSpp,
+        tmsp2d.V_POT_SPM as nilaiPotSpm,
+        tmsp2d.I_PGUN_REKAM as idEntry,
+        tmsp2d.D_PGUN_REKAM as tglEntry,
+        tmsp2d.I_PGUN_UBAH as idEdit,
+        tmsp2d.D_PGUN_UBAH as tglEdit,
+        tmsp2d.I_PGUN_CETAK as idPenggunaCetak,
+        tmsp2d.D_PGUN_CETAK as tglPenggunaCetak,
+        tmsp2d.I_PGUN_SAH as idPenggunaSah,
+        tmsp2d.D_PGUN_SAH as tglPenggunaSah,
+        tmsp2d.I_PGUN_JOUR as idPenggunaJurnal,
+        tmsp2d.D_REKAM_JOUR as tglPenggunaJurnal,
+        tmspm.I_SPMNO as "spm.noSpm",
+        tmspm.D_SPMNO as "spm.tglSpm",
+        trskpd.C_SKPD as "skpd.kodeSkpd",
+        trskpd.N_SKPD as "skpd.namaSkpd"
+        from tmsp2d,tmspm,trskpd
+        where tmsp2d.i_idspm=tmspm.i_id
+        and tmsp2d.i_idskpd=trskpd.i_id
+        and tmsp2d.i_id=#{value}
+    </select>
+    <delete id="batalSp2dSah"   parameterType="spp.model.Sp2dBatal">
+        UPDATE tmsp2d
+        SET c_sp2d_sah = '0',
+        d_sp2d_sah = NULL,
+        i_pgun_sah = NULL,
+        d_pgun_sah = NULL,
+        A_PDF_PATH = '',
+        n_PDF_file = ''
+        WHERE i_id = #{idSp2d}
+    </delete>
+    <insert id="insertTabelSp2dBatal"   parameterType="spp.model.Sp2dBatal">
+        INSERT INTO TMSP2DBATAL (
+        I_ID,
+        I_IDSPM,
+        I_IDSPP,
+        C_ANGG_TAHUN,
+        I_SP2DNO_DOK,
+        I_SP2DNO,
+        D_SP2DNO,
+        C_WIL_SP2DPROSES,
+        N_WIL_SP2DPROSES,
+        I_IDSKPD,
+        I_NIP_PA,
+        I_NRK_PA,
+        N_PA,
+        N_JABATAN_PA,
+        I_NIP_KBUD,
+        N_KBUD,
+        N_JABATAN_KBUD,
+        C_SP2D_CETAK,
+        A_JASPER_FILE,
+        C_SP2D_CETAKPOT,
+        A_JASPER_POT,
+        D_SP2D_CETAK,
+        C_SP2D_SAH,
+        D_SP2D_SAH,
+        V_SP2D,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        I_PGUN_UBAH,
+        D_PGUN_UBAH,
+        I_PGUN_CETAK,
+        D_PGUN_CETAK,
+        I_PGUN_SAH,
+        D_PGUN_SAH,
+        I_JOUR,
+        D_JOUR,
+        I_JOUR_REV,
+        C_JOUR_STAT,
+        I_PGUN_JOUR,
+        D_REKAM_JOUR,
+        V_SPP,
+        V_POT_SPM,
+        E_ALASAN,
+        I_BANO,
+        I_PGUN_BATAL,
+        D_PGUN_BATAL
+        )
+        ( select  I_ID,
+        I_IDSPM,
+        I_IDSPP,
+        C_ANGG_TAHUN,
+        I_SP2DNO_DOK,
+        I_SP2DNO,
+        D_SP2DNO,
+        C_WIL_SP2DPROSES,
+        N_WIL_SP2DPROSES,
+        I_IDSKPD,
+        I_NIP_PA,
+        I_NRK_PA,
+        N_PA,
+        N_JABATAN_PA,
+        I_NIP_KBUD,
+        N_KBUD,
+        N_JABATAN_KBUD,
+        C_SP2D_CETAK,
+        A_JASPER_FILE,
+        C_SP2D_CETAKPOT,
+        A_JASPER_POT,
+        D_SP2D_CETAK,
+        C_SP2D_SAH,
+        D_SP2D_SAH,
+        V_SP2D,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        I_PGUN_UBAH,
+        D_PGUN_UBAH,
+        I_PGUN_CETAK,
+        D_PGUN_CETAK,
+        I_PGUN_SAH,
+        D_PGUN_SAH,
+        I_JOUR,
+        D_JOUR,
+        I_JOUR_REV,
+        C_JOUR_STAT,
+        I_PGUN_JOUR,
+        D_REKAM_JOUR,
+        V_SPP,
+        V_POT_SPM,
+        #{alasanBatal},
+        #{noBeritaAcara},
+        #{idPenggunaBatal},
+        sysdate
+        from tmsp2d
+        where i_id = #{idSp2d}
+        and C_ANGG_TAHUN = #{tahunAngg}
+        )
+    </insert>
+
+    <select id="getPathFile"  parameterType="java.util.Map" resultType="spp.model.SppUp" >
+
+        select
+        tmsp2d.i_id AS idSp2d,
+        tmsp2d.i_idspm AS idSpm,
+        tmsp2d.i_idspp as idSpp,
+        tmsp2d.c_wil_sp2dproses as wilProses,
+        tmsp2d.i_idskpd as "skpd.idSkpd",
+        tmspp.c_jenis as kodeJenis,
+        tmspp.c_beban as kodeBeban,
+        tmsp2d.i_sp2dno as noSp2d,
+        trskpd.c_skpd as kodeSkpd,
+        trskpd.c_skpd_level as levelSkpd,
+        tmsp2d.A_SPPFILE_PDF AS alamatPdfOutput,
+        tmsp2d.C_STATUS_CAMEL AS statusCamel
+        FROM TMSP2d, trskpd,tmspp
+        WHERE TMSP2d.C_Sp2d_CETAK = 1 AND TMSP2d.i_sp2dno = #{nosp2d}  and TMsp2d.c_angg_tahun = #{tahun}
+        and tmsp2d.i_id= #{value}
+        and Trskpd.i_id = tmsp2d.i_idskpd
+        and tmspp.i_id = tmsp2d.i_idspp
+
+    </select>
+
+    <select id="getPathFile1"  parameterType="java.util.Map" resultType="spp.model.SppUp" >
+
+        select
+        tmsp2d.i_id AS idSp2d,
+        tmsp2d.i_idspm AS "spmUp.idSpm",
+        tmsp2d.i_idspp as id,
+        tmsp2d.c_wil_sp2dproses as kodeWilayahProses,
+        tmsp2d.i_idskpd as "skpd.idSkpd",
+        tmspp.c_jenis as kodeJenis,
+        tmspp.c_beban as kodeBeban,
+        tmsp2d.i_sp2dno as nomorSp2d,
+        trskpd.c_skpd as "skpd.kodeSkpd",
+        trskpd.c_skpd_level as "skpd.levelSkpd",
+        tmsp2d.A_PDF_PATH AS alamatPdfOutput,
+        tmsp2d.N_PDF_FILE AS namaFile
+        FROM TMSP2d, trskpd,tmspp
+        WHERE TMSP2d.C_Sp2d_SAH = 1 AND TMSP2d.i_sp2dno = #{nosp2d}  and TMsp2d.c_angg_tahun = #{tahun}
+        and tmsp2d.i_id= #{value}
+        and Trskpd.i_id = tmsp2d.i_idskpd
+        and tmspp.i_id = tmsp2d.i_idspp
+
+    </select>
+
+
+    <select id="getProsesCetakSp2d1"  parameterType="java.util.Map" resultType="spp.model.SppUp" >
+        select
+        tmsp2d.i_id AS idSp2d,
+        tmsp2d.i_idspm AS "spmUp.idSpm",
+        tmsp2d.i_idspp as id,
+        tmsp2d.c_wil_sp2dproses as kodeWilayahProses,
+        tmsp2d.i_idskpd as "skpd.idSkpd",
+        tmspp.c_jenis as kodeJenis,
+        tmspp.c_beban as kodeBeban,
+        tmsp2d.i_sp2dno as nomorSp2d,
+        trskpd.c_skpd as "skpd.kodeSkpd",
+        trskpd.c_skpd_level as "skpd.levelSkpd",
+        tmsp2d.A_PDF_PATH AS alamatPdfOutput
+        FROM TMSP2d, trskpd,tmspp
+        WHERE TMSP2d.C_Sp2d_CETAK = 1 AND tmsp2d.c_sp2d_sah = 1 and TMsp2d.c_angg_tahun = #{tahun} and tmsp2d.I_ID = #{idspd}
+        and Trskpd.i_id = tmsp2d.i_idskpd
+        and tmspp.i_id = tmsp2d.i_idspp
+    </select>
+
+    <select id="getUmkSah"  parameterType="java.util.Map" resultType="spp.model.Sp2d" >
+        select sum (kodePengesahan) as kodePengesahan, sum (umk_kontrak) as saldoUmk,
+        sum (kodeMY) as kodeMY from (
+        select count(*)  as kodePengesahan, 0 as umk_kontrak, 0as kodeMY
+        from tmspp where c_uangmuka= 1 and i_idkontrak = #{idkontrak}
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and exists (select 1 from tmsp2d where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idspp = tmspp.i_id
+        and D_SP2D_SAH is not null)
+
+        union all
+        select 0 as kodePengesahan, sum(v_uangmuka_saldo) as umk_kontrak, 0 as kodeMY
+        from tmkontrakrinci where i_idkontrak = #{idkontrak}
+        and c_angg_tahun = #{tahun}
+
+        union all
+        select 0 as kodePengesahan, 0 as umk_kontrak, (c_uangmuka + c_uangmuka_pot) as kodeMY
+        from tmdpakegiatan where i_id = (select distinct i_idkegiatan from tmkontrakrinci where i_idkontrak = #{idkontrak} )
+        and c_angg_tahun = #{tahun}
+        )
+
+    </select>
+
+</mapper>
