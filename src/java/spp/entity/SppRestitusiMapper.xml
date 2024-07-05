@@ -1,0 +1,506 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spp.entity.SppRestitusiMapper">
+    <select id="getAllSppRes" parameterType="java.util.Map"  resultType="spp.model.SppBtl">
+        SELECT   C_ANGG_TAHUN AS tahun,
+        I_ID AS id,
+        I_SPPNO AS noSpp,
+        D_SPPNO AS tglSpp,
+        V_SPP AS nilaiSpp
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   T.c_angg_tahun,
+        T.I_id,
+        T.i_sppno,
+        T.d_sppno,
+        SUM (B.V_SPP) AS V_SPP
+        FROM   TMSPP T left join  tmspprincipnrm B on (T.I_ID = B.I_IDSPP)
+        WHERE    T.C_JENIS = '5'
+        AND T.C_BEBAN = 'LS'
+        AND T.C_ANGG_TAHUN = #{tahun}
+        AND T.I_IDSKPD = #{idskpd}
+                               
+        GROUP BY   T.C_ANGG_TAHUN,
+        T.I_ID,
+        T.I_SPPNO,
+        T.D_SPPNO)a)WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakSppRes" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (T.I_ID) AS banyak
+        FROM   TMSPP T  WHERE T.I_IDSKPD = #{idskpd}   and   T.C_ANGG_TAHUN = #{tahun} 
+        AND T.C_JENIS = '5'
+        AND T.C_BEBAN = 'LS'
+        AND NOT EXISTS (SELECT   1 FROM   TMSPM z where T.I_ID = z.I_IDSPP)
+    </select>  
+    
+    <select id="getBanyakSpdBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count(I_IDBTL)
+        FROM   (  SELECT   XXXX.c_angg_tahun,
+        XXXX.I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        I_IDBAS,
+        C_AKUN,
+        N_AKUN,
+        SUM (V_SPD) AS V_SPD,
+        SUM (V_SPPSEBELUM) AS V_SPPSEBELUM,
+        SUM (V_SPD - V_SPPSEBELUM) AS V_SPPSISA,
+        SUM (V_SPP) AS V_SPP,
+        I_IDSPD,
+        I_SPDNO,
+        I_IDBTL
+        FROM   (SELECT   tmspd.c_angg_tahun,
+        tmspd.I_IDSKPD AS I_IDSKPD,
+        TMSPDRINCIBTL.I_IDBAS AS I_IDBAS,
+        TMSPDRINCIBTL.v_spd V_SPD,
+        0 AS V_SPPSEBELUM,
+        0 AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBTL.I_IDBTL 
+        FROM   tmspd, TMSPDRINCIBTL, TMSPDSAH
+        WHERE   (tmspd.I_id = TMSPDRINCIBTL.I_IDSPD)
+        AND tmspd.I_ID = tmspdSAH.I_ID
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.c_jenis = '1'
+        AND tmspd.i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   TMSPP.c_angg_tahun,
+        TMSPP.I_IDSKPD,
+        TMSPPRINCIBTL.I_IDBAS,
+        0 V_SPD,
+        V_SPP AS V_SPPSEBELUM,
+        0 AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPPRINCIBTL.I_IDBTL
+        FROM   TMSPP,
+        TMSPPRINCIBTL,
+        TMSPM,
+        TMSP2D,
+        tmspd
+        WHERE   (TMSPP.I_id = TMSPPRINCIBTL.I_IDSPP)
+        AND TMSPM.I_IDSPP = TMSPP.I_id
+        AND TMSPM.I_ID = TMSP2D.I_idSPM
+        AND TMSPP.c_angg_tahun = #{tahun}
+        AND TMSPP.c_jenis = '1' 
+        AND TMSPP.i_idskpd = #{idskpd}
+        AND TMSPD.I_ID = TMSPPRINCIBTL.I_IDSPD
+        UNION ALL
+        SELECT   TMSPP.c_angg_tahun,
+        TMSPP.I_IDSKPD,
+        TMSPPRINCIBTL.I_IDBAS,
+        0 V_SPD,
+        0 AS V_SPPSEBELUM,
+        V_SPP AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPPRINCIBTL.I_IDBTL
+        FROM   TMSPP, TMSPPRINCIBTL, tmspd
+        WHERE   (TMSPP.I_id = TMSPPRINCIBTL.I_IDSPP)
+        AND TMSPP.c_angg_tahun = #{tahun}
+        AND TMSPP.c_jenis = '1'
+        AND TMSPP.C_BEBAN = 'LS' 
+        AND TMSPD.I_ID = TMSPPRINCIBTL.I_idSPD
+        AND TMSPP.i_idskpd = #{idskpd}) XXXX,
+                               
+        TRSKPD,
+        TRBAS
+        WHERE       XXXX.I_IDSKPD = TRSKPD.I_ID
+        AND XXXX.I_IDBAS = TRBAS.I_ID
+                  
+        <if test="spdno != null and idspp != '' and spdno != '-' ">
+            AND  I_SPDNO = #{spdno}
+        </if>  
+        GROUP BY   XXXX.c_angg_tahun,
+        XXXX.I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        XXXX.I_IDBAS,
+        C_AKUN,
+        N_AKUN,
+        I_IDSPD,
+        I_SPDNO,
+        I_IDBTL) 
+    </select>  
+    <insert id="insertSppResMaster" parameterType="spp.model.SppBtl" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="id" >         
+        INSERT INTO  TMSPP (I_ID,
+        C_ANGG_TAHUN,
+        C_BULAN,
+        I_SPPNO,
+        D_SPPNO,
+        C_JENIS,
+        C_BEBAN,
+        I_IDSKPD,
+        C_UANGMUKA,
+        I_PPTK_NIP,
+        N_PPTK,
+        C_BANK,
+        N_BANK,
+        I_REK_BANK,
+        I_VALIDASI
+        )
+        VALUES   (  SEQ_TMSPP.NEXTVAL,
+        #{tahun},
+        #{bulan},
+        #{noSpp},
+        #{tglSpp},
+        '5',
+        'LS',
+        #{skpd.idSkpd},
+        #{kodeUangMuka},
+        #{nipPptk},#{namaPptk},#{kodeBank},#{namaBank},
+        regexp_replace(#{nomorRekBank},'[-. /]',''),
+        #{validasi}
+        )     
+    </insert>
+  
+    <insert id="insertSppResRinci" parameterType="spp.model.SppRestitusiRinci"   >  
+        INSERT INTO SIPKD.TMSPPRINCIPNRM (
+        I_ID
+        ,I_IDSPP
+        ,I_IDPNRMRINCI
+        ,I_IDPNRM
+        ,I_IDBAS
+        ,V_SPP
+        ,I_PGUN_REKAM
+        ,D_PGUN_REKAM
+        )
+        VALUES (
+        SEQ_TMSPPRINCIPNRM.NEXTVAL
+        ,#{idSpp}
+        ,#{idPnrmRinci}
+        ,#{idPnrm}
+        ,#{idAkun}
+        ,#{nilaiSppSaatini}
+        ,#{idEntry}
+        ,#{tglEntry}
+        )
+
+    </insert>
+    <select id="getSppBtlById" parameterType="java.lang.Integer"  resultType="spp.model.SppBtl">
+        SELECT  distinct T.I_ID AS id,
+        T.C_ANGG_TAHUN AS tahun,
+        T.I_SPPNO AS noSpp,
+        T.D_SPPNO AS tglSpp,
+        T.C_JENIS AS kodeJenis,
+        T.C_BEBAN AS kodeBeban,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        P.N_SKPD AS "skpd.namaSkpd",
+        T.N_PPTK AS namaPptk,        
+        T.I_PPTK_NIP AS nipPptk, 
+        T.C_UANGMUKA AS kodeUangMuka,
+        T.C_BULAN || '/' || T.C_ANGG_TAHUN AS bulan,
+        T.E_SPP AS keterangan,
+        T.C_BANK AS kodeBank,
+        T.N_BANK AS namaBank,
+        T.I_REK_BANK AS nomorRekBank,
+        T.I_VALIDASI as validasi
+        FROM      TMSPP T
+        LEFT JOIN
+        trskpd p
+        ON P.I_ID = T.I_IDSKPD
+        WHERE T.I_ID = #{value}
+    </select>
+    <select id="getSppBtlRinciByIdSpp" parameterType="java.lang.Integer"  resultType="spp.model.SppRestitusiRinci">
+        SELECT I_ID,
+        I_IDSPP,
+        I_IDPNRMRINCI,
+        I_IDPNRM,
+        I_IDBAS,
+        V_SPP,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        I_PGUN_UBAH,
+        D_PGUN_UBAH
+        FROM SIPKD.TMSPPRINCIPNRM 
+        WHERE   I_IDSPP = #{value}
+    </select>
+    <update id="updateSppBtlMaster" parameterType="spp.model.SppBtl"  >
+        UPDATE  TMSPP
+        SET  
+        C_BULAN         = #{bulan},
+        N_PPTK   = #{namaPptk} ,     
+        I_PPTK_NIP = #{nipPptk}, 
+        C_BANK = #{kodeBank},
+        N_BANK = #{namaBank},
+        I_REK_BANK = regexp_replace(#{nomorRekBank},'[-. /]',''), 
+        I_VALIDASI = #{validasi} 
+        WHERE  I_ID            = #{id}
+    </update>
+    <delete id="deleteSppBtlMaster" parameterType="java.lang.Integer" >
+        delete TMSPPRINCIPNRM where I_IDSPP = #{value}
+    </delete> 
+    <delete id="deleteSppBtlRinci" parameterType="java.lang.Integer" >
+        delete TMSPP where I_ID = #{value}
+    </delete> 
+    <select id="getBankRekByIdSkpd" parameterType="java.util.Map"  resultType="java.util.Map">
+        SELECT   MAX (T.C_BANK) AS C_BANK,
+        T.N_BANK,
+        T.I_REK_BANKSTS,
+        T.I_REK_BANKSPM
+        FROM    TRSKPDBANKREK T
+        WHERE   T.I_IDSKPD = #{idskpd} AND T.C_AKTIF = 1 
+        AND #{tahun}  between  T.C_TAHUN_BERLAKU and   T.C_TAHUN_BERAKHIR
+        GROUP BY   T.C_BANK,
+        T.N_BANK,
+        T.I_REK_BANKSTS,
+        T.I_REK_BANKSPM
+    </select>    
+    
+    <select id="getBankDki" parameterType="java.util.Map"  resultType="java.util.Map">
+        select C_BANK_TRANSFER, N_BANK_TRANSFER, C_BANK, N_BANK, to_char(I_ID) as I_ID 
+        from trbankpfk where  i_idinduk = 0 
+        and n_bank_transfer = 'BANK DKI'
+    </select>   
+    
+    <select id="getBendaharaByIdSkpd" parameterType="java.util.Map"  resultType="java.util.Map">
+        SELECT tmdpa.I_NIP_PKDPT, tmdpa.I_NRK_PKDPT, tmdpa.N_PKDPT, tmdpa.I_NIP_PA,
+        tmdpa.I_NRK_PA, tmdpa.N_PA
+        FROM tmdpa
+        WHERE tmdpa.c_angg_tahun = #{tahun} 
+        AND tmdpa.i_idskpd = #{idskpd}
+         
+    </select>
+    <delete id="deleteSppBtlMasterByIdSppIdSpdIdBtlIdAkun" parameterType="spp.model.SppRestitusiRinci" >
+        delete TMSPPRINCIPNRM where I_IDSPP = #{idSpp} and  
+        I_IDPNRMRINCI = #{idPnrmRinci} and
+        I_IDPNRM = #{idPnrm} and
+        I_IDBAS = #{idAkun}
+         
+    </delete> 
+    
+    <select id="getNoValidasiByIdSkpd" parameterType="java.lang.String"  resultType="java.util.Map">
+
+        SELECT
+        I_ID, C_ANGG_TAHUN, C_REKAM_TGL, 
+        I_IDLOKET, I_LOKETNO, I_IDSKPD, 
+        I_IDSKPD_PENYETOR, I_PENERIMAAN, D_PENERIMAAN, 
+        I_IDPENETAPAN, I_SKPRD, D_SKPRD, 
+        C_PNRM_SUMBER, C_PNRM_JENIS, E_URAIAN, 
+        I_VALIDASI, D_VALIDASI, C_VALIDASI_BLN, 
+        C_VALIDASI_TGL, I_NTPD, D_NTPD, 
+        C_NTPD_BLN, C_NTPD_TGL, D_BLN_MASAAWAL, 
+        D_BLN_MASAAKHIR, C_TAHUN_PRBYR, D_JATUH_TEMPO, 
+        N_PEMBAYAR, A_PEMBAYAR, N_WAJIBPR, 
+        A_WAJIBPR, I_NPWPR, N_OBJEKPR, 
+        A_OBJEKPR, I_NOPRD, C_PNRM_STATUS, 
+        I_PGUN_REKAM, D_PGUN_REKAM, I_PGUN_UBAH, 
+        D_PGUN_UBAH, I_JOUR, D_JOUR, 
+        I_JOUR_REV, C_JOUR_STAT, I_PGUN_JOUR, 
+        D_REKAM_JOUR
+        FROM TMPNRM   WHERE I_VALIDASI = #{value}         
+    </select>
+    
+    <select id="getAkunByNomorValidasi" parameterType="java.util.Map"  resultType="spp.model.SppRestitusiRinci">
+        SELECT i_idpnrm as idPnrm,
+        i_idpnrmrinci as idPnrmRinci,
+        i_idbas as idAkun,
+        c_akun as kodeAkun,
+        n_akun as namaAkun,
+        v_pnrm as nilaiPnrm,
+        v_spp_sebelum as nilaiSppSebelum,
+        sisa_restitusi as sisaRestitusi,
+        v_spp_saatini as nilaiSppSaatini
+        FROM (SELECT ROWNUM AS rn, a.*
+        FROM (  SELECT i_idpnrm,
+        i_idpnrmrinci,
+        i_idbas,
+        c_akun,
+        n_akun,
+        SUM (v_pnrm) AS v_pnrm,
+        SUM (v_spp_sebelum) AS v_spp_sebelum,
+        SUM (v_pnrm - v_spp_sebelum) AS sisa_restitusi,
+        SUM (v_spp_saatini) AS v_spp_saatini
+        FROM (SELECT tmpnrm.i_id AS i_idpnrm,
+        tmpnrmrinci.i_id AS i_idpnrmrinci,
+        i_idbas,
+        v_pnrm,
+        0 AS v_spp_sebelum,
+        0 AS v_spp_saatini
+        FROM tmpnrm, tmpnrmrinci
+        WHERE     tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+        AND tmpnrm.C_PNRM_STATUS BETWEEN '1' AND '4'
+        AND tmpnrm.c_angg_tahun = #{tahun}
+        AND tmpnrm.i_validasi = #{novalidasi}
+        AND tmpnrm.I_IDSKPD = #{idskpd}
+        UNION ALL
+        SELECT tmspprincipnrm.i_idpnrm,
+        tmspprincipnrm.i_idpnrmrinci,
+        tmspprincipnrm.i_idbas,
+        0 AS v_pnrm,
+        v_spp AS v_spp_sebelum,
+        0 AS v_spp_saatini
+        FROM tmspp,
+        tmspprincipnrm,
+        tmpnrm,
+        tmpnrmrinci
+        WHERE tmspp.i_id = tmspprincipnrm.i_idspp
+        AND tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+        AND tmspprincipnrm.i_idpnrm =
+        tmpnrmrinci.i_idpnrm
+        AND tmspp.c_jenis = '5'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmpnrm.i_validasi = #{novalidasi}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspp.i_id != #{idspp}
+        UNION ALL
+        SELECT tmspprincipnrm.i_idpnrm,
+        tmspprincipnrm.i_idpnrmrinci,
+        tmspprincipnrm.i_idbas,
+        0 v_pnrm,
+        0 AS v_spp_sebelum,
+        v_spp AS v_spp_saatini
+        FROM tmspp,
+        tmspprincipnrm,
+        tmpnrm,
+        tmpnrmrinci
+        WHERE tmspp.i_id = tmspprincipnrm.i_idspp
+        AND tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+        AND tmspprincipnrm.i_idpnrm =
+        tmpnrmrinci.i_idpnrm
+        AND tmspp.c_jenis = '5'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmpnrm.i_validasi = #{novalidasi}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspp.i_id = #{idspp}) xxxx,
+        trbas
+        WHERE xxxx.i_idbas = trbas.i_id
+        GROUP BY i_idpnrm,
+        i_idpnrmrinci,
+        i_idbas,
+        c_akun,
+        n_akun) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}       
+    </select>
+    <select id="getBanyakAkunByNomorValidasi" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*)
+        FROM (   SELECT i_idpnrm,
+        i_idpnrmrinci,
+        i_idbas,
+        c_akun,
+        n_akun,
+        SUM (v_pnrm) AS v_pnrm,
+        SUM (v_spp_sebelum) AS v_spp_sebelum,
+        SUM (v_pnrm - v_spp_sebelum) AS sisa_restitusi,
+        SUM (v_spp_saatini) AS v_spp_saatini
+        FROM (SELECT tmpnrm.i_id AS i_idpnrm,
+        tmpnrmrinci.i_id AS i_idpnrmrinci,
+        i_idbas,
+        v_pnrm,
+        0 AS v_spp_sebelum,
+        0 AS v_spp_saatini
+        FROM tmpnrm, tmpnrmrinci
+        WHERE     tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+        AND tmpnrm.C_PNRM_STATUS BETWEEN '1' AND '4'
+        AND tmpnrm.c_angg_tahun = #{tahun}
+        AND tmpnrm.i_validasi = #{novalidasi}
+        AND tmpnrm.I_IDSKPD = #{idskpd}
+        UNION ALL
+        SELECT tmspprincipnrm.i_idpnrm,
+        tmspprincipnrm.i_idpnrmrinci,
+        tmspprincipnrm.i_idbas,
+        0 AS v_pnrm,
+        v_spp AS v_spp_sebelum,
+        0 AS v_spp_saatini
+        FROM tmspp,
+        tmspprincipnrm,
+        tmpnrm,
+        tmpnrmrinci
+        WHERE tmspp.i_id = tmspprincipnrm.i_idspp
+        AND tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+        AND tmspprincipnrm.i_idpnrm =
+        tmpnrmrinci.i_idpnrm
+        AND tmspp.c_jenis = '5'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmpnrm.i_validasi = #{novalidasi}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspp.i_id != #{idspp}
+        UNION ALL
+        SELECT tmspprincipnrm.i_idpnrm,
+        tmspprincipnrm.i_idpnrmrinci,
+        tmspprincipnrm.i_idbas,
+        0 v_pnrm,
+        0 AS v_spp_sebelum,
+        v_spp AS v_spp_saatini
+        FROM tmspp,
+        tmspprincipnrm,
+        tmpnrm,
+        tmpnrmrinci
+        WHERE tmspp.i_id = tmspprincipnrm.i_idspp
+        AND tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+        AND tmspprincipnrm.i_idpnrm =
+        tmpnrmrinci.i_idpnrm
+        AND tmspp.c_jenis = '5'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmpnrm.i_validasi = #{novalidasi}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspp.i_id = #{idspp}) xxxx,
+        trbas
+        WHERE xxxx.i_idbas = trbas.i_id
+        GROUP BY i_idpnrm,
+        i_idpnrmrinci,
+        i_idbas,
+        c_akun,
+        n_akun)    
+    </select>
+    <select id="getTotalNilaiAkunByNomorValidasi" parameterType="java.util.Map"  resultType="java.util.Map">
+        SELECT  
+        SUM (v_pnrm) AS v_pnrm,
+        SUM (v_spp_sebelum) AS v_spp_sebelum,
+        SUM (v_pnrm - v_spp_sebelum) AS sisa_restitusi,
+        SUM (v_spp_saatini) AS v_spp_saatini
+        FROM (SELECT tmpnrm.i_id AS i_idpnrm,
+        tmpnrmrinci.i_id AS i_idpnrmrinci,
+        i_idbas,
+        v_pnrm,
+        0 AS v_spp_sebelum,
+        0 AS v_spp_saatini
+        FROM tmpnrm, tmpnrmrinci
+        WHERE     tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+        AND tmpnrm.C_PNRM_STATUS BETWEEN '1' AND '4'
+        AND tmpnrm.c_angg_tahun = #{tahun}
+        AND tmpnrm.i_validasi = #{novalidasi}
+        AND tmpnrm.I_IDSKPD = #{idskpd}
+        UNION ALL
+        SELECT tmspprincipnrm.i_idpnrm,
+        tmspprincipnrm.i_idpnrmrinci,
+        tmspprincipnrm.i_idbas,
+        0 AS v_pnrm,
+        v_spp AS v_spp_sebelum,
+        0 AS v_spp_saatini
+        FROM tmspp,
+        tmspprincipnrm,
+        tmpnrm,
+        tmpnrmrinci
+        WHERE tmspp.i_id = tmspprincipnrm.i_idspp
+        AND tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+        AND tmspprincipnrm.i_idpnrm =
+        tmpnrmrinci.i_idpnrm
+        AND tmspp.c_jenis = '5'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmpnrm.i_validasi = #{novalidasi}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspp.i_id != #{idspp}
+        UNION ALL
+        SELECT tmspprincipnrm.i_idpnrm,
+        tmspprincipnrm.i_idpnrmrinci,
+        tmspprincipnrm.i_idbas,
+        0 v_pnrm,
+        0 AS v_spp_sebelum,
+        v_spp AS v_spp_saatini
+        FROM tmspp,
+        tmspprincipnrm,
+        tmpnrm,
+        tmpnrmrinci
+        WHERE tmspp.i_id = tmspprincipnrm.i_idspp
+        AND tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+        AND tmspprincipnrm.i_idpnrm =
+        tmpnrmrinci.i_idpnrm
+        AND tmspp.c_jenis = '5'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmpnrm.i_validasi = #{novalidasi}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspp.i_id = #{idspp})   
+    </select>
+    
+</mapper>

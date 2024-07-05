@@ -1,0 +1,2490 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spp.entity.MonitoringSpdMapper">
+    
+    
+    <select id="getDataSpdBantuan" parameterType="java.util.Map" resultType="spp.model.MonitoringSpd">
+
+  
+        SELECT tahun,
+        "skpd.idSkpd",
+        "skpd.kodeSkpd",
+        "skpd.namaSkpd",
+        idBtlBantuan,
+        "kegiatan.kodeKegiatan",
+        "kegiatan.namaKegiatan",
+        "akun.idAkun",
+        "akun.kodeAkun",
+        "akun.namaAkun",
+        nilai_anggaran as nilaiAnggaran,
+        nilai_SPD as nilaiSpd,
+        nilai_SPDCETAK as nilaiSpdCetak,
+        nilai_SPDSAH as nilaiSpdSah,
+        Sisa_anggaran as nilaiSisaAnggaran
+
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT   xxx.C_ANGG_TAHUN as tahun,
+        xxx.I_IDSKPD as "skpd.idSkpd",
+        trskpd.C_SKPD as "skpd.kodeSkpd",
+        trskpd.N_SKPD as "skpd.namaSkpd",
+        xxx.I_IDBTLBANTUAN as idBtlBantuan,
+        yyy.C_KEGIATAN as "kegiatan.kodeKegiatan",
+        yyy.N_KEGIATAN as "kegiatan.namaKegiatan",
+        xxx.I_IDBAS as "akun.idAkun",
+        trbas.C_AKUN as "akun.kodeAkun",
+        trbas.N_AKUN as "akun.namaAkun", 
+        SUM (xxx.V_ANGG_TAPD) as nilai_anggaran,
+        SUM (SPD) as  nilai_SPD,
+        SUM (SPD_CETAK) as  nilai_SPDCETAK,
+        SUM (SPD_SAH) as nilai_SPDSAH,
+        SUM (xxx.V_ANGG_TAPD - SPD - SPD_CETAK - SPD_SAH) as Sisa_anggaran
+        FROM   (
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPDKOORD I_IDSKPD,
+        i_id AS I_IDBTLBANTUAN,
+        I_IDBAS,
+        V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMDPABTLBANTUAN
+        WHERE C_ANGG_TAHUN= #{tahun}
+        AND I_IDSKPDKOORD= #{idskpdkoor}
+        UNION ALL
+       
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPDKOORD I_IDSKPD,
+        TMSPDRINCIBTLBANTUAN.I_IDBTLBANTUAN AS I_IDBTLBANTUAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        (TMSPDRINCIBTLBANTUAN.V_SPD) AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDRINCIBTLBANTUAN
+        WHERE   TMSPD.I_ID = TMSPDRINCIBTLBANTUAN.I_IDSPD
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPDCETAK
+        WHERE   TMSPDCETAK.I_ID = TMSPD.I_ID)
+        AND C_ANGG_TAHUN= #{tahun}
+        AND I_IDSKPDKOORD= #{idskpdkoor}
+        UNION ALL
+      
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPDKOORD I_IDSKPD,
+        TMSPDRINCIBTLBANTUAN.I_IDBTLBANTUAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        (TMSPDRINCIBTLBANTUAN.V_SPD) AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDCETAK, TMSPDRINCIBTLBANTUAN
+        WHERE       TMSPD.I_ID = TMSPDCETAK.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBTLBANTUAN.I_IDSPD
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPDSAH
+        WHERE   TMSPDSAH.I_ID = TMSPDCETAK.I_ID)
+        AND C_ANGG_TAHUN= #{tahun}
+        AND I_IDSKPDKOORD= #{idskpdkoor}
+        UNION ALL
+     
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPDKOORD I_IDSKPD,
+        TMSPDRINCIBTLBANTUAN.I_IDBTLBANTUAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        (TMSPDRINCIBTLBANTUAN.V_SPD) AS SPD_SAH
+        FROM   TMSPD, TMSPDSAH, TMSPDRINCIBTLBANTUAN
+        WHERE   TMSPD.I_ID = TMSPDSAH.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBTLBANTUAN.I_IDSPD
+        AND C_ANGG_TAHUN= #{tahun}
+        AND I_IDSKPDKOORD= #{idskpdkoor}
+        ) XXX,
+        TRSKPD,
+        TRBAS,
+        TMDPABTLBANTUAN yyy
+        WHERE       xxx.I_IDBTLBANTUAN = yyy.I_ID
+        AND XXX.I_IDBAS = TRBAS.I_ID
+        AND XXX.I_IDSKPD = TRSKPD.I_ID
+        AND SUBSTR (C_AKUN, 1, 5) BETWEEN '5.1.3' AND '5.1.7'
+        <if test="kodeakun != null and kodeakun != ''  ">
+                              
+            AND upper(trbas.C_AKUN) LIKE '%' ||upper(#{kodeakun}) ||'%'
+        </if> 
+        <if test="namaakun != null and namaakun != '' ">
+            AND upper(trbas.N_AKUN) LIKE '%' ||upper(#{namaakun}) ||'%'
+                   
+        </if>
+        <if test="namakegiatan != null and namakegiatan != ''  ">
+                           
+            AND upper(yyy.N_KEGIATAN) LIKE '%' ||upper(#{namakegiatan}) ||'%'
+        </if> 
+        <if test="kodekegiatan != null and kodekegiatan != ''   ">
+            AND upper(yyy.C_KEGIATAN) LIKE '%' ||upper(#{kodekegiatan}) ||'%'
+        </if> 
+                  
+        GROUP BY   xxx.C_ANGG_TAHUN,
+        xxx.I_IDSKPD,
+        trskpd.C_SKPD,
+        trskpd.N_SKPD,
+        xxx.I_IDBTLBANTUAN,
+        yyy.C_KEGIATAN,
+        yyy.N_KEGIATAN,
+        xxx.I_IDBAS,
+        trbas.C_AKUN,
+        trbas.N_AKUN
+        
+         
+        )a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getCountSpdBantuan" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        
+        SELECT tahun,
+        "skpd.idSkpd",
+        "skpd.kodeSkpd",
+        "skpd.namaSkpd",
+        idBtlBantuan,
+        "kegiatan.kodeKegiatan",
+        "kegiatan.namaKegiatan",
+        "akun.idAkun",
+        "akun.kodeAkun",
+        "akun.namaAkun",
+        nilai_anggaran as nilaiAnggaran,
+        nilai_SPD as nilaiSpd,
+        nilai_SPDCETAK as nilaiSpdCetak,
+        nilai_SPDSAH as nilaiSpdSah,
+        Sisa_anggaran as nilaiSisaAnggaran
+
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT   xxx.C_ANGG_TAHUN as tahun,
+        xxx.I_IDSKPD as "skpd.idSkpd",
+        trskpd.C_SKPD as "skpd.kodeSkpd",
+        trskpd.N_SKPD as "skpd.namaSkpd",
+        xxx.I_IDBTLBANTUAN as idBtlBantuan,
+        yyy.C_KEGIATAN as "kegiatan.kodeKegiatan",
+        yyy.N_KEGIATAN as "kegiatan.namaKegiatan",
+        xxx.I_IDBAS as "akun.idAkun",
+        trbas.C_AKUN as "akun.kodeAkun",
+        trbas.N_AKUN as "akun.namaAkun", 
+        SUM (xxx.V_ANGG_TAPD) as nilai_anggaran,
+        SUM (SPD) as  nilai_SPD,
+        SUM (SPD_CETAK) as  nilai_SPDCETAK,
+        SUM (SPD_SAH) as nilai_SPDSAH,
+        SUM (xxx.V_ANGG_TAPD - SPD - SPD_CETAK - SPD_SAH) as Sisa_anggaran
+        FROM   (
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPDKOORD I_IDSKPD,
+        i_id AS I_IDBTLBANTUAN,
+        I_IDBAS,
+        V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMDPABTLBANTUAN
+        WHERE C_ANGG_TAHUN= #{tahun}
+        AND I_IDSKPDKOORD= #{idskpdkoor}
+        UNION ALL
+       
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPDKOORD I_IDSKPD,
+        TMSPDRINCIBTLBANTUAN.I_IDBTLBANTUAN AS I_IDBTLBANTUAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        (TMSPDRINCIBTLBANTUAN.V_SPD) AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDRINCIBTLBANTUAN
+        WHERE   TMSPD.I_ID = TMSPDRINCIBTLBANTUAN.I_IDSPD
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPDCETAK
+        WHERE   TMSPDCETAK.I_ID = TMSPD.I_ID)
+        AND C_ANGG_TAHUN= #{tahun}
+        AND I_IDSKPDKOORD= #{idskpdkoor}
+        UNION ALL
+      
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPDKOORD I_IDSKPD,
+        TMSPDRINCIBTLBANTUAN.I_IDBTLBANTUAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        (TMSPDRINCIBTLBANTUAN.V_SPD) AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDCETAK, TMSPDRINCIBTLBANTUAN
+        WHERE       TMSPD.I_ID = TMSPDCETAK.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBTLBANTUAN.I_IDSPD
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPDSAH
+        WHERE   TMSPDSAH.I_ID = TMSPDCETAK.I_ID)
+        AND C_ANGG_TAHUN= #{tahun}
+        AND I_IDSKPDKOORD= #{idskpdkoor}
+        UNION ALL
+     
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPDKOORD I_IDSKPD,
+        TMSPDRINCIBTLBANTUAN.I_IDBTLBANTUAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        (TMSPDRINCIBTLBANTUAN.V_SPD) AS SPD_SAH
+        FROM   TMSPD, TMSPDSAH, TMSPDRINCIBTLBANTUAN
+        WHERE   TMSPD.I_ID = TMSPDSAH.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBTLBANTUAN.I_IDSPD
+        AND C_ANGG_TAHUN= #{tahun}
+        AND I_IDSKPDKOORD= #{idskpdkoor}
+        ) XXX,
+        TRSKPD,
+        TRBAS,
+        TMDPABTLBANTUAN yyy
+        WHERE       xxx.I_IDBTLBANTUAN = yyy.I_ID
+        AND XXX.I_IDBAS = TRBAS.I_ID
+        AND XXX.I_IDSKPD = TRSKPD.I_ID
+        AND SUBSTR (C_AKUN, 1, 5) BETWEEN '5.1.3' AND '5.1.7'
+        <if test="kodeakun != null and kodeakun != ''">
+            AND upper(trbas.C_AKUN) LIKE '%' ||upper( #{kodeakun}) ||'%'
+        </if> 
+        <if test="namaakun != null and namaakun != ''">
+            AND upper(trbas.N_AKUN) LIKE '%' ||upper(#{namaakun}) ||'%'
+        </if>
+        <if test="namakegiatan != null and namakegiatan != ''">
+            AND upper(yyy.N_KEGIATAN) LIKE '%' ||upper(#{namakegiatan}) ||'%'
+        </if> 
+        <if test="kodekegiatan != null and kodekegiatan != ''  ">
+            AND upper(yyy.C_KEGIATAN) LIKE '%' ||upper(#{kodekegiatan}) ||'%'
+        </if> 
+        GROUP BY   xxx.C_ANGG_TAHUN,
+        xxx.I_IDSKPD,
+        trskpd.C_SKPD,
+        trskpd.N_SKPD,
+        xxx.I_IDBTLBANTUAN,
+        yyy.C_KEGIATAN,
+        yyy.N_KEGIATAN,
+        xxx.I_IDBAS,
+        trbas.C_AKUN,
+        trbas.N_AKUN
+      
+                  
+        )a)
+       
+        )
+    </select>
+    
+    <select id="getSkpdKoor" parameterType="java.util.Map" resultType="spp.model.MonitoringSpd">
+        SELECT   DISTINCT idskpd as idskpdkoor, C_SKPD as kodeSkpdKoor, N_SKPD as namaSkpdKoor
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT   DISTINCT
+        trskpd.i_id as idskpd, trskpd.C_SKPD, trskpd.N_SKPD
+        FROM   trskpd, tmdpabtlbantuan, trbas
+        WHERE    tmdpabtlbantuan.C_ANGG_TAHUN= #{tahun}
+        and  trskpd.I_ID = tmdpabtlbantuan.I_IDSKPDKOORD
+        AND trbas.I_ID = tmdpabtlbantuan.I_IDBAS
+        AND SUBSTR (trbas.c_akun, 1, 5) IN
+        ('5.1.3',
+        '5.1.4',
+        '5.1.5',
+        '5.1.6',
+        '5.1.7')
+        <if test="namaSkpdKoor != null and namaSkpdKoor != ''">
+            AND upper(trskpd.N_SKPD) LIKE '%' ||upper( #{namaSkpdKoor}) ||'%'
+        </if> 
+        )a) xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+          
+    <select id="getCountSkpdKoor" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT   DISTINCT idskpd as idskpdkoor, C_SKPD as kodeSkpdKoor, N_SKPD as namaSkpdKoor
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT   DISTINCT
+        trskpd.i_id as idskpd, trskpd.C_SKPD, trskpd.N_SKPD
+        FROM   trskpd, tmdpabtlbantuan, trbas
+        WHERE    tmdpabtlbantuan.C_ANGG_TAHUN= #{tahun}
+        and  trskpd.I_ID = tmdpabtlbantuan.I_IDSKPDKOORD
+        AND trbas.I_ID = tmdpabtlbantuan.I_IDBAS
+        AND SUBSTR (trbas.c_akun, 1, 5) IN
+        ('5.1.3',
+        '5.1.4',
+        '5.1.5',
+        '5.1.6',
+        '5.1.7')
+        <if test="namaSkpdKoor != null and namaSkpdKoor != ''">
+            AND upper(trskpd.N_SKPD) LIKE '%' ||upper( #{namaSkpdKoor}) ||'%'
+        </if> 
+        )a) xxxx
+        )
+    </select>
+    
+    <select id="getDataSpdBiaya" parameterType="java.util.Map" resultType="spp.model.MonitoringSpd">
+        
+        Select tahun,
+        "skpd.idSkpd",
+        "skpd.kodeSkpd",
+        "skpd.namaSkpd",
+        "akun.idAkun",
+        "akun.kodeAkun",
+        "akun.namaAkun",
+        v_TAPD as nilaiAnggaran,
+        V_SPD as nilaiSpd,
+        V_SPDCETAK as nilaiSpdCetak,
+        V_SPDSAH as nilaiSpdSah,
+        V_DPA_SISASPD as nilaiSisaSpd
+  
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+
+        SELECT   C_ANGG_TAHUN as tahun,
+        I_IDSKPD as  "skpd.idSkpd",
+        C_SKPD as "skpd.kodeSkpd",
+        N_SKPD as "skpd.namaSkpd",
+        I_IDBAS as "akun.idAkun",
+        C_AKUN as "akun.kodeAkun",
+        N_AKUN as "akun.namaAkun",
+        SUM (V_ANGG_TAPD) as v_TAPD,
+        SUM (SPD) as V_SPD,
+        SUM (SPD_CETAK) as V_SPDCETAK,
+        SUM (SPD_SAH) as V_SPDSAH,
+        SUM (V_ANGG_TAPD - SPD - SPD_CETAK - SPD_SAH) as V_DPA_SISASPD
+        FROM   (
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDBAS,
+        V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMDPABIAYA
+        WHERE   C_ANGG_TAHUN = #{tahun}
+        UNION ALL
+  
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        (TMSPDRINCIBIAYA.V_SPD) AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDRINCIBIAYA
+        WHERE       TMSPD.I_ID = TMSPDRINCIBIAYA.I_IDSPD
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPDCETAK
+        WHERE   TMSPDCETAK.I_ID = TMSPD.I_ID)
+        AND C_ANGG_TAHUN = #{tahun}
+        UNION ALL
+          
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        (TMSPDRINCIBIAYA.V_SPD) AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDCETAK, TMSPDRINCIBIAYA
+        WHERE       TMSPD.I_ID = TMSPDCETAK.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBIAYA.I_IDSPD
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPDSAH
+        WHERE   TMSPDSAH.I_ID = TMSPDCETAK.I_ID)
+        AND C_ANGG_TAHUN = #{tahun}
+        UNION ALL
+      
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        (TMSPDRINCIBIAYA.V_SPD) AS SPD_SAH
+        FROM   TMSPD, TMSPDSAH, TMSPDRINCIBIAYA
+        WHERE       TMSPD.I_ID = TMSPDSAH.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBIAYA.I_IDSPD
+        AND C_ANGG_TAHUN = #{tahun}) XXX,
+        TRSKPD,
+        TRBAS
+        WHERE   XXX.I_IDBAS = TRBAS.I_ID AND XXX.I_IDSKPD = TRSKPD.I_ID
+        GROUP BY   C_ANGG_TAHUN,
+        I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        I_IDBAS,
+        C_AKUN,
+        N_AKUN)a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getCountSpdBiaya" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        
+        Select tahun,
+        "skpd.idSkpd",
+        "skpd.kodeSkpd",
+        "skpd.namaSkpd",
+        "akun.idAkun",
+        "akun.kodeAkun",
+        "akun.namaAkun",
+        v_TAPD as nilaiAnggaran,
+        V_SPD as nilaiSpd,
+        V_SPDCETAK as nilaiSpdCetak,
+        V_SPDSAH as nilaiSpdSah,
+        V_DPA_SISASPD as nilaiSisaSpd
+  
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+
+        SELECT   C_ANGG_TAHUN as tahun,
+        I_IDSKPD as  "skpd.idSkpd",
+        C_SKPD as "skpd.kodeSkpd",
+        N_SKPD as "skpd.namaSkpd",
+        I_IDBAS as "akun.idAkun",
+        C_AKUN as "akun.kodeAkun",
+        N_AKUN as "akun.namaAkun",
+        SUM (V_ANGG_TAPD) as v_TAPD,
+        SUM (SPD) as V_SPD,
+        SUM (SPD_CETAK) as V_SPDCETAK,
+        SUM (SPD_SAH) as V_SPDSAH,
+        SUM (V_ANGG_TAPD - SPD - SPD_CETAK - SPD_SAH) as V_DPA_SISASPD
+        FROM   (
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDBAS,
+        V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMDPABIAYA
+        WHERE   C_ANGG_TAHUN = #{tahun}
+        UNION ALL
+  
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        (TMSPDRINCIBIAYA.V_SPD) AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDRINCIBIAYA
+        WHERE       TMSPD.I_ID = TMSPDRINCIBIAYA.I_IDSPD
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPDCETAK
+        WHERE   TMSPDCETAK.I_ID = TMSPD.I_ID)
+        AND C_ANGG_TAHUN = #{tahun}
+        UNION ALL
+          
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        (TMSPDRINCIBIAYA.V_SPD) AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDCETAK, TMSPDRINCIBIAYA
+        WHERE       TMSPD.I_ID = TMSPDCETAK.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBIAYA.I_IDSPD
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPDSAH
+        WHERE   TMSPDSAH.I_ID = TMSPDCETAK.I_ID)
+        AND C_ANGG_TAHUN = #{tahun}
+        UNION ALL
+      
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        (TMSPDRINCIBIAYA.V_SPD) AS SPD_SAH
+        FROM   TMSPD, TMSPDSAH, TMSPDRINCIBIAYA
+        WHERE       TMSPD.I_ID = TMSPDSAH.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBIAYA.I_IDSPD
+        AND C_ANGG_TAHUN = #{tahun}) XXX,
+        TRSKPD,
+        TRBAS
+        WHERE   XXX.I_IDBAS = TRBAS.I_ID AND XXX.I_IDSKPD = TRSKPD.I_ID
+        GROUP BY   C_ANGG_TAHUN,
+        I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        I_IDBAS,
+        C_AKUN,
+        N_AKUN)a)
+       
+        )
+    </select>
+    
+    
+    <select id="getSkpdBl" parameterType="java.util.Map" resultType="spp.model.MonitoringSpd">
+        SELECT   DISTINCT
+        i_id as idskpdkoor, C_SKPD as kodeSkpdKoor, N_SKPD as namaSkpdKoor
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT   DISTINCT
+        trskpd.i_id, trskpd.C_SKPD, trskpd.N_SKPD
+        FROM   trskpd, tmdpabl
+        WHERE  tmdpabl.C_ANGG_TAHUN= #{tahun}
+        and  trskpd.I_ID = tmdpabl.I_IDSKPD
+        
+        <if test="namaSkpdBl != null and namaSkpdBl != ''">
+            AND upper(trskpd.N_SKPD) LIKE '%' ||upper( #{namaSkpdBl}) ||'%'
+        </if> 
+        )a) xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+          
+    <select id="getCountSkpdBl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(     
+        SELECT   DISTINCT
+        trskpd.i_id, trskpd.C_SKPD, trskpd.N_SKPD
+        FROM   trskpd, tmdpakegiatan
+        WHERE  tmdpakegiatan.C_ANGG_TAHUN= #{tahun}
+        and  trskpd.I_ID = tmdpakegiatan.I_IDSKPD
+
+        <if test="namaSkpdBl != null and namaSkpdBl != ''">
+            AND upper(trskpd.N_SKPD) LIKE '%' ||upper( #{namaSkpdBl}) ||'%'
+        </if> 
+        
+        )
+        
+    </select>
+    
+    
+    
+    <select id="getDataSpdBl" parameterType="java.util.Map" resultType="spp.model.MonitoringSpd">
+
+        SELECT   C_ANGG_TAHUN AS tahun,
+        I_IDSKPD AS "skpd.idSkpd",
+        C_SKPD AS "skpd.kodeSkpd",
+        N_SKPD AS "skpd.namaSkpd",
+        I_IDKEGIATAN as "kegiatan.idKegiatan",
+        C_KEGIATAN AS "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        I_IDBAS as "akun.idAkun",
+        C_AKUN AS "akun.kodeAkun",
+        N_AKUN AS "akun.namaAkun",
+        V_TAPD AS nilaiAnggaran,
+        V_SPD AS nilaiSpd,
+        V_SPDCETAK AS nilaiSpdCetak,
+        V_SPDSAH AS nilaiSpdSah,
+        V_DPA_SISASPD AS nilaiSisaAnggaran
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   XXX.C_ANGG_TAHUN AS C_ANGG_TAHUN,
+        XXX.I_IDSKPD AS I_IDSKPD,
+        C_SKPD AS C_SKPD,
+        N_SKPD AS N_SKPD,
+        XXX.I_IDKEGIATAN AS I_IDKEGIATAN,
+        TMDPAKEGIATAN.C_KEGIATAN,
+        TMDPAKEGIATAN.N_KEGIATAN AS N_KEGIATAN,
+        XXX.I_IDBAS AS I_IDBAS,
+        TRBAS.C_AKUN AS C_AKUN,
+        TRBAS.N_AKUN,
+        SUM (XXX.V_ANGG_TAPD) AS V_TAPD,
+        SUM (SPD) AS V_SPD,
+        SUM (SPD_CETAK) AS V_SPDCETAK,
+        SUM (SPD_SAH) AS V_SPDSAH,
+        SUM (
+        XXX.V_ANGG_TAPD - SPD - SPD_CETAK - SPD_SAH
+        )
+        AS V_DPA_SISASPD
+        FROM   (
+        SELECT   TMDPABL.C_ANGG_TAHUN,
+        TMDPAKEGIATAN.I_IDSKPD,
+        TMDPABL.I_IDKEGIATAN I_IDKEGIATAN,
+        I_IDBAS,
+        TMDPABL.V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMDPAKEGIATAN, TMDPABL
+        WHERE   TMDPAKEGIATAN.I_ID =
+        TMDPABL.I_IDKEGIATAN
+        AND TMDPAKEGIATAN.C_ANGG_TAHUN =
+        TMDPABL.C_ANGG_TAHUN
+        AND TMDPAKEGIATAN.I_IDSKPD =
+        TMDPABL.I_IDSKPD
+        AND TMDPAKEGIATAN.C_ANGG_TAHUN =
+        #{tahun}
+        AND TMDPAKEGIATAN.I_IDSKPD = #{idskpdbl}
+        UNION ALL
+                                
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        (TMSPDRINCIBL.V_SPD) AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDRINCIBL
+        WHERE   TMSPD.I_ID = TMSPDRINCIBL.I_IDSPD
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   TMSPDCETAK
+        WHERE   TMSPDCETAK.I_ID =
+        TMSPD.I_ID)
+        AND C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpdbl}
+        UNION ALL
+                               
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        (TMSPDRINCIBL.V_SPD) AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDCETAK, TMSPDRINCIBL
+        WHERE   TMSPD.I_ID = TMSPDCETAK.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBL.I_IDSPD
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   TMSPDSAH
+        WHERE   TMSPDSAH.I_ID =
+        TMSPDCETAK.I_ID)
+        AND C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpdbl}
+        UNION ALL
+                             
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        (TMSPDRINCIBL.V_SPD) AS SPD_SAH
+        FROM   TMSPD, TMSPDSAH, TMSPDRINCIBL
+        WHERE       TMSPD.I_ID = TMSPDRINCIBL.I_IDSPD
+        AND TMSPD.I_ID = TMSPDSAH.I_ID
+        AND C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpdbl} ) XXX,
+        TRSKPD,
+        TRBAS,
+        TMDPAKEGIATAN
+        WHERE       XXX.I_IDBAS = TRBAS.I_ID
+        AND XXX.I_IDSKPD = TRSKPD.I_ID
+        AND TMDPAKEGIATAN.I_ID = XXX.I_IDKEGIATAN
+        
+        <if test="kodeakun != null and kodeakun != ''  ">                      
+            AND upper(trbas.C_AKUN) LIKE '%' ||upper(#{kodeakun}) ||'%'
+        </if> 
+        <if test="namaakun != null and namaakun != '' ">
+            AND upper(trbas.N_AKUN) LIKE '%' ||upper(#{namaakun}) ||'%'
+        </if>
+        <if test="namakegiatan != null and namakegiatan != ''  ">             
+            AND upper(TMDPAKEGIATAN.N_KEGIATAN) LIKE '%' ||upper(#{namakegiatan}) ||'%'
+        </if> 
+        <if test="kodekegiatan != null and kodekegiatan != ''   ">
+            AND upper(TMDPAKEGIATAN.C_KEGIATAN) LIKE '%' ||upper(#{kodekegiatan}) ||'%'
+        </if> 
+        GROUP BY   XXX.C_ANGG_TAHUN,
+        XXX.I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        XXX.I_IDKEGIATAN,
+        TMDPAKEGIATAN.C_KEGIATAN,
+        TMDPAKEGIATAN.N_KEGIATAN,
+        XXX.I_IDBAS,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN) a) xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getCountSpdBl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   count(*)AS banyak
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   XXX.C_ANGG_TAHUN AS C_ANGG_TAHUN,
+        XXX.I_IDSKPD AS I_IDSKPD,
+        C_SKPD AS C_SKPD,
+        N_SKPD AS N_SKPD,
+        XXX.I_IDKEGIATAN AS I_IDKEGIATAN,
+        TMDPAKEGIATAN.C_KEGIATAN,
+        TMDPAKEGIATAN.N_KEGIATAN AS N_KEGIATAN,
+        XXX.I_IDBAS AS I_IDBAS,
+        TRBAS.C_AKUN AS C_AKUN,
+        TRBAS.N_AKUN,
+        SUM (XXX.V_ANGG_TAPD) AS V_TAPD,
+        SUM (SPD) AS V_SPD,
+        SUM (SPD_CETAK) AS V_SPDCETAK,
+        SUM (SPD_SAH) AS V_SPDSAH,
+        SUM (
+        XXX.V_ANGG_TAPD - SPD - SPD_CETAK - SPD_SAH
+        )
+        AS V_DPA_SISASPD
+        FROM   (
+        SELECT   TMDPABL.C_ANGG_TAHUN,
+        TMDPAKEGIATAN.I_IDSKPD,
+        TMDPABL.I_IDKEGIATAN I_IDKEGIATAN,
+        I_IDBAS,
+        TMDPABL.V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMDPAKEGIATAN, TMDPABL
+        WHERE   TMDPAKEGIATAN.I_ID =
+        TMDPABL.I_IDKEGIATAN
+        AND TMDPAKEGIATAN.C_ANGG_TAHUN =
+        TMDPABL.C_ANGG_TAHUN
+        AND TMDPAKEGIATAN.I_IDSKPD =
+        TMDPABL.I_IDSKPD
+        AND TMDPAKEGIATAN.C_ANGG_TAHUN =
+        #{tahun}
+        AND TMDPAKEGIATAN.I_IDSKPD = #{idskpdbl}
+        UNION ALL
+                                
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        (TMSPDRINCIBL.V_SPD) AS SPD,
+        0 AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDRINCIBL
+        WHERE   TMSPD.I_ID = TMSPDRINCIBL.I_IDSPD
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   TMSPDCETAK
+        WHERE   TMSPDCETAK.I_ID =
+        TMSPD.I_ID)
+        AND C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpdbl}
+        UNION ALL
+                               
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        (TMSPDRINCIBL.V_SPD) AS SPD_CETAK,
+        0 AS SPD_SAH
+        FROM   TMSPD, TMSPDCETAK, TMSPDRINCIBL
+        WHERE   TMSPD.I_ID = TMSPDCETAK.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBL.I_IDSPD
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   TMSPDSAH
+        WHERE   TMSPDSAH.I_ID =
+        TMSPDCETAK.I_ID)
+        AND C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpdbl}
+        UNION ALL
+                             
+        SELECT   C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        0 AS V_ANGG_TAPD,
+        0 AS SPD,
+        0 AS SPD_CETAK,
+        (TMSPDRINCIBL.V_SPD) AS SPD_SAH
+        FROM   TMSPD, TMSPDSAH, TMSPDRINCIBL
+        WHERE       TMSPD.I_ID = TMSPDRINCIBL.I_IDSPD
+        AND TMSPD.I_ID = TMSPDSAH.I_ID
+        AND C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpdbl} ) XXX,
+        TRSKPD,
+        TRBAS,
+        TMDPAKEGIATAN
+        WHERE       XXX.I_IDBAS = TRBAS.I_ID
+        AND XXX.I_IDSKPD = TRSKPD.I_ID
+        AND TMDPAKEGIATAN.I_ID = XXX.I_IDKEGIATAN
+        <if test="kodeakun != null and kodeakun != ''  ">                      
+            AND upper(trbas.C_AKUN) LIKE '%' ||upper(#{kodeakun}) ||'%'
+        </if> 
+        <if test="namaakun != null and namaakun != '' ">
+            AND upper(trbas.N_AKUN) LIKE '%' ||upper(#{namaakun}) ||'%'
+        </if>
+        <if test="namakegiatan != null and namakegiatan != ''  ">             
+            AND upper(TMDPAKEGIATAN.N_KEGIATAN) LIKE '%' ||upper(#{namakegiatan}) ||'%'
+        </if> 
+        <if test="kodekegiatan != null and kodekegiatan != ''   ">
+            AND upper(TMDPAKEGIATAN.C_KEGIATAN) LIKE '%' ||upper(#{kodekegiatan}) ||'%'
+        </if> 
+        GROUP BY   XXX.C_ANGG_TAHUN,
+        XXX.I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        XXX.I_IDKEGIATAN,
+        TMDPAKEGIATAN.C_KEGIATAN,
+        TMDPAKEGIATAN.N_KEGIATAN,
+        XXX.I_IDBAS,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN) a) xxxx
+ 
+    </select>
+    <select id="getSkpdBiayaById" resultType="spp.model.Skpd">
+        SELECT   I_ID as idSkpd,
+        C_SKPD as kodeSkpd,
+        N_SKPD as namaSkpd
+        FROM   TRSKPD
+        WHERE C_SKPD_LEVEL='3'
+        AND C_AKTIF = '1'
+    </select>
+    <!-- SPD BTL -->
+    <select id="getDataSpdBtl" parameterType="java.util.Map" resultType="spp.model.MonitoringSpd">
+        SELECT C_ANGG_TAHUN AS tahun, 
+        I_IDSKPD AS "skpd.idskpd",
+        C_SKPD AS "skpd.kodeSkpd", 
+        N_SKPD AS "skpd.namaSkpd", 
+        I_IDBAS AS "akun.idAkun",
+        C_AKUN AS "akun.kodeAkun", 
+        N_AKUN AS "akun.namaAkun", 
+        anggaran as nilaiAnggaran, 
+        nilai_SPD as nilaiSpd,
+        nilai_SPDcetak as nilaiSpdCetak,
+        nilai_SPDsah as nilaiSpdSah,
+        SISAanggaran as nilaiSisaAnggaran
+        FROM (
+        SELECT ROWNUM as rn, a.* FROM(
+        SELECT C_ANGG_TAHUN, I_IDSKPD,C_SKPD, N_SKPD , I_IDBAS,C_AKUN, N_AKUN, SUM(V_ANGG_TAPD) anggaran, 
+        SUM(SPD) nilai_SPD, SUM(SPD_CETAK) nilai_SPDcetak,SUM(SPD_SAH) nilai_SPDsah ,
+        SUM(V_ANGG_TAPD  - SPD - SPD_CETAK - SPD_SAH) SISAanggaran
+        FROM 
+        (
+        SELECT C_ANGG_TAHUN,I_IDSKPD,I_IDBAS, V_ANGG_TAPD, 0 AS SPD, 0 AS SPD_CETAK,0 AS SPD_SAH FROM TMDPABTL
+        WHERE  C_ANGG_TAHUN=#{tahun}
+        AND I_IDSKPD= #{idskpd}
+        UNION ALL
+        SELECT C_ANGG_TAHUN,I_IDSKPD,I_IDBAS, 0 AS V_ANGG_TAPD, (TMSPDRINCIBTL.V_SPD) AS SPD, 0 AS SPD_CETAK,0 AS SPD_SAH 
+        FROM TMSPD, TMSPDRINCIBTL
+        WHERE TMSPD.I_ID = TMSPDRINCIBTL.I_IDSPD
+        AND NOT EXISTS (SELECT 1 FROM TMSPDCETAK
+        WHERE TMSPDCETAK.I_ID = TMSPD.I_ID)
+        AND C_ANGG_TAHUN=#{tahun}
+        AND I_IDSKPD= #{idskpd}
+        UNION ALL
+        SELECT C_ANGG_TAHUN,I_IDSKPD,I_IDBAS, 0 AS V_ANGG_TAPD,  0 AS SPD, (TMSPDRINCIBTL.V_SPD) AS SPD_CETAK,0 AS SPD_SAH FROM TMSPD, TMSPDCETAK, TMSPDRINCIBTL
+        WHERE TMSPD.I_ID = TMSPDCETAK.I_ID
+        AND  TMSPD.I_ID = TMSPDRINCIBTL.I_IDSPD
+        AND NOT EXISTS (SELECT 1 FROM TMSPDSAH
+        WHERE TMSPDSAH.I_ID = TMSPDCETAK.I_ID)
+        AND C_ANGG_TAHUN=#{tahun}
+        AND I_IDSKPD= #{idskpd}
+        UNION ALL
+        SELECT C_ANGG_TAHUN,I_IDSKPD, I_IDBAS, 0 AS V_ANGG_TAPD,  0 AS SPD, 0 AS SPD_CETAK,(TMSPDRINCIBTL.V_SPD) AS SPD_SAH FROM 
+        TMSPD, TMSPDSAH, TMSPDRINCIBTL
+        WHERE TMSPD.I_ID = TMSPDSAH.I_ID
+        AND  TMSPD.I_ID = TMSPDRINCIBTL.I_IDSPD
+        AND C_ANGG_TAHUN=#{tahun}
+        AND I_IDSKPD= #{idskpd} ) XXX, TRSKPD, TRBAS
+        WHERE  XXX.I_IDBAS = TRBAS.I_ID
+        AND  XXX.I_IDSKPD = TRSKPD.I_ID
+        AND SUBSTR(C_AKUN,1,5) NOT BETWEEN '5.1.3' AND '5.1.7'
+        GROUP BY C_ANGG_TAHUN,I_IDSKPD,C_SKPD, N_SKPD , I_IDBAS,C_AKUN, N_AKUN
+        )a)xxx
+        WHERE ROWNUM &lt; = #{limit} AND rn &gt; #{offset}
+
+        
+    </select>
+    <select id="getCountSpdBtl" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT C_ANGG_TAHUN AS tahun 
+        FROM
+        (
+        SELECT C_ANGG_TAHUN,I_IDSKPD,I_IDBAS, V_ANGG_TAPD, 0 AS SPD, 0 AS SPD_CETAK,0 AS SPD_SAH FROM TMDPABTL
+        WHERE  C_ANGG_TAHUN=#{tahun}
+        AND I_IDSKPD= #{idskpd}
+        UNION ALL
+        SELECT C_ANGG_TAHUN,I_IDSKPD,I_IDBAS, 0 AS V_ANGG_TAPD, (TMSPDRINCIBTL.V_SPD) AS SPD, 0 AS SPD_CETAK,0 AS SPD_SAH 
+        FROM TMSPD, TMSPDRINCIBTL
+        WHERE TMSPD.I_ID = TMSPDRINCIBTL.I_IDSPD
+        AND NOT EXISTS (SELECT 1 FROM TMSPDCETAK
+        WHERE TMSPDCETAK.I_ID = TMSPD.I_ID)
+        AND C_ANGG_TAHUN=#{tahun}
+        AND I_IDSKPD= #{idskpd}
+        UNION ALL
+        SELECT C_ANGG_TAHUN,I_IDSKPD,I_IDBAS, 0 AS V_ANGG_TAPD,  0 AS SPD, (TMSPDRINCIBTL.V_SPD) AS SPD_CETAK,0 AS SPD_SAH FROM TMSPD, TMSPDCETAK, TMSPDRINCIBTL
+        WHERE TMSPD.I_ID = TMSPDCETAK.I_ID
+        AND  TMSPD.I_ID = TMSPDRINCIBTL.I_IDSPD
+        AND NOT EXISTS (SELECT 1 FROM TMSPDSAH
+        WHERE TMSPDSAH.I_ID = TMSPDCETAK.I_ID)
+        AND C_ANGG_TAHUN=#{tahun}
+        AND I_IDSKPD= #{idskpd}
+        UNION ALL
+        SELECT C_ANGG_TAHUN,I_IDSKPD, I_IDBAS, 0 AS V_ANGG_TAPD,  0 AS SPD, 0 AS SPD_CETAK,(TMSPDRINCIBTL.V_SPD) AS SPD_SAH FROM 
+        TMSPD, TMSPDSAH, TMSPDRINCIBTL
+        WHERE TMSPD.I_ID = TMSPDSAH.I_ID
+        AND  TMSPD.I_ID = TMSPDRINCIBTL.I_IDSPD
+        AND C_ANGG_TAHUN=#{tahun}
+        AND I_IDSKPD= #{idskpd} ) XXX, TRSKPD, TRBAS
+        WHERE  XXX.I_IDBAS = TRBAS.I_ID
+        AND  XXX.I_IDSKPD = TRSKPD.I_ID
+        AND SUBSTR(C_AKUN,1,5) NOT BETWEEN '5.1.3' AND '5.1.7'
+        GROUP BY C_ANGG_TAHUN,I_IDSKPD,C_SKPD, N_SKPD , I_IDBAS,C_AKUN, N_AKUN
+        )
+    </select>
+    <select id="getSkpdPopupBtl" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT   DISTINCT
+        i_id as "skpd.idSkpd",  
+        C_SKPD as "skpd.kodeSkpd", 
+        N_SKPD as "skpd.namaSkpd"
+        FROM (
+        SELECT ROWNUM as rn, a.* FROM(
+        SELECT   DISTINCT
+        trskpd.i_id, trskpd.C_SKPD, trskpd.N_SKPD
+        FROM   trskpd, tmdpabtl, trbas
+        WHERE    tmdpabtl.C_ANGG_TAHUN=#{tahun}
+        and  trskpd.I_ID = tmdpabtl.I_IDSKPD
+        AND trbas.I_ID = tmdpabtl.I_IDBAS
+        AND SUBSTR (trbas.c_akun, 1, 5) IN
+        ('5.1.1',
+        '5.1.2',
+        '5.1.8')
+        <if test="namaskpd != null and namaskpd!= ''  ">                      
+            AND upper(trskpd.n_skpd) LIKE '%' ||upper(#{namaskpd}) ||'%'
+        </if> 
+        
+        )a)xxxx
+        WHERE ROWNUM &lt; = #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getCountPopupSkpdBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT   DISTINCT
+        trskpd.i_id, trskpd.C_SKPD, trskpd.N_SKPD
+        FROM   trskpd, tmdpabtl, trbas
+        WHERE    tmdpabtl.C_ANGG_TAHUN=#{tahun}
+        and  trskpd.I_ID = tmdpabtl.I_IDSKPD
+        AND trbas.I_ID = tmdpabtl.I_IDBAS
+        AND SUBSTR (trbas.c_akun, 1, 5) IN
+        ('5.1.1',
+        '5.1.2',
+        '5.1.8')
+        <if test="namaskpd != null and namaskpd!= ''  ">                      
+            AND upper(trskpd.n_skpd) LIKE '%' ||upper(#{namaskpd}) ||'%'
+        </if> 
+        )
+    </select>
+    <select id="getPopupDetailSpdSahBiaya" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT
+        i_spdrinciBIAYA as idSpdRinciBiaya,
+        i_spd as idSpd,
+        I_IDBIAYA as idBiaya,
+        tahun,
+        i_idskpd as "skpd.idSkpd",
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        i_spdno as noSpd,
+        c_jenis as kodeJenis,
+        d_spdno as tglSpd,
+        c_bulan_awal as kodeBulanAwal,
+        c_bulan_akhir as kodeBulanAkhir,
+        e_spd as ketSpd,
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        v_spd as nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT
+        tmspdrinciBIAYA.I_id as i_spdrinciBIAYA,
+        tmspd.I_id as i_spd,
+        tmspdrinciBIAYA.I_IDBIAYA as I_IDBIAYA,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS i_idskpd,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmspd.i_spdno,
+        tmspd.c_jenis,
+        tmspd.d_spdno,
+        tmspd.c_bulan_awal,
+        tmspd.c_bulan_akhir,
+        tmspd.e_spd,
+        tmdpaBIAYA.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmspdrinciBIAYA.v_spd
+        FROM               tmspd
+        LEFT JOIN
+        tmspdrinciBIAYA
+        ON tmspd.I_id = tmspdrinciBIAYA.I_IDSPD
+        LEFT JOIN
+        tmdpaBIAYA
+        ON tmdpaBIAYA.i_id = tmspdrinciBIAYA.I_IDBIAYA
+        LEFT JOIN
+        trbas
+        ON tmspdrinciBIAYA.I_IDBAS = trbas.I_ID
+        INNER JOIN
+        trskpd
+        ON trskpd.i_id = tmspd.i_idskpd
+        WHERE       tmspd.c_jenis = '4'
+        AND EXISTS (SELECT   1
+        FROM   tmspdsah
+        WHERE   tmspd.i_id = tmspdsah.i_id)
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrinciBIAYA.i_idbas = #{idakun})a)
+    </select>
+    <select id="getCountPopupDetailSpdSahBiaya" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT
+        tmspdrinciBIAYA.I_id as i_spdrinciBIAYA,
+        tmspd.I_id as i_spd,
+        tmspdrinciBIAYA.I_IDBIAYA as I_IDBIAYA,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS i_idskpd,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmspd.i_spdno,
+        tmspd.c_jenis,
+        tmspd.d_spdno,
+        tmspd.c_bulan_awal,
+        tmspd.c_bulan_akhir,
+        tmspd.e_spd,
+        tmdpaBIAYA.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmspdrinciBIAYA.v_spd
+        FROM               tmspd
+        LEFT JOIN
+        tmspdrinciBIAYA
+        ON tmspd.I_id = tmspdrinciBIAYA.I_IDSPD
+        LEFT JOIN
+        tmdpaBIAYA
+        ON tmdpaBIAYA.i_id = tmspdrinciBIAYA.I_IDBIAYA
+        LEFT JOIN
+        trbas
+        ON tmspdrinciBIAYA.I_IDBAS = trbas.I_ID
+        INNER JOIN
+        trskpd
+        ON trskpd.i_id = tmspd.i_idskpd
+        WHERE       tmspd.c_jenis = '4'
+        AND EXISTS (SELECT   1
+        FROM   tmspdsah
+        WHERE   tmspd.i_id = tmspdsah.i_id)
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrinciBIAYA.i_idbas = #{idakun}
+        )
+    </select>
+    
+    <select id="getPopupDetailSpdCetakBiaya" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT
+        i_spdrinciBIAYA as idSpdRinciBiaya,
+        i_spd as idSpd,
+        I_IDBIAYA as idBiaya,
+        tahun,
+        i_idskpd as "skpd.idSkpd",
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        i_spdno as noSpd,
+        c_jenis as kodeJenis,
+        d_spdno as tglSpd,
+        c_bulan_awal as kodeBulanAwal,
+        c_bulan_akhir as kodeBulanAkhir,
+        e_spd as ketSpd,
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        v_spd as nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   tmspdrinciBIAYA.I_id i_spdrinciBIAYA,
+        tmspd.I_id i_spd,
+        tmspdrinciBIAYA.I_IDBIAYA I_IDBIAYA,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS i_idskpd,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmspd.i_spdno,
+        tmspd.c_jenis,
+        tmspd.d_spdno,
+        tmspd.c_bulan_awal,
+        tmspd.c_bulan_akhir,
+        tmspd.e_spd,
+        tmdpaBIAYA.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmspdrinciBIAYA.v_spd
+        FROM   tmspd left join tmspdrinciBIAYA on tmspd.I_id = tmspdrinciBIAYA.I_IDSPD
+        left join  tmdpaBIAYA on tmdpaBIAYA.i_id = tmspdrinciBIAYA.I_IDBIAYA       
+        left join trbas on  tmspdrinciBIAYA.I_IDBAS = trbas.I_ID
+        inner join trskpd on trskpd.i_id = tmspd.i_idskpd
+        WHERE   tmspd.c_jenis = '4'
+        and   exists ( select 1 from tmspdCETAK where  tmspd.i_id = tmspdcetak.i_id)
+        and  not exists ( select 1 from tmspdsah where  tmspd.i_id = tmspdsah.i_id)   
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrinciBIAYA.i_idbas = #{idakun})a)
+    </select>
+    <select id="getCountPopupDetailSpdCetakBiaya" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak from (
+        SELECT
+        i_spdrinciBIAYA as idSpdRinciBiaya,
+        i_spd as idSpd,
+        I_IDBIAYA as idBiaya,
+        tahun,
+        i_idskpd as "skpd.idSkpd",
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        i_spdno as noSpd,
+        c_jenis as kodeJenis,
+        d_spdno as tglSpd,
+        c_bulan_awal as kodeBulanAwal,
+        c_bulan_akhir as kodeBulanAkhir,
+        e_spd as ketSpd,
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        v_spd as nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   tmspdrinciBIAYA.I_id i_spdrinciBIAYA,
+        tmspd.I_id i_spd,
+        tmspdrinciBIAYA.I_IDBIAYA I_IDBIAYA,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS i_idskpd,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmspd.i_spdno,
+        tmspd.c_jenis,
+        tmspd.d_spdno,
+        tmspd.c_bulan_awal,
+        tmspd.c_bulan_akhir,
+        tmspd.e_spd,
+        tmdpaBIAYA.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmspdrinciBIAYA.v_spd
+        FROM   tmspd left join tmspdrinciBIAYA on tmspd.I_id = tmspdrinciBIAYA.I_IDSPD
+        left join  tmdpaBIAYA on tmdpaBIAYA.i_id = tmspdrinciBIAYA.I_IDBIAYA       
+        left join trbas on  tmspdrinciBIAYA.I_IDBAS = trbas.I_ID
+        inner join trskpd on trskpd.i_id = tmspd.i_idskpd
+        WHERE   tmspd.c_jenis = '4'
+        and   exists ( select 1 from tmspdCETAK where  tmspd.i_id = tmspdcetak.i_id)
+        and  not exists ( select 1 from tmspdsah where  tmspd.i_id = tmspdsah.i_id)   
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrinciBIAYA.i_idbas = #{idakun})a)
+        )
+    </select>
+    <select id="getPopupDetailSpdSpdBiaya" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT
+        i_spdrinciBIAYA as idSpdRinciBiaya,
+        i_spd as idSpd,
+        I_IDBIAYA as idBiaya,
+        tahun,
+        i_idskpd as "skpd.idSkpd",
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        i_spdno as noSpd,
+        c_jenis as kodeJenis,
+        d_spdno as tglSpd,
+        c_bulan_awal as kodeBulanAwal,
+        c_bulan_akhir as kodeBulanAkhir,
+        e_spd as ketSpd,
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        v_spd as nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   tmspdrinciBIAYA.I_id i_spdrinciBIAYA,
+        tmspd.I_id i_spd,
+        tmspdrinciBIAYA.I_IDBIAYA I_IDBIAYA,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS i_idskpd,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmspd.i_spdno,
+        tmspd.c_jenis,
+        tmspd.d_spdno,
+        tmspd.c_bulan_awal,
+        tmspd.c_bulan_akhir,
+        tmspd.e_spd,
+        tmdpaBIAYA.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmspdrinciBIAYA.v_spd
+        FROM   tmspd left join tmspdrinciBIAYA on tmspd.I_id = tmspdrinciBIAYA.
+        I_IDSPD
+        left join  tmdpaBIAYA on tmdpaBIAYA.i_id = tmspdrinciBIAYA.
+        I_IDBIAYA
+        left join trbas on  tmspdrinciBIAYA.I_IDBAS = trbas.I_ID
+        inner join trskpd on trskpd.i_id = tmspd.i_idskpd
+        WHERE   tmspd.c_jenis = '4'
+        and  not exists ( select 1 from tmspdCETAK where  tmspd.i_id = tmspdcetak.
+        i_id)
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrinciBIAYA.i_idbas = #{idakun})a)
+    </select>
+    <select id="getCountPopupDetailSpdSpdBiaya" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak from (
+        SELECT
+        i_spdrinciBIAYA as idSpdRinciBiaya,
+        i_spd as idSpd,
+        I_IDBIAYA as idBiaya,
+        tahun,
+        i_idskpd as "skpd.idSkpd",
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        i_spdno as noSpd,
+        c_jenis as kodeJenis,
+        d_spdno as tglSpd,
+        c_bulan_awal as kodeBulanAwal,
+        c_bulan_akhir as kodeBulanAkhir,
+        e_spd as ketSpd,
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        v_spd as nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   tmspdrinciBIAYA.I_id i_spdrinciBIAYA,
+        tmspd.I_id i_spd,
+        tmspdrinciBIAYA.I_IDBIAYA I_IDBIAYA,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS i_idskpd,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmspd.i_spdno,
+        tmspd.c_jenis,
+        tmspd.d_spdno,
+        tmspd.c_bulan_awal,
+        tmspd.c_bulan_akhir,
+        tmspd.e_spd,
+        tmdpaBIAYA.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmspdrinciBIAYA.v_spd
+        FROM   tmspd left join tmspdrinciBIAYA on tmspd.I_id = tmspdrinciBIAYA.
+        I_IDSPD
+        left join  tmdpaBIAYA on tmdpaBIAYA.i_id = tmspdrinciBIAYA.
+        I_IDBIAYA
+        left join trbas on  tmspdrinciBIAYA.I_IDBAS = trbas.I_ID
+        inner join trskpd on trskpd.i_id = tmspd.i_idskpd
+        WHERE   tmspd.c_jenis = '4'
+        and  not exists ( select 1 from tmspdCETAK where  tmspd.i_id = tmspdcetak.
+        i_id)
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrinciBIAYA.i_idbas = #{idakun})a)
+        )
+    </select>
+    
+    
+    
+    
+    
+    
+    <!-- BL BL BL -->
+    
+    
+    
+    
+    
+    <select id="getPopupDetailSpdSpdBl" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT C_ANGG_TAHUN as tahun,
+        I_IDSPDRINCIBL as idSpdRinciBl,
+        I_IDSPD as idSpd,
+        I_IDSKPD as "skpd.idSkpd",
+        I_IDDPAKEGIATAN as "kegiatan.idKegiatan",
+        I_IDDPABL as idDpaBl,
+        i_spdno as noSpd,
+        I_SPDNO_DOK as tanggalSpdBl,
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDbas as "akun.idAkun",
+        C_AKUN as "akun.kodeAkun",
+        N_AKUN as "akun.namaAkun",
+        V_SPD as nilaiSpd,
+        N_URUSAN as "urusan.namaUrusan",
+        N_PROGRAM as "program.namaProgram"
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT
+        
+        tmdpabl.C_ANGG_TAHUN,
+        tmspdrincibl.i_id as I_IDSPDRINCIBL,
+        tmspd.i_id as I_IDSPD,
+        tmdpakegiatan.I_IDSKPD AS I_IDSKPD,
+        tmdpaKEGIATAN.I_ID as I_IDDPAKEGIATAN,
+        tmdpabl.I_ID as I_IDDPABL,
+        tmspd.i_spdno,
+        TO_CHAR (tmspd.i_spdno, '0000000')
+        || '/SPD/'
+        || TO_CHAR (tmspd.d_spdno, 'MM/YYYY')
+        AS I_SPDNO_DOK,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        tmspdrincibl.I_IDbas,
+        trbas.C_AKUN,
+        trbas.N_AKUN,
+        tmspdrincibl.V_SPD,
+        trurusan.N_URUSAN,
+        trprogram.N_PROGRAM
+        FROM                        tmspd
+        LEFT JOIN
+        tmspdrincibl
+        ON tmspd.I_ID = tmspdrincibl.I_IDSPD
+        LEFT JOIN
+        tmdpakegiatan
+        ON tmdpakegiatan.I_ID = tmspdrincibl.i_idkegiatan
+        LEFT JOIN
+        trprogram
+        ON tmdpakegiatan.I_IDPROGRAM = trprogram.i_id
+        LEFT JOIN
+        trurusan
+        ON trprogram.I_IDURUSAN = trurusan.i_id
+        LEFT JOIN
+        tmdpabl
+        ON tmdpabl.I_ID = tmspdrincibl.I_IDBL
+        LEFT JOIN
+        trbas
+        ON tmdpabl.i_idbas = trbas.I_ID
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmspd.I_IDSKPD
+        WHERE   tmspd.C_JENIS = '3'
+        AND NOT EXISTS (SELECT   1
+        FROM   tmspdcetak
+        WHERE   tmspd.i_id = tmspdcetak.i_id)
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrincibl.i_idKegiatan = #{idkegiatan}
+        AND tmspdrincibl.i_idbas = #{idakun}   
+        )a)
+   
+    </select>
+    <select id="getCountPopupDetailSpdSpdBl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak from (
+        SELECT C_ANGG_TAHUN as tahun,
+        I_IDSPDRINCIBL as idSpdRinciBl,
+        I_IDSPD as idSpd,
+        I_IDSKPD as "skpd.idSkpd",
+        I_IDDPAKEGIATAN as "kegiatan.idKegiatan",
+        I_IDDPABL as idDpaBl,
+        i_spdno as noSpd,
+        I_SPDNO_DOK as tanggalSpdBl,
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDbas as "akun.idAkun",
+        C_AKUN as "akun.kodeAkun",
+        N_AKUN as "akun.namaAkun",
+        V_SPD as nilaiSpd,
+        N_URUSAN as "urusan.namaUrusan",
+        N_PROGRAM as "program.namaProgram"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT
+        tmdpabl.C_ANGG_TAHUN,
+        tmspdrincibl.i_id as I_IDSPDRINCIBL,
+        tmspd.i_id as I_IDSPD,
+        tmdpakegiatan.I_IDSKPD AS I_IDSKPD,
+        tmdpaKEGIATAN.I_ID as I_IDDPAKEGIATAN,
+        tmdpabl.I_ID as I_IDDPABL,
+        tmspd.i_spdno,
+        TO_CHAR (tmspd.i_spdno, '0000000')
+        || '/SPD/'
+        || TO_CHAR (tmspd.d_spdno, 'MM/YYYY')
+        AS I_SPDNO_DOK,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        tmspdrincibl.I_IDbas,
+        trbas.C_AKUN,
+        trbas.N_AKUN,
+        tmspdrincibl.V_SPD,
+        trurusan.N_URUSAN,
+        trprogram.N_PROGRAM
+        FROM                        tmspd
+        LEFT JOIN
+        tmspdrincibl
+        ON tmspd.I_ID = tmspdrincibl.I_IDSPD
+        LEFT JOIN
+        tmdpakegiatan
+        ON tmdpakegiatan.I_ID = tmspdrincibl.i_idkegiatan
+        LEFT JOIN
+        trprogram
+        ON tmdpakegiatan.I_IDPROGRAM = trprogram.i_id
+        LEFT JOIN
+        trurusan
+        ON trprogram.I_IDURUSAN = trurusan.i_id
+        LEFT JOIN
+        tmdpabl
+        ON tmdpabl.I_ID = tmspdrincibl.I_IDBL
+        LEFT JOIN
+        trbas
+        ON tmdpabl.i_idbas = trbas.I_ID
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmspd.I_IDSKPD
+        WHERE   tmspd.C_JENIS = '3'
+        AND NOT EXISTS (SELECT   1
+        FROM   tmspdcetak
+        WHERE   tmspd.i_id = tmspdcetak.i_id)
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrincibl.i_idKegiatan = #{idkegiatan}
+        AND tmspdrincibl.i_idbas = #{idakun}   
+        )a)
+        )
+    </select>
+    
+    <select id="getPopupDetailSpdCetakBl" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT C_ANGG_TAHUN as tahun,
+        I_IDSPDRINCIBL as idSpdRinciBl,
+        I_IDSPD as idSpd,
+        I_IDSKPD as "skpd.idSkpd",
+        I_IDDPAKEGIATAN as "kegiatan.idKegiatan",
+        I_IDDPABL as idDpaBl,
+        i_spdno as noSpd,
+        I_SPDNO_DOK as tanggalSpdBl,
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDbas as "akun.idAkun",
+        C_AKUN as "akun.kodeAkun",
+        N_AKUN as "akun.namaAkun",
+        V_SPD as nilaiSpd,
+        N_URUSAN as "urusan.namaUrusan",
+        N_PROGRAM as "program.namaProgram"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   tmdpabl.C_ANGG_TAHUN,
+        tmspdrincibl.i_id I_IDSPDRINCIBL,
+        tmspd.i_id I_IDSPD,
+        tmdpakegiatan.I_IDSKPD AS I_IDSKPD,
+        tmdpaKEGIATAN.I_ID I_IDDPAKEGIATAN,
+        tmdpabl.I_ID I_IDDPABL,
+        tmspd.i_spdno,
+        TO_CHAR (tmspd.i_spdno, '0000000')
+        || '/SPD/'
+        || TO_CHAR (tmspd.d_spdno, 'MM/YYYY')
+        AS I_SPDNO_DOK,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        tmspdrincibl.I_IDbas,
+        trbas.C_AKUN,
+        trbas.N_AKUN,
+        tmspdrincibl.V_SPD,
+        trurusan.N_URUSAN,
+        trprogram.N_PROGRAM
+        FROM                        tmspd
+        LEFT JOIN
+        tmspdrincibl
+        ON tmspd.I_ID = tmspdrincibl.I_IDSPD
+        LEFT JOIN
+        tmdpakegiatan
+        ON tmdpakegiatan.I_ID = tmspdrincibl.i_idkegiatan
+        LEFT JOIN
+        trprogram
+        ON tmdpakegiatan.I_IDPROGRAM = trprogram.i_id
+        LEFT JOIN
+        trurusan
+        ON trprogram.I_IDURUSAN = trurusan.i_id
+        LEFT JOIN
+        tmdpabl
+        ON tmdpabl.I_ID = tmspdrincibl.I_IDBL
+        LEFT JOIN
+        trbas
+        ON tmdpabl.i_idbas = trbas.I_ID
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmspd.I_IDSKPD
+        WHERE       tmspd.C_JENIS = '3'
+        AND EXISTS (SELECT   1
+        FROM   tmspdcetak
+        WHERE   tmspd.i_id = tmspdcetak.i_id)
+        AND NOT EXISTS (SELECT   1
+        FROM   tmspdsah
+        WHERE   tmspd.i_id = tmspdsah.i_id)
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrincibl.i_idKegiatan = #{idkegiatan}
+        AND tmspdrincibl.i_idbas = #{idakun}   
+        )a)
+    </select>
+    <select id="getCountPopupDetailSpdCetakBl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak from (
+        SELECT C_ANGG_TAHUN as tahun,
+        I_IDSPDRINCIBL as idSpdRinciBl,
+        I_IDSPD as idSpd,
+        I_IDSKPD as "skpd.idSkpd",
+        I_IDDPAKEGIATAN as "kegiatan.idKegiatan",
+        I_IDDPABL as idDpaBl,
+        i_spdno as noSpd,
+        I_SPDNO_DOK as tanggalSpdBl,
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDbas as "akun.idAkun",
+        C_AKUN as "akun.kodeAkun",
+        N_AKUN as "akun.namaAkun",
+        V_SPD as nilaiSpd,
+        N_URUSAN as "urusan.namaUrusan",
+        N_PROGRAM as "program.namaProgram"
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   tmdpabl.C_ANGG_TAHUN,
+        tmspdrincibl.i_id I_IDSPDRINCIBL,
+        tmspd.i_id I_IDSPD,
+        tmdpakegiatan.I_IDSKPD AS I_IDSKPD,
+        tmdpaKEGIATAN.I_ID I_IDDPAKEGIATAN,
+        tmdpabl.I_ID I_IDDPABL,
+        tmspd.i_spdno,
+        TO_CHAR (tmspd.i_spdno, '0000000')
+        || '/SPD/'
+        || TO_CHAR (tmspd.d_spdno, 'MM/YYYY')
+        AS I_SPDNO_DOK,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        tmspdrincibl.I_IDbas,
+        trbas.C_AKUN,
+        trbas.N_AKUN,
+        tmspdrincibl.V_SPD,
+        trurusan.N_URUSAN,
+        trprogram.N_PROGRAM
+        FROM                        tmspd
+        LEFT JOIN
+        tmspdrincibl
+        ON tmspd.I_ID = tmspdrincibl.I_IDSPD
+        LEFT JOIN
+        tmdpakegiatan
+        ON tmdpakegiatan.I_ID = tmspdrincibl.i_idkegiatan
+        LEFT JOIN
+        trprogram
+        ON tmdpakegiatan.I_IDPROGRAM = trprogram.i_id
+        LEFT JOIN
+        trurusan
+        ON trprogram.I_IDURUSAN = trurusan.i_id
+        LEFT JOIN
+        tmdpabl
+        ON tmdpabl.I_ID = tmspdrincibl.I_IDBL
+        LEFT JOIN
+        trbas
+        ON tmdpabl.i_idbas = trbas.I_ID
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmspd.I_IDSKPD
+        WHERE       tmspd.C_JENIS = '3'
+        AND EXISTS (SELECT   1
+        FROM   tmspdcetak
+        WHERE   tmspd.i_id = tmspdcetak.i_id)
+        AND NOT EXISTS (SELECT   1
+        FROM   tmspdsah
+        WHERE   tmspd.i_id = tmspdsah.i_id)
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrincibl.i_idKegiatan = #{idkegiatan}
+        AND tmspdrincibl.i_idbas = #{idakun}   
+        )a)
+
+        )
+    </select>
+    
+    <select id="getPopupDetailSpdSahSah" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT C_ANGG_TAHUN as tahun,
+        I_IDSPDRINCIBL as idSpdRinciBl,
+        I_IDSPD as idSpd,
+        I_IDSKPD as "skpd.idSkpd",
+        I_IDDPAKEGIATAN as "kegiatan.idKegiatan",
+        I_IDDPABL as idDpaBl,
+        i_spdno as noSpd,
+        I_SPDNO_DOK as tanggalSpdBl,
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDbas as "akun.idAkun",
+        C_AKUN as "akun.kodeAkun",
+        N_AKUN as "akun.namaAkun",
+        V_SPD as nilaiSpd,
+        N_URUSAN as "urusan.namaUrusan",
+        N_PROGRAM as "program.namaProgram"
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   tmdpabl.C_ANGG_TAHUN,
+        tmspdrincibl.i_id I_IDSPDRINCIBL,
+        tmspd.i_id I_IDSPD,
+        tmdpakegiatan.I_IDSKPD AS I_IDSKPD,
+        tmdpaKEGIATAN.I_ID I_IDDPAKEGIATAN,
+        tmdpabl.I_ID I_IDDPABL,
+        tmspd.i_spdno,
+        TO_CHAR (tmspd.i_spdno, '0000000')
+        || '/SPD/'
+        || TO_CHAR (tmspd.d_spdno, 'MM/YYYY')
+        AS I_SPDNO_DOK,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        tmspdrincibl.I_IDbas,
+        trbas.C_AKUN,
+        trbas.N_AKUN,
+        tmspdrincibl.V_SPD,
+        trurusan.N_URUSAN,
+        trprogram.N_PROGRAM
+        FROM                        tmspd
+        LEFT JOIN
+        tmspdrincibl
+        ON tmspd.I_ID = tmspdrincibl.I_IDSPD
+        LEFT JOIN
+        tmdpakegiatan
+        ON tmdpakegiatan.I_ID = tmspdrincibl.i_idkegiatan
+        LEFT JOIN
+        trprogram
+        ON tmdpakegiatan.I_IDPROGRAM = trprogram.i_id
+        LEFT JOIN
+        trurusan
+        ON trprogram.I_IDURUSAN = trurusan.i_id
+        LEFT JOIN
+        tmdpabl
+        ON tmdpabl.I_ID = tmspdrincibl.I_IDBL
+        LEFT JOIN
+        trbas
+        ON tmdpabl.i_idbas = trbas.I_ID
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmspd.I_IDSKPD
+        WHERE       tmspd.C_JENIS = '3'
+        AND EXISTS (SELECT   1
+        FROM   tmspdsah
+        WHERE   tmspd.i_id = tmspdsah.i_id)
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrincibl.i_idKegiatan = #{idkegiatan}
+        AND tmspdrincibl.i_idbas = #{idakun}
+        )a)
+    </select>
+    <select id="getCountPopupDetailSpdSahSah" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak from (
+        SELECT C_ANGG_TAHUN as tahun,
+        I_IDSPDRINCIBL as idSpdRinciBl,
+        I_IDSPD as idSpd,
+        I_IDSKPD as "skpd.idSkpd",
+        I_IDDPAKEGIATAN as "kegiatan.idKegiatan",
+        I_IDDPABL as idDpaBl,
+        i_spdno as noSpd,
+        I_SPDNO_DOK as tglSpd,
+        c_skpd as "skpd.kodeSkpd",
+        n_skpd as "skpd.namaSkpd",
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDbas as "akun.idAkun",
+        C_AKUN as "akun.kodeAkun",
+        N_AKUN as "akun.namaAkun",
+        V_SPD as nilaiSpd,
+        N_URUSAN as "urusan.namaUrusan",
+        N_PROGRAM as "program.namaProgram"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   tmdpabl.C_ANGG_TAHUN,
+        tmspdrincibl.i_id I_IDSPDRINCIBL,
+        tmspd.i_id I_IDSPD,
+        tmdpakegiatan.I_IDSKPD AS I_IDSKPD,
+        tmdpaKEGIATAN.I_ID I_IDDPAKEGIATAN,
+        tmdpabl.I_ID I_IDDPABL,
+        tmspd.i_spdno,
+        TO_CHAR (tmspd.i_spdno, '0000000')
+        || '/SPD/'
+        || TO_CHAR (tmspd.d_spdno, 'MM/YYYY')
+        AS I_SPDNO_DOK,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        tmspdrincibl.I_IDbas,
+        trbas.C_AKUN,
+        trbas.N_AKUN,
+        tmspdrincibl.V_SPD,
+        trurusan.N_URUSAN,
+        trprogram.N_PROGRAM
+        FROM                        tmspd
+        LEFT JOIN
+        tmspdrincibl
+        ON tmspd.I_ID = tmspdrincibl.I_IDSPD
+        LEFT JOIN
+        tmdpakegiatan
+        ON tmdpakegiatan.I_ID = tmspdrincibl.i_idkegiatan
+        LEFT JOIN
+        trprogram
+        ON tmdpakegiatan.I_IDPROGRAM = trprogram.i_id
+        LEFT JOIN
+        trurusan
+        ON trprogram.I_IDURUSAN = trurusan.i_id
+        LEFT JOIN
+        tmdpabl
+        ON tmdpabl.I_ID = tmspdrincibl.I_IDBL
+        LEFT JOIN
+        trbas
+        ON tmdpabl.i_idbas = trbas.I_ID
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmspd.I_IDSKPD
+        WHERE       tmspd.C_JENIS = '3'
+        AND EXISTS (SELECT   1
+        FROM   tmspdsah
+        WHERE   tmspd.i_id = tmspdsah.i_id)
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspdrincibl.i_idKegiatan = #{idkegiatan}
+        AND tmspdrincibl.i_idbas = #{idakun}
+        )a)
+
+        )
+    </select>
+    
+    <!-- BTL -->
+    <select id="getPopupDetailSpdSpdBtl" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT   
+        idSpdRinciBtl,
+        idSpd,
+        IdBtl,
+        tahun,
+        idskpd as "skpd.idSkpd",
+        cskpd as "skpd.kodeSkpd",
+        nskpd as "skpd.namaSkpd",
+        noSpd,
+        kodeJenis,
+        tglspd,
+        kbaw as kodeBulanAwal,
+        kba as kodeBulanAkhir,
+        ketspd as keteranganSpd, 
+        idakun as "akun.idAkun",
+        kodeakun as "akun.kodeAkun",
+        namaakun as "akun.namaAkun",
+        nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   tmspdrincibtl.I_id as idSpdRinciBtl,
+        tmspd.I_id as idSpd,
+        tmspdrincibtl.I_IDbtl as idBtl,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS idskpd,
+        trskpd.c_skpd as cskpd,
+        trskpd.n_skpd as nskpd,
+        tmspd.i_spdno as noSpd,
+        tmspd.c_jenis as kodeJenis,
+        tmspd.d_spdno as tglspd,
+        tmspd.c_bulan_awal as kbaw,
+        tmspd.c_bulan_akhir as kba,
+        tmspd.e_spd as ketspd, 
+        tmdpabtl.I_IDBAS as idakun,
+        trbas.c_akun as kodeakun,
+        trbas.n_akun as namaakun,
+        tmspdrincibtl.v_spd as nilaiSpd
+        FROM   tmspd left join tmspdrincibtl on tmspd.I_id = tmspdrincibtl.I_IDSPD
+        left join  tmdpabtl  on tmdpabtl.i_id = tmspdrincibtl.I_IDbtl   
+        left join trbas on tmdpabtl.I_IDBAS = trbas.I_ID 
+        inner join  trskpd on trskpd.i_id = tmspd.i_idskpd
+        WHERE   tmspd.c_jenis = '1'
+        AND substr(trbas.c_akun,1,5) in ('5.1.1','5.1.2','5.1.8')
+        and tmspd.c_angg_tahun= #{tahun}
+        and tmspd.i_idskpd= #{idskpd}
+        and tmspdrincibtl.i_idbas = #{idakun}  
+        and not exists ( select 1 from tmspdcetak where  tmspd.i_id =   tmspdrincibtl.i_idspd)
+        )a)xxxx
+    </select>
+    <select id="getCountPopupDetailSpdSpdBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak from(
+        SELECT   
+        idSpdRinciBtl,
+        idSpd,
+        IdBtl,
+        tahun,
+        idskpd as "skpd.idSkpd",
+        cskpd as "skpd.kodeSkpd",
+        nskpd as "skpd.namaSkpd",
+        noSpd,
+        kodeJenis,
+        tglspd,
+        kbaw as kodeBulanAwal,
+        kba as kodeBulanAkhir,
+        ketspd as keteranganSpd, 
+        idakun as "akun.idAkun",
+        kodeakun as "akun.kodeAkun",
+        namaakun as "akun.namaAkun",
+        nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   tmspdrincibtl.I_id as idSpdRinciBtl,
+        tmspd.I_id as idSpd,
+        tmspdrincibtl.I_IDbtl as idBtl,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS idskpd,
+        trskpd.c_skpd as cskpd,
+        trskpd.n_skpd as nskpd,
+        tmspd.i_spdno as noSpd,
+        tmspd.c_jenis as kodeJenis,
+        tmspd.d_spdno as tglspd,
+        tmspd.c_bulan_awal as kbaw,
+        tmspd.c_bulan_akhir as kba,
+        tmspd.e_spd as ketspd, 
+        tmdpabtl.I_IDBAS as idakun,
+        trbas.c_akun as kodeakun,
+        trbas.n_akun as namaakun,
+        tmspdrincibtl.v_spd as nilaiSpd
+        FROM   tmspd left join tmspdrincibtl on tmspd.I_id = tmspdrincibtl.I_IDSPD
+        left join  tmdpabtl  on tmdpabtl.i_id = tmspdrincibtl.I_IDbtl   
+        left join trbas on tmdpabtl.I_IDBAS = trbas.I_ID 
+        inner join  trskpd on trskpd.i_id = tmspd.i_idskpd
+        WHERE   tmspd.c_jenis = '1'
+        AND substr(trbas.c_akun,1,5) in ('5.1.1','5.1.2','5.1.8')
+        and tmspd.c_angg_tahun= #{tahun}
+        and tmspd.i_idskpd= #{idskpd}
+        and tmspdrincibtl.i_idbas = #{idakun}  
+        and not exists ( select 1 from tmspdcetak where  tmspd.i_id =   tmspdrincibtl.i_idspd)
+        )a)xxxx
+        )
+            
+    </select>
+    
+    <select id="getPopupDetailSpdCetakBtl" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT   
+        idSpdRinciBtl,
+        idSpd,
+        IdBtl,
+        tahun,
+        idskpd as "skpd.idSkpd",
+        cskpd as "skpd.kodeSkpd",
+        nskpd as "skpd.namaSkpd",
+        noSpd,
+        kodeJenis,
+        tglspd,
+        kbaw as kodeBulanAwal,
+        kba as kodeBulanAkhir,
+        ketspd as keteranganSpd, 
+        idakun as "akun.idAkun",
+        kodeakun as "akun.kodeAkun",
+        namaakun as "akun.namaAkun",
+        nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   tmspdrincibtl.I_id as idSpdRinciBtl,
+        tmspd.I_id as idSpd,
+        tmspdrincibtl.I_IDbtl as idBtl,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS idskpd,
+        trskpd.c_skpd as cskpd,
+        trskpd.n_skpd as nskpd,
+        tmspd.i_spdno as noSpd,
+        tmspd.c_jenis as kodeJenis,
+        tmspd.d_spdno as tglspd,
+        tmspd.c_bulan_awal as kbaw,
+        tmspd.c_bulan_akhir as kba,
+        tmspd.e_spd as ketspd, 
+        tmdpabtl.I_IDBAS as idakun,
+        trbas.c_akun as kodeakun,
+        trbas.n_akun as namaakun,
+        tmspdrincibtl.v_spd as nilaiSpd
+        FROM   tmspd left join tmspdrincibtl on tmspd.I_id = tmspdrincibtl.I_IDSPD
+        left join  tmdpabtl  on tmdpabtl.i_id = tmspdrincibtl.I_IDbtl   
+        left join trbas on tmdpabtl.I_IDBAS = trbas.I_ID 
+        inner join  trskpd on trskpd.i_id = tmspd.i_idskpd
+        WHERE   tmspd.c_jenis = '1'
+        AND substr(trbas.c_akun,1,5) in ('5.1.1','5.1.2','5.1.8')
+        and tmspd.c_angg_tahun= #{tahun}
+        and tmspd.i_idskpd= #{idskpd}
+        and tmspdrincibtl.i_idbas = #{idakun}  
+        and  exists ( select 1 from tmspdcetak where  tmspd.i_id = tmspdcetak.i_id)             
+        and  not exists ( select 1 from tmspdsah where  tmspd.i_id = tmspdsah.i_id)
+        )a)xxxx
+    </select>
+    <select id="getCountPopupDetailSpdCetakBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from (
+        SELECT   
+        idSpdRinciBtl,
+        idSpd,
+        IdBtl,
+        tahun,
+        idskpd as "skpd.idSkpd",
+        cskpd as "skpd.kodeSkpd",
+        nskpd as "skpd.namaSkpd",
+        noSpd,
+        kodeJenis,
+        tglspd,
+        kbaw as kodeBulanAwal,
+        kba as kodeBulanAkhir,
+        ketspd as keteranganSpd, 
+        idakun as "akun.idAkun",
+        kodeakun as "akun.kodeAkun",
+        namaakun as "akun.namaAkun",
+        nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   tmspdrincibtl.I_id as idSpdRinciBtl,
+        tmspd.I_id as idSpd,
+        tmspdrincibtl.I_IDbtl as idBtl,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS idskpd,
+        trskpd.c_skpd as cskpd,
+        trskpd.n_skpd as nskpd,
+        tmspd.i_spdno as noSpd,
+        tmspd.c_jenis as kodeJenis,
+        tmspd.d_spdno as tglspd,
+        tmspd.c_bulan_awal as kbaw,
+        tmspd.c_bulan_akhir as kba,
+        tmspd.e_spd as ketspd, 
+        tmdpabtl.I_IDBAS as idakun,
+        trbas.c_akun as kodeakun,
+        trbas.n_akun as namaakun,
+        tmspdrincibtl.v_spd as nilaiSpd
+        FROM   tmspd left join tmspdrincibtl on tmspd.I_id = tmspdrincibtl.I_IDSPD
+        left join  tmdpabtl  on tmdpabtl.i_id = tmspdrincibtl.I_IDbtl   
+        left join trbas on tmdpabtl.I_IDBAS = trbas.I_ID 
+        inner join  trskpd on trskpd.i_id = tmspd.i_idskpd
+        WHERE   tmspd.c_jenis = '1'
+        AND substr(trbas.c_akun,1,5) in ('5.1.1','5.1.2','5.1.8')
+        and tmspd.c_angg_tahun= #{tahun}
+        and tmspd.i_idskpd= #{idskpd}
+        and tmspdrincibtl.i_idbas = #{idakun}  
+        and  exists ( select 1 from tmspdcetak where  tmspd.i_id = tmspdcetak.i_id)             
+        and  not exists ( select 1 from tmspdsah where  tmspd.i_id = tmspdsah.i_id)
+        )a)xxxx
+        )
+    </select>
+    
+    <select id="getPopupDetailSpdSahBtl" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT   
+        idSpdRinciBtl,
+        idSpd,
+        IdBtl,
+        tahun,
+        idskpd as "skpd.idSkpd",
+        cskpd as "skpd.kodeSkpd",
+        nskpd as "skpd.namaSkpd",
+        noSpd,
+        kodeJenis,
+        tglspd,
+        kbaw as kodeBulanAwal,
+        kba as kodeBulanAkhir,
+        ketspd as keteranganSpd, 
+        idakun as "akun.idAkun",
+        kodeakun as "akun.kodeAkun",
+        namaakun as "akun.namaAkun",
+        nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   tmspdrincibtl.I_id as idSpdRinciBtl,
+        tmspd.I_id as idSpd,
+        tmspdrincibtl.I_IDbtl as idBtl,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS idskpd,
+        trskpd.c_skpd as cskpd,
+        trskpd.n_skpd as nskpd,
+        tmspd.i_spdno as noSpd,
+        tmspd.c_jenis as kodeJenis,
+        tmspd.d_spdno as tglspd,
+        tmspd.c_bulan_awal as kbaw,
+        tmspd.c_bulan_akhir as kba,
+        tmspd.e_spd as ketspd, 
+        tmdpabtl.I_IDBAS as idakun,
+        trbas.c_akun as kodeakun,
+        trbas.n_akun as namaakun,
+        tmspdrincibtl.v_spd as nilaiSpd
+        FROM   tmspd left join tmspdrincibtl on tmspd.I_id = tmspdrincibtl.I_IDSPD
+        left join  tmdpabtl  on tmdpabtl.i_id = tmspdrincibtl.I_IDbtl   
+        left join trbas on tmdpabtl.I_IDBAS = trbas.I_ID 
+        inner join  trskpd on trskpd.i_id = tmspd.i_idskpd
+        WHERE   tmspd.c_jenis = '1'
+        AND substr(trbas.c_akun,1,5) in ('5.1.1','5.1.2','5.1.8')
+        and tmspd.c_angg_tahun= #{tahun}
+        and tmspd.i_idskpd= #{idskpd}
+        and tmspdrincibtl.i_idbas = #{idakun}              
+        and   exists ( select 1 from tmspdsah where  tmspd.i_id = tmspdsah.i_id)
+        )a)xxxx
+    </select>
+    <select id="getCountPopupDetailSpdSahBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from 
+        (
+        SELECT   
+        idSpdRinciBtl,
+        idSpd,
+        IdBtl,
+        tahun,
+        idskpd as "skpd.idSkpd",
+        cskpd as "skpd.kodeSkpd",
+        nskpd as "skpd.namaSkpd",
+        noSpd,
+        kodeJenis,
+        tglspd,
+        kbaw as kodeBulanAwal,
+        kba as kodeBulanAkhir,
+        ketspd as keteranganSpd, 
+        idakun as "akun.idAkun",
+        kodeakun as "akun.kodeAkun",
+        namaakun as "akun.namaAkun",
+        nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   tmspdrincibtl.I_id as idSpdRinciBtl,
+        tmspd.I_id as idSpd,
+        tmspdrincibtl.I_IDbtl as idBtl,
+        tmspd.c_angg_tahun as tahun,
+        trskpd.i_id AS idskpd,
+        trskpd.c_skpd as cskpd,
+        trskpd.n_skpd as nskpd,
+        tmspd.i_spdno as noSpd,
+        tmspd.c_jenis as kodeJenis,
+        tmspd.d_spdno as tglspd,
+        tmspd.c_bulan_awal as kbaw,
+        tmspd.c_bulan_akhir as kba,
+        tmspd.e_spd as ketspd, 
+        tmdpabtl.I_IDBAS as idakun,
+        trbas.c_akun as kodeakun,
+        trbas.n_akun as namaakun,
+        tmspdrincibtl.v_spd as nilaiSpd
+        FROM   tmspd left join tmspdrincibtl on tmspd.I_id = tmspdrincibtl.I_IDSPD
+        left join  tmdpabtl  on tmdpabtl.i_id = tmspdrincibtl.I_IDbtl   
+        left join trbas on tmdpabtl.I_IDBAS = trbas.I_ID 
+        inner join  trskpd on trskpd.i_id = tmspd.i_idskpd
+        WHERE   tmspd.c_jenis = '1'
+        AND substr(trbas.c_akun,1,5) in ('5.1.1','5.1.2','5.1.8')
+        and tmspd.c_angg_tahun= #{tahun}
+        and tmspd.i_idskpd= #{idskpd}
+        and tmspdrincibtl.i_idbas = #{idakun}              
+        and   exists ( select 1 from tmspdsah where  tmspd.i_id = tmspdsah.i_id)
+        )a)xxxx
+     
+  
+            
+        )
+      
+    </select>
+    
+    
+    <!-- BANTUAN -->
+    <select id="getPopupDetailSpdSpdBantuan" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT 
+        I_IDSPDRINCI as idSpdRinci,
+        I_IDSPD as idSpd,
+        I_IDBTLBANTUAN as idBtlBantuan,
+        i_spdno as noSpd,
+        tglSpd,
+        C_SKPD as "skpd.kodeSkpd",
+        N_SKPD as "skpd.namaSkpd",
+        I_IDSKPDKOORD as idskpdkoor,
+        C_SKPD_KOORD as kodeSkpdKoor,
+        N_SKPDKOORD as namaSkpdKoor,
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        C_ANGG_TAHUN as tahun,
+        V_SPD as nilaiSpd
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT
+        
+        
+        tmspdrincibtlbantuan.i_id I_IDSPDRINCI,
+        tmspd.i_id I_IDSPD,
+        tmdpabtlBANTUAN.I_ID I_IDBTLBANTUAN,
+        tmspd.i_spdno,
+        tmspd.d_spdno AS tglSpd,
+        trskpd2.c_skpd C_SKPD,
+        trskpd2.n_skpd N_SKPD,
+        tmdpabtlBANTUAN.I_IDSKPDKOORD,
+        trskpd.c_skpd C_SKPD_KOORD,
+        trskpd.n_skpd N_SKPDKOORD,
+        tmdpabtlBANTUAN.C_KEGIATAN,
+        tmdpabtlBANTUAN.N_KEGIATAN,
+        tmdpabtlBANTUAN.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmdpabtlBANTUAN.C_ANGG_TAHUN,
+        tmspdrincibtlbantuan.V_SPD
+        FROM                     tmspd
+        LEFT JOIN
+        tmspdrincibtlbantuan
+        ON tmspd.I_ID = tmspdrincibtlbantuan.I_IDSPD
+        LEFT JOIN
+        tmdpabtlBANTUAN
+        ON tmspdrincibtlbantuan.I_IDBTLBANTUAN =
+        tmdpabtlBANTUAN.I_ID
+        LEFT JOIN
+        trbas
+        ON trbas.i_id = tmdpabtlBANTUAN.i_IDBAS
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmdpabtlBANTUAN.I_IDSKPDKOORD
+        LEFT JOIN
+        TMDPABTL
+        ON tmdpabtlBANTUAN.I_IDBTL = tmdpabtl.i_id
+        LEFT JOIN
+        trskpd trskpd2
+        ON trskpd2.i_id = tmdpabtl.I_IDSKPD
+        WHERE       tmspd.C_JENIS = '2'
+        AND NOT EXISTS (SELECT   1
+        FROM   tmspdcetak
+        WHERE   tmspd.i_id = tmspdcetak.i_id)
+                          
+        and tmspdrincibtlbantuan.i_idskpdkoord =#{idskpd}
+        <!-- and tmdpabtlBANTUAN.i_idKegiatan=80269  -->
+        and tmdpabtlBANTUAN.I_ID = #{idbtlbantuan}
+        )a)
+    </select>
+    <select id="getCountPopupDetailSpdSpdBantuan" parameterType="java.util.Map"  resultType="java.lang.Integer">
+    
+        select count(*) as banyak from (
+        SELECT 
+        I_IDSPDRINCI as idSpdRinci,
+        I_IDSPD as idSpd,
+        I_IDBTLBANTUAN as idBtlBantuan,
+        i_spdno as noSpd,
+        tglSpd,
+        C_SKPD as "skpd.kodeSkpd",
+        N_SKPD as "skpd.namaSkpd",
+        I_IDSKPDKOORD as idskpdkoor,
+        C_SKPD_KOORD as kodeSkpdKoor,
+        N_SKPDKOORD as namaSkpdKoor,
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        C_ANGG_TAHUN as tahun,
+        V_SPD as nilaiSpd
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT
+        
+        
+        tmspdrincibtlbantuan.i_id I_IDSPDRINCI,
+        tmspd.i_id I_IDSPD,
+        tmdpabtlBANTUAN.I_ID I_IDBTLBANTUAN,
+        tmspd.i_spdno,
+        tmspd.d_spdno AS tglSpd,
+        trskpd2.c_skpd C_SKPD,
+        trskpd2.n_skpd N_SKPD,
+        tmdpabtlBANTUAN.I_IDSKPDKOORD,
+        trskpd.c_skpd C_SKPD_KOORD,
+        trskpd.n_skpd N_SKPDKOORD,
+        tmdpabtlBANTUAN.C_KEGIATAN,
+        tmdpabtlBANTUAN.N_KEGIATAN,
+        tmdpabtlBANTUAN.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmdpabtlBANTUAN.C_ANGG_TAHUN,
+        tmspdrincibtlbantuan.V_SPD
+        FROM                     tmspd
+        LEFT JOIN
+        tmspdrincibtlbantuan
+        ON tmspd.I_ID = tmspdrincibtlbantuan.I_IDSPD
+        LEFT JOIN
+        tmdpabtlBANTUAN
+        ON tmspdrincibtlbantuan.I_IDBTLBANTUAN =
+        tmdpabtlBANTUAN.I_ID
+        LEFT JOIN
+        trbas
+        ON trbas.i_id = tmdpabtlBANTUAN.i_IDBAS
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmdpabtlBANTUAN.I_IDSKPDKOORD
+        LEFT JOIN
+        TMDPABTL
+        ON tmdpabtlBANTUAN.I_IDBTL = tmdpabtl.i_id
+        LEFT JOIN
+        trskpd trskpd2
+        ON trskpd2.i_id = tmdpabtl.I_IDSKPD
+        WHERE       tmspd.C_JENIS = '2'
+        AND NOT EXISTS (SELECT   1
+        FROM   tmspdcetak
+        WHERE   tmspd.i_id = tmspdcetak.i_id)
+                          
+        and tmspdrincibtlbantuan.i_idskpdkoord =#{idskpd}
+        <!-- and tmdpabtlBANTUAN.i_idKegiatan=80269  -->
+        and tmdpabtlBANTUAN.I_ID = #{idbtlbantuan}
+        )a)
+        )
+    </select>
+    
+    <select id="getPopupDetailSpdCetakBantuan" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT 
+        I_IDSPDRINCI as idSpdRinci,
+        I_IDSPD as idSpd,
+        I_IDBTLBANTUAN as idBtlBantuan,
+        i_spdno as noSpd,
+        tglSpd,
+        C_SKPD as "skpd.kodeSkpd",
+        N_SKPD as "skpd.namaSkpd",
+        I_IDSKPDKOORD as idskpdkoor,
+        C_SKPD_KOORD as kodeSkpdKoor,
+        N_SKPDKOORD as namaSkpdKoor,
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        C_ANGG_TAHUN as tahun,
+        V_SPD as nilaiSpd
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT
+        
+        
+        tmspdrincibtlbantuan.i_id I_IDSPDRINCI,
+        tmspd.i_id I_IDSPD,
+        tmdpabtlBANTUAN.I_ID I_IDBTLBANTUAN,
+        tmspd.i_spdno,
+        tmspd.d_spdno AS tglSpd,
+        trskpd2.c_skpd C_SKPD,
+        trskpd2.n_skpd N_SKPD,
+        tmdpabtlBANTUAN.I_IDSKPDKOORD,
+        trskpd.c_skpd C_SKPD_KOORD,
+        trskpd.n_skpd N_SKPDKOORD,
+        tmdpabtlBANTUAN.C_KEGIATAN,
+        tmdpabtlBANTUAN.N_KEGIATAN,
+        tmdpabtlBANTUAN.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmdpabtlBANTUAN.C_ANGG_TAHUN,
+        tmspdrincibtlbantuan.V_SPD
+        FROM                     tmspd
+        LEFT JOIN
+        tmspdrincibtlbantuan
+        ON tmspd.I_ID = tmspdrincibtlbantuan.I_IDSPD
+        LEFT JOIN
+        tmdpabtlBANTUAN
+        ON tmspdrincibtlbantuan.I_IDBTLBANTUAN =
+        tmdpabtlBANTUAN.I_ID
+        LEFT JOIN
+        trbas
+        ON trbas.i_id = tmdpabtlBANTUAN.i_IDBAS
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmdpabtlBANTUAN.I_IDSKPDKOORD
+        LEFT JOIN
+        TMDPABTL
+        ON tmdpabtlBANTUAN.I_IDBTL = tmdpabtl.i_id
+        LEFT JOIN
+        trskpd trskpd2
+        ON trskpd2.i_id = tmdpabtl.I_IDSKPD
+        WHERE       tmspd.C_JENIS = '2'
+        AND EXISTS (SELECT   1
+        FROM   tmspdcetak
+        WHERE   tmspd.i_id = tmspdcetak.i_id)
+        AND NOT EXISTS (SELECT   1
+        FROM   tmspdsah
+        WHERE   tmspd.i_id = tmspdsah.i_id)
+                          
+        and tmspdrincibtlbantuan.i_idskpdkoord =#{idskpd}
+        <!-- and tmdpabtlBANTUAN.i_idKegiatan=80269  -->
+        and tmdpabtlBANTUAN.I_ID = #{idbtlbantuan}
+        )a)
+    </select>
+    <select id="getCountPopupDetailSpdCetakBantuan" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count (*) as banyak from (
+        SELECT 
+        I_IDSPDRINCI as idSpdRinci,
+        I_IDSPD as idSpd,
+        I_IDBTLBANTUAN as idBtlBantuan,
+        i_spdno as noSpd,
+        tglSpd,
+        C_SKPD as "skpd.kodeSkpd",
+        N_SKPD as "skpd.namaSkpd",
+        I_IDSKPDKOORD as idskpdkoor,
+        C_SKPD_KOORD as kodeSkpdKoor,
+        N_SKPDKOORD as namaSkpdKoor,
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        C_ANGG_TAHUN as tahun,
+        V_SPD as nilaiSpd
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT
+        
+        
+        tmspdrincibtlbantuan.i_id I_IDSPDRINCI,
+        tmspd.i_id I_IDSPD,
+        tmdpabtlBANTUAN.I_ID I_IDBTLBANTUAN,
+        tmspd.i_spdno,
+        tmspd.d_spdno AS tglSpd,
+        trskpd2.c_skpd C_SKPD,
+        trskpd2.n_skpd N_SKPD,
+        tmdpabtlBANTUAN.I_IDSKPDKOORD,
+        trskpd.c_skpd C_SKPD_KOORD,
+        trskpd.n_skpd N_SKPDKOORD,
+        tmdpabtlBANTUAN.C_KEGIATAN,
+        tmdpabtlBANTUAN.N_KEGIATAN,
+        tmdpabtlBANTUAN.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmdpabtlBANTUAN.C_ANGG_TAHUN,
+        tmspdrincibtlbantuan.V_SPD
+        FROM                     tmspd
+        LEFT JOIN
+        tmspdrincibtlbantuan
+        ON tmspd.I_ID = tmspdrincibtlbantuan.I_IDSPD
+        LEFT JOIN
+        tmdpabtlBANTUAN
+        ON tmspdrincibtlbantuan.I_IDBTLBANTUAN =
+        tmdpabtlBANTUAN.I_ID
+        LEFT JOIN
+        trbas
+        ON trbas.i_id = tmdpabtlBANTUAN.i_IDBAS
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmdpabtlBANTUAN.I_IDSKPDKOORD
+        LEFT JOIN
+        TMDPABTL
+        ON tmdpabtlBANTUAN.I_IDBTL = tmdpabtl.i_id
+        LEFT JOIN
+        trskpd trskpd2
+        ON trskpd2.i_id = tmdpabtl.I_IDSKPD
+        WHERE       tmspd.C_JENIS = '2'
+        AND EXISTS (SELECT   1
+        FROM   tmspdcetak
+        WHERE   tmspd.i_id = tmspdcetak.i_id)
+        AND NOT EXISTS (SELECT   1
+        FROM   tmspdsah
+        WHERE   tmspd.i_id = tmspdsah.i_id)
+                          
+        and tmspdrincibtlbantuan.i_idskpdkoord = #{idskpd}
+        <!-- and tmdpabtlBANTUAN.i_idKegiatan=80269  -->
+        and tmdpabtlBANTUAN.I_ID = #{idbtlbantuan}
+        )a))
+    </select>
+    
+    <select id="getPopupDetailSpdSahBantuan" parameterType="java.util.Map"  resultType="spp.model.MonitoringSpd">
+        SELECT
+        I_IDSPDRINCI as idSpdRinci,
+        I_IDSPD as idSpd,
+        I_IDBTLBANTUAN as idBtlBantuan,
+        i_spdno as noSpd,
+        tglSpd,
+        C_SKPD as "skpd.kodeSkpd",
+        N_SKPD as "skpd.namaSkpd",
+        I_IDSKPDKOORD as idskpdkoor,
+        C_SKPD_KOORD as kodeSkpdKoor,
+        N_SKPDKOORD as namaSkpdKoor,
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        C_ANGG_TAHUN as tahun,
+        V_SPD as nilaiSpd
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT
+
+
+        tmspdrincibtlbantuan.i_id I_IDSPDRINCI,
+        tmspd.i_id I_IDSPD,
+        tmdpabtlBANTUAN.I_ID I_IDBTLBANTUAN,
+        tmspd.i_spdno,
+        tmspd.d_spdno as tglSpd,
+        trskpd2.c_skpd C_SKPD,
+        trskpd2.n_skpd N_SKPD,
+        tmdpabtlBANTUAN.I_IDSKPDKOORD,
+        trskpd.c_skpd C_SKPD_KOORD,
+        trskpd.n_skpd N_SKPDKOORD,
+        tmdpabtlBANTUAN.C_KEGIATAN,
+        tmdpabtlBANTUAN.N_KEGIATAN,
+        tmdpabtlBANTUAN.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmdpabtlBANTUAN.C_ANGG_TAHUN,
+        tmspdrincibtlbantuan.V_SPD
+        FROM                     tmspd
+        LEFT JOIN
+        tmspdrincibtlbantuan
+        ON tmspd.I_ID = tmspdrincibtlbantuan.I_IDSPD
+        LEFT JOIN
+        tmdpabtlBANTUAN
+        ON tmspdrincibtlbantuan.I_IDBTLBANTUAN =
+        tmdpabtlBANTUAN.I_ID
+        LEFT JOIN
+        trbas
+        ON trbas.i_id = tmdpabtlBANTUAN.i_IDBAS
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmdpabtlBANTUAN.I_IDSKPDKOORD
+        LEFT JOIN
+        TMDPABTL
+        ON tmdpabtlBANTUAN.I_IDBTL = tmdpabtl.i_id
+        LEFT JOIN
+        trskpd trskpd2
+        ON trskpd2.i_id = tmdpabtl.I_IDSKPD
+        WHERE   tmspd.C_JENIS = '2'
+        AND EXISTS (SELECT   1
+        FROM   tmspdsah
+        WHERE   tmspd.i_id = tmspdsah.i_id)
+                          
+        and tmspdrincibtlbantuan.i_idskpdkoord = #{idskpd}
+        <!-- and tmdpabtlBANTUAN.i_idKegiatan=80269  -->
+        and tmdpabtlBANTUAN.I_ID = #{idbtlbantuan}
+        )a)
+    </select>
+    <select id="getCountPopupDetailSpdSahBantuan" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from (
+        SELECT
+        I_IDSPDRINCI as idSpdRinci,
+        I_IDSPD as idSpd,
+        I_IDBTLBANTUAN as idBtlBantuan,
+        i_spdno as noSpd,
+        tglSpd,
+        C_SKPD as "skpd.kodeSkpd",
+        N_SKPD as "skpd.namaSkpd",
+        I_IDSKPDKOORD as idskpdkoor,
+        C_SKPD_KOORD as kodeSkpdKoor,
+        N_SKPDKOORD as namaSkpdKoor,
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN as "kegiatan.namaKegiatan",
+        I_IDBAS as "akun.idAkun",
+        c_akun as "akun.kodeAkun",
+        n_akun as "akun.namaAkun",
+        C_ANGG_TAHUN as tahun,
+        V_SPD as nilaiSpd
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT
+
+
+        tmspdrincibtlbantuan.i_id I_IDSPDRINCI,
+        tmspd.i_id I_IDSPD,
+        tmdpabtlBANTUAN.I_ID I_IDBTLBANTUAN,
+        tmspd.i_spdno,
+        tmspd.d_spdno AS tglSpd,
+        trskpd2.c_skpd C_SKPD,
+        trskpd2.n_skpd N_SKPD,
+        tmdpabtlBANTUAN.I_IDSKPDKOORD,
+        trskpd.c_skpd C_SKPD_KOORD,
+        trskpd.n_skpd N_SKPDKOORD,
+        tmdpabtlBANTUAN.C_KEGIATAN,
+        tmdpabtlBANTUAN.N_KEGIATAN,
+        tmdpabtlBANTUAN.I_IDBAS,
+        trbas.c_akun,
+        trbas.n_akun,
+        tmdpabtlBANTUAN.C_ANGG_TAHUN,
+        tmspdrincibtlbantuan.V_SPD
+        FROM                     tmspd
+        LEFT JOIN
+        tmspdrincibtlbantuan
+        ON tmspd.I_ID = tmspdrincibtlbantuan.I_IDSPD
+        LEFT JOIN
+        tmdpabtlBANTUAN
+        ON tmspdrincibtlbantuan.I_IDBTLBANTUAN =
+        tmdpabtlBANTUAN.I_ID
+        LEFT JOIN
+        trbas
+        ON trbas.i_id = tmdpabtlBANTUAN.i_IDBAS
+        LEFT JOIN
+        trskpd
+        ON trskpd.i_id = tmdpabtlBANTUAN.I_IDSKPDKOORD
+        LEFT JOIN
+        TMDPABTL
+        ON tmdpabtlBANTUAN.I_IDBTL = tmdpabtl.i_id
+        LEFT JOIN
+        trskpd trskpd2
+        ON trskpd2.i_id = tmdpabtl.I_IDSKPD
+        WHERE   tmspd.C_JENIS = '2'
+        AND EXISTS (SELECT   1
+        FROM   tmspdsah
+        WHERE   tmspd.i_id = tmspdsah.i_id)
+        and tmspdrincibtlbantuan.i_idskpdkoord =#{idskpd}
+        <!-- and tmdpabtlBANTUAN.i_idKegiatan=80269  -->
+        and tmdpabtlBANTUAN.I_ID = #{idbtlbantuan}
+        )a))
+    </select>
+</mapper>

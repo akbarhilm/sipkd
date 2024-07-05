@@ -1,0 +1,981 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spp.entity.KontrakMapper">
+    <select id="getKontrak" parameterType="java.util.Map" resultType="spp.model.Kontrak">
+
+        SELECT
+        I_ID AS idKontrak,
+        C_ANGG_TAHUN AS tahunAnggaran,
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        I_KONTR AS noKontrak,
+        D_KONTR AS tanggalKontrak,
+        N_SKPD AS "skpd.namaSkpd",
+        --I_IDSPD AS noSpd,
+        V_KONTR AS nilaiKontrak,
+        N_REKAN AS namaRekanan,
+        C_METODE AS "metode.kodeMetode",
+        I_IDSPP AS idspp,
+        I_IDBAST as idBast
+        FROM   (SELECT ROWNUM AS rn, a.*
+        FROM   (SELECT
+        K.I_ID,
+        K.C_ANGG_TAHUN,
+        KE.N_KEGIATAN,
+        K.I_KONTR,
+        K.D_KONTR,
+        SK.N_SKPD,
+        --I_SPDNO as I_IDSPD,
+        K.V_KONTR,
+        K.N_REKAN,
+        K.C_METODE,
+        max(NVL(tmspp.i_id, 0)) as I_IDSPP,
+        max(NVL(tmbast.i_id, 0)) as I_IDBAST
+        FROM   TMKONTRAK K left join  tmspp on k.i_id = tmspp.i_idkontrak
+        left join  tmbast on k.i_id = tmbast.i_idkontrak
+        --inner join TMSPD S on  K.I_IDSPD = S.i_id
+        inner join TRSKPD SK on  K.I_IDSKPD = SK.I_ID
+        inner join TMDPAKEGIATAN KE on K.I_IDKEGIATAN = KE.I_ID
+        WHERE   k.c_angg_tahun =#{tahun}
+        and k.i_idskpd = #{idskpd}
+
+        <if test="namakegiatan != null and namakegiatan != '' ">
+            and upper(KE.N_KEGIATAN) like '%'||upper(#{namakegiatan})||'%'
+        </if>
+        <if test="rekanan != null and rekanan != '' ">
+            and upper(K.N_REKAN) like '%'||upper(#{rekanan})||'%'
+        </if>
+        <if test="kodemetode != null and kodemetode != '' ">
+            and upper(K.C_METODE) like '%'||upper(#{kodemetode})||'%'
+        </if>
+
+        <!-- <if test="tglmulai != null and tglakhir != null">
+            and K.D_KONTR BETWEEN #{tglmulai} AND
+            #{tglakhir}
+        </if> -->
+        <if test="nilai1 != null and nilai1 != '' and nilai2 != null and nilai2 != ''">
+            and K.V_KONTR BETWEEN #{nilai1} AND
+            #{nilai2}
+        </if>
+
+        group by  K.I_ID,
+        K.C_ANGG_TAHUN,
+        KE.N_KEGIATAN,
+        K.I_KONTR,
+        K.D_KONTR,
+        SK.N_SKPD,
+        --I_SPDNO,
+        K.V_KONTR,
+        K.N_REKAN,
+        K.C_METODE
+
+        ORDER BY
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                K.I_KONTR
+            </when>
+            <when test="iSortCol_0 == 6 ">
+                K.V_KONTR
+            </when>
+            <otherwise>
+                K.I_ID
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise>
+                asc
+            </otherwise>
+        </choose>
+        ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getnoKontrak"  parameterType="java.lang.Integer" resultType="java.lang.String" >
+        select I_KONTR AS noKontrak  from tmkontrak where I_ID = #{idKontrak}
+    </select>
+
+
+    <select id="getCountKontrak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak from (
+        SELECT
+        K.I_ID,
+        K.C_ANGG_TAHUN,
+        KE.N_KEGIATAN,
+        K.I_KONTR,
+        K.D_KONTR,
+        SK.N_SKPD,
+        --I_SPDNO as I_IDSPD,
+        K.V_KONTR,
+        K.N_REKAN,
+        K.C_METODE,
+        max(NVL(tmspp.i_id, 0)) as I_IDSPP,
+        max(NVL(tmbast.i_id, 0)) as I_IDBAST
+        FROM   TMKONTRAK K left join  tmspp on k.i_id = tmspp.i_idkontrak
+        left join  tmbast on k.i_id = tmbast.i_idkontrak
+        --inner join TMSPD S on  K.I_IDSPD = S.i_id
+        inner join TRSKPD SK on  K.I_IDSKPD = SK.I_ID
+        inner join TMDPAKEGIATAN KE on K.I_IDKEGIATAN = KE.I_ID
+        WHERE   k.c_angg_tahun =#{tahun}
+        and k.i_idskpd = #{idskpd}
+
+        <if test="namakegiatan != null and namakegiatan != '' ">
+            and upper(KE.N_KEGIATAN) like '%'||upper(#{namakegiatan})||'%'
+        </if>
+        <if test="rekanan != null and rekanan != '' ">
+            and upper(K.N_REKAN) like '%'||upper(#{rekanan})||'%'
+        </if>
+        <if test="kodemetode != null and kodemetode != '' ">
+            and upper(K.C_METODE) like '%'||upper(#{kodemetode})||'%'
+        </if>
+
+        <!-- <if test="tglmulai != null and tglakhir != null">
+            and K.D_KONTR BETWEEN #{tglmulai} AND
+            #{tglakhir}
+        </if> -->
+        <if test="nilai1 != null and nilai1 != '' and nilai2 != null and nilai2 != ''">
+            and K.V_KONTR BETWEEN #{nilai1} AND
+            #{nilai2}
+        </if>
+
+        group by  K.I_ID,
+        K.C_ANGG_TAHUN,
+        KE.N_KEGIATAN,
+        K.I_KONTR,
+        K.D_KONTR,
+        SK.N_SKPD,
+        --I_SPDNO,
+        K.V_KONTR,
+        K.N_REKAN,
+        K.C_METODE
+
+        ORDER BY
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                K.I_KONTR
+            </when>
+            <when test="iSortCol_0 == 6 ">
+                K.V_KONTR
+            </when>
+            <otherwise>
+                K.I_ID
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise>
+                asc
+            </otherwise>
+        </choose>
+        )
+    </select>
+    <select id="getMetode" parameterType="java.util.Map" resultType="spp.model.Metode">
+        SELECT
+        C_METODE_GROUP AS kodeMetodeGroup,
+        C_METODE AS kodeMetode,
+        E_METODE AS ketMetode
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT
+        M.C_METODE_GROUP,
+        M.C_METODE,
+        M.E_METODE
+        FROM
+        TRMETODE M
+        WHERE 1=1 AND M.C_METODE !=  '00' AND M.C_METODE !=  '--'
+        <if test="namametode != null and namametode != '' ">
+            and upper(M.E_METODE) like '%'||upper(#{namametode})||'%'
+        </if>
+        ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getCountMetode" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (M.C_METODE_GROUP)
+        FROM      TRMETODE M
+        where  M.C_METODE !=  '00' AND M.C_METODE !=  '--'
+        <if test="namametode != null and namametode != '' ">
+            AND upper(M.E_METODE) like '%'||upper(#{namametode})||'%'
+        </if>
+    </select>
+    <select id="getKegiatanLama" parameterType="java.util.Map" resultType="spp.model.Kontrak">
+        SELECT C_ANGG_TAHUN AS tahunAnggaran,
+        I_IDSPD AS "spd.idSpd",
+        i_spdno AS "spd.idSpdNo",
+        I_IDSKPD AS "skpd.idSkpd",
+        I_IDKEGIATAN AS "kegiatan.idKegiatan",
+        c_skpd AS "skpd.kodeSkpd",
+        n_skpd AS "skpd.namaSkpd",
+        C_KEGIATAN AS "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        N_URUSAN AS "urusan.namaUrusan",
+        N_PROGRAM AS "refProgram.namaProgram",
+        V_SPD + nvl(nilaiTU,0) AS nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   tmspd.C_ANGG_TAHUN,
+        tmspd.i_id I_IDSPD,
+        tmspd.i_spdno,
+        tmspd.I_IDSKPD,
+        tmspdrincibl.I_IDKEGIATAN,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        trurusan.N_URUSAN,
+        trprogram.N_PROGRAM,
+        SUM (tmspdrincibl.V_SPD) V_SPD,
+        (select sum(v_kas_keluar-v_kas_terima)  from tmbkuskpdpengeluaran
+        where C_BEBAN = 'TU'
+        and c_trx = 'ST'
+        and c_jenis = 3
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = tmspdrincibl.i_idkegiatan
+        and i_idspd = tmspd.i_id
+        and i_jour is not null ) as nilaiTU
+        FROM   tmspd,
+        tmspdrincibl,
+        tmspdsah,
+        trskpd,
+        tmdpakegiatan,
+        trprogram,
+        trurusan
+        WHERE       tmspd.I_ID = tmspdrincibl.I_IDSPD
+        AND tmspd.I_ID = tmspdsah.I_ID
+        AND    trskpd.I_ID = tmspd.I_IDSKPD
+        AND tmspd.I_IDSKPD =  tmdpakegiatan.I_IDSKPD
+        AND tmspdrincibl.I_IDKegiatan = tmdpakegiatan.I_ID
+        AND tmdpakegiatan.I_IDPROGRAM = trprogram.i_id
+        AND trprogram.I_IDURUSAN = trurusan.i_id
+        AND tmspd.C_JENIS = '3'
+        and  tmdpakegiatan.I_IDSKPD = #{idskpd}
+        and tmdpakegiatan.C_ANGG_TAHUN = #{tahun}
+        AND tmspdrincibl.C_SPD_STATUS &lt;&gt; 'P'
+        GROUP BY   tmspd.C_ANGG_TAHUN,
+        tmspd.i_id,
+        tmspd.i_spdno,
+        tmspd.I_IDSKPD,
+        tmspdrincibl.I_IDKEGIATAN,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        trurusan.N_URUSAN,
+        trprogram.N_PROGRAM
+        ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getCountKegiatanLama" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (*) as banyak from (
+        SELECT C_ANGG_TAHUN AS tahunAnggaran,
+        I_IDSPD AS "spd.idSpd",
+        i_spdno AS "spd.idSpdNo",
+        I_IDSKPD AS "skpd.idSkpd",
+        I_IDKEGIATAN AS "kegiatan.idKegiatan",
+        c_skpd AS "skpd.kodeSkpd",
+        n_skpd AS "skpd.namaSkpd",
+        C_KEGIATAN AS "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        N_URUSAN AS "urusan.namaUrusan",
+        N_PROGRAM AS "refProgram.namaProgram",
+        V_SPD AS nilaiSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   tmspd.C_ANGG_TAHUN,
+        tmspd.i_id I_IDSPD,
+        tmspd.i_spdno,
+        tmspd.I_IDSKPD,
+        tmspdrincibl.I_IDKEGIATAN,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        trurusan.N_URUSAN,
+        trprogram.N_PROGRAM,
+        SUM (tmspdrincibl.V_SPD) V_SPD
+        FROM   tmspd,
+        tmspdrincibl,
+        tmspdsah,
+        trskpd,
+        tmdpakegiatan,
+        trprogram,
+        trurusan
+        WHERE tmspd.I_ID = tmspdrincibl.I_IDSPD
+        AND tmspd.I_ID = tmspdsah.I_ID
+        AND trskpd.I_ID = tmspd.I_IDSKPD
+        AND tmspd.I_IDSKPD =  tmdpakegiatan.I_IDSKPD
+        AND tmspdrincibl.I_IDKegiatan = tmdpakegiatan.I_ID
+        AND tmdpakegiatan.I_IDPROGRAM = trprogram.i_id
+        AND trprogram.I_IDURUSAN = trurusan.i_id
+        AND tmspd.C_JENIS = '3'
+        and  tmdpakegiatan.I_IDSKPD = #{idskpd}
+        and tmdpakegiatan.C_ANGG_TAHUN = #{tahun}
+        AND tmspdrincibl.C_SPD_STATUS &lt;&gt; 'P'
+        GROUP BY   tmspd.C_ANGG_TAHUN,
+        tmspd.i_id,
+        tmspd.i_spdno,
+        tmspd.I_IDSKPD,
+        tmspdrincibl.I_IDKEGIATAN,
+        trskpd.c_skpd,
+        trskpd.n_skpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        trurusan.N_URUSAN,
+        trprogram.N_PROGRAM
+        ) a))
+    </select>
+
+    <insert id="insertKontrak" parameterType="spp.model.Kontrak" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="idKontrak" >
+        INSERT INTO TMKONTRAK(
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDKEGIATAN,
+        I_KONTR,
+        I_IDSPD,
+        I_IDSKPD,
+        C_METODE,
+        I_DOK_REFF,
+        I_KONTR_REFF,
+        D_KONTR,
+        V_KONTR,
+        V_KONTR_TOTAL,
+        I_KONTR_TOTAL,
+        I_DOK_TTKONTRNO,
+        I_KONTR_MOHON,
+        D_KONTR_MOHON,
+        C_ANGG_SUMBDANA,
+        D_DOK_TTKONTR,
+        I_DOK_SIMPAN,
+        I_KONTR_LOKASI,
+        C_WIL,
+        C_WIL_SPMPROSES,
+        E_KONTR_PEKR,
+        I_KONTR_SKPIMPRO,
+        N_KONTR_PIMPRO,
+        D_KONTR_SKPIMPRO,
+        I_REKAN_TENDER,
+        I_REKAN_DIKDIP,
+        D_REKAN_DIKDIP,
+        I_PO,
+        D_JAD_KONTRAWAL,
+        D_JAD_KONTRAKHIR,
+        I_KONTR_DENDA,
+        I_KONTR_BUKTIDENDA,
+        I_KONTR_PPH,
+        I_DOK_LELANG,
+        I_DOK_REVISI,
+        N_REKAN_DIR,
+        A_REKAN,
+        I_REKAN_AKTE,
+        D_REKAN_AKTE,
+        I_REKAN_NPWP,
+        N_REKAN,
+        N_REKAN_BANK,
+        N_BANK,
+        A_BANK,
+        I_REK_BANK,
+        C_BANK_TRANSFER,
+        N_BANK_TRANSFER,
+        C_BANK,
+        I_IDBANKPFK_INDUK,
+        C_REK_BANKVA,
+        N_REKAN_NPWP,
+        A_REKAN_NPWP,
+        N_NPWP_KOTA,
+        C_PKP_STATUS,
+        C_SKB_STATUS,
+        I_SKB,
+        C_BL_JENIS,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )
+        VALUES(
+        SEQ_TMKONTRAK.nextval,
+        #{tahunAnggaran},
+        #{kegiatan.idKegiatan},
+        #{noKontrak},
+        -1,
+        #{skpd.idSkpd},
+        #{metode.kodeMetode},
+        #{idDokReferensi},
+        #{idKontrakReferensi},
+        #{tanggalKontrak},
+        round(#{nilaiSpd},0),
+        round(#{nilaiKontrakTotal},0),
+        #{noKontrakTotal},
+        #{idDokKontrNo},
+        #{idKontrakMohon},
+        #{tglKontrakMohon},
+        #{kodeAnggaranSumbdana},
+        #{tanggalDokTtkontr},
+        #{idDokSimpan},
+        #{idLokasiKontrak},
+        #{kodeWilayahSkpd},
+        #{kodeWilayahProsesSpm},
+        #{ketPekrKontrak},
+        #{idSkPimPro},
+        UPPER(#{namaPimPro}),
+        #{tanggalSkPimPro},
+        #{idRekananTender},
+        #{idRekananDikdip},
+        #{tanggalRekananDikdip},
+        #{nomorPo},
+        #{tanggalAwalJadwalKontrak},
+        #{tanggalAkhirJadwalKontrak},
+        #{idDendaKontrak},
+        #{idBuktiDendaKontrak},
+        #{idKontrakPph},
+        #{idLelang},
+        #{idRevisi},
+        UPPER(#{rekanan.namaDirekturRekanan}),
+        UPPER(#{rekanan.alamatRekanan}),
+        #{rekanan.idRekananAkte},
+        #{rekanan.tanggalRekananAkte},
+        regexp_replace(#{rekanan.idRekananNpwp},'[-. /]',''),
+        UPPER(#{rekanan.namaRekanan}),
+        UPPER(#{namaRekananBank}),
+        #{namaBank},
+        UPPER(#{alamatBank}),
+        regexp_replace(#{rekeningBank},'[-. /]',''),
+        #{kodeBankTransfer},
+        #{namaBankTransfer},
+        #{kodeBankPfk},
+        #{idBankPfk},
+        #{kodeVA},
+        #{namaNpwp},
+        #{alamatNpwp},
+        #{kotaNpwp},
+        #{kodePkp},
+        #{kodeSuratKet},
+        #{nomorSuratKet},
+        #{kodeBelanja},
+        #{idEntry},
+        #{tglEntry}
+        )
+    </insert>
+    <select id="getKontrakById" parameterType="java.lang.Integer"   resultType="spp.model.Kontrak">
+        SELECT   K.I_ID AS idKontrak,
+        K.C_ANGG_TAHUN AS tahunAnggaran,
+        K.I_IDKEGIATAN AS "kegiatan.idKegiatan",
+        KE.N_KEGIATAN AS "kegiatan.namaKegiatan",
+        K.I_KONTR AS noKontrak,
+        --K.I_IDSPD AS "spd.idSpd",
+        --SPD.I_SPDNO AS "spd.idSpdNo",
+        K.I_IDSKPD AS "skpd.idSkpd",
+        K.C_METODE AS "metode.kodeMetode",
+        KA.E_METODE AS "metode.ketMetode",
+        K.I_DOK_REFF AS idDokReferensi,
+        K.I_KONTR_REFF AS idKontrakReferensi,
+        K.D_KONTR AS tanggalKontrak,
+        K.V_KONTR AS nilaiSpd,
+        K.V_KONTR_TOTAL AS nilaiKontrakTotal,
+        K.I_KONTR_TOTAL AS noKontrakTotal,
+        K.I_DOK_TTKONTRNO AS idDokKontrNo,
+        K.I_KONTR_MOHON AS idKontrakMohon,
+        K.D_KONTR_MOHON AS tglKontrakMohon,
+        K.C_ANGG_SUMBDANA AS kodeAnggaranSumbdana,
+        K.D_DOK_TTKONTR AS tanggalDokTtkontr,
+        K.I_DOK_SIMPAN AS idDokSimpan,
+        K.I_KONTR_LOKASI AS idLokasiKontrak,
+        K.C_WIL AS kodeWilayahSkpd,
+        K.C_WIL_SPMPROSES AS kodeWilayahProsesSpm,
+        K.E_KONTR_PEKR AS ketPekrKontrak,
+        K.I_KONTR_SKPIMPRO AS idSkPimPro,
+        K.N_KONTR_PIMPRO AS namaPimPro,
+        K.D_KONTR_SKPIMPRO AS tanggalSkPimPro,
+        K.I_REKAN_TENDER AS idRekananTender,
+        K.I_REKAN_DIKDIP AS idRekananDikdip,
+        K.D_REKAN_DIKDIP AS tanggalRekananDikdip,
+        K.I_PO AS nomorPo,
+        K.D_JAD_KONTRAWAL AS tanggalAwalJadwalKontrak,
+        K.D_JAD_KONTRAKHIR AS tanggalAkhirJadwalKontrak,
+        K.I_KONTR_DENDA AS idDendaKontrak,
+        K.I_KONTR_BUKTIDENDA AS idBuktiDendaKontrak,
+        K.I_KONTR_PPH AS idKontrakPph,
+        K.I_DOK_LELANG AS idLelang,
+        K.I_DOK_REVISI AS idRevisi,
+        K.N_REKAN_DIR AS "rekanan.namaDirekturRekanan",
+        K.A_REKAN AS "rekanan.alamatRekanan",
+        K.I_REKAN_AKTE AS "rekanan.idRekananAkte",
+        K.D_REKAN_AKTE AS "rekanan.tanggalRekananAkte",
+        K.I_REKAN_NPWP AS "rekanan.idRekananNpwp",
+        K.N_REKAN AS "rekanan.namaRekanan",
+        K.N_BANK AS namaBank,
+        K.A_BANK AS alamatBank,
+        K.I_REK_BANK AS rekeningBank,
+        K.I_IDBANKPFK_INDUK AS idBankPfk,
+        K.C_BANK AS kodeBankPfk,
+        K.C_BANK_TRANSFER AS kodeBankTransfer,
+        K.N_BANK_TRANSFER AS namaBankTransfer,
+        K.C_REK_BANKVA AS kodeVA,
+        K.N_REKAN_BANK as namaRekananBank,
+        K.N_REKAN_NPWP as namaNpwp,
+        K.A_REKAN_NPWP as alamatNpwp,
+        K.N_NPWP_KOTA as kotaNpwp,
+        K.C_PKP_STATUS as kodePkp,
+        K.C_SKB_STATUS AS kodeSuratKet,
+        K.I_SKB AS nomorSuratKet,
+        K.C_BL_JENIS AS kodeBelanja
+        FROM   TMKONTRAK K,
+        TMDPAKEGIATAN KE,
+        TRMETODE KA
+        WHERE K.I_IDKEGIATAN = KE.I_ID
+        AND K.C_METODE = KA.C_METODE
+        AND K.I_ID = #{value}
+
+    </select>
+
+    <update id="updateKontrak" parameterType="spp.model.Kontrak"   >
+        UPDATE TMKONTRAK
+        SET
+        C_ANGG_TAHUN = #{tahunAnggaran},
+        I_IDKEGIATAN = #{kegiatan.idKegiatan},
+        I_KONTR = #{noKontrak},
+        <!--I_IDSPD = #{spd.idSpd}, -->
+        I_IDSKPD = #{skpd.idSkpd},
+        C_METODE = #{metode.kodeMetode},
+        I_DOK_REFF = #{idDokReferensi},
+        I_KONTR_REFF = #{idKontrakReferensi},
+        D_KONTR = #{tanggalKontrak},
+        V_KONTR = round(#{nilaiSpd},0),
+        V_KONTR_TOTAL = round(#{nilaiKontrakTotal},0),
+        I_KONTR_TOTAL = #{noKontrakTotal},
+        I_DOK_TTKONTRNO = #{idDokKontrNo},
+        I_KONTR_MOHON = #{idKontrakMohon},
+        D_KONTR_MOHON = #{tglKontrakMohon},
+        C_ANGG_SUMBDANA = #{kodeAnggaranSumbdana},
+        D_DOK_TTKONTR = #{tanggalDokTtkontr},
+        I_DOK_SIMPAN = #{idDokSimpan},
+        I_KONTR_LOKASI = #{idLokasiKontrak},
+        C_WIL = #{kodeWilayahSkpd},
+        C_WIL_SPMPROSES = #{kodeWilayahProsesSpm},
+        E_KONTR_PEKR = #{ketPekrKontrak},
+        I_KONTR_SKPIMPRO = #{idSkPimPro},
+        N_KONTR_PIMPRO = UPPER(#{namaPimPro}),
+        D_KONTR_SKPIMPRO = #{tanggalSkPimPro},
+        I_REKAN_TENDER = #{idRekananTender},
+        I_REKAN_DIKDIP = #{idRekananDikdip},
+        D_REKAN_DIKDIP = #{tanggalRekananDikdip},
+        I_PO = #{nomorPo},
+        D_JAD_KONTRAWAL = #{tanggalAwalJadwalKontrak},
+        D_JAD_KONTRAKHIR = #{tanggalAkhirJadwalKontrak},
+        I_KONTR_DENDA = #{idDendaKontrak},
+        I_KONTR_BUKTIDENDA = #{idBuktiDendaKontrak},
+        I_KONTR_PPH = #{idKontrakPph},
+        I_DOK_LELANG = #{idLelang},
+        I_DOK_REVISI = #{idRevisi},
+        N_REKAN_DIR = UPPER(#{rekanan.namaDirekturRekanan}),
+        A_REKAN = UPPER(#{rekanan.alamatRekanan}),
+        I_REKAN_AKTE = #{rekanan.idRekananAkte},
+        D_REKAN_AKTE = #{rekanan.tanggalRekananAkte},
+        I_REKAN_NPWP = regexp_replace(#{rekanan.idRekananNpwp},'[-. /]',''),
+        N_REKAN = UPPER(#{rekanan.namaRekanan}),
+        N_REKAN_BANK = UPPER(#{namaRekananBank}),
+        N_BANK = #{namaBank},
+        A_BANK = UPPER(#{alamatBank}),
+        I_REK_BANK = regexp_replace(#{rekeningBank},'[-. /]',''),
+        C_BANK_TRANSFER = #{kodeBankTransfer},
+        N_BANK_TRANSFER = #{namaBankTransfer},
+        C_BANK = #{kodeBankPfk},
+        I_IDBANKPFK_INDUK = #{idBankPfk},
+        C_REK_BANKVA = #{kodeVA},
+        N_REKAN_NPWP = #{namaNpwp},
+        A_REKAN_NPWP = #{alamatNpwp},
+        N_NPWP_KOTA = #{kotaNpwp},
+        C_PKP_STATUS = #{kodePkp},
+        C_SKB_STATUS = #{kodeSuratKet},
+        I_SKB = #{nomorSuratKet},
+        C_BL_JENIS = #{kodeBelanja},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = #{tglEntry}
+        WHERE  I_ID  = #{idKontrak}
+
+    </update>
+
+    <delete id="deleteKontrak" parameterType="java.lang.Integer"   >
+        delete TMKONTRAK     WHERE I_ID      = #{idKontrak}
+        and not exists (select 1 from tmbast where  tmbast.i_idkontrak = TMKONTRAK .i_id)
+    </delete>
+
+    <delete id="deleteKontrakRinci" parameterType="java.lang.Integer"   >
+        delete TMKONTRAKRINCI  WHERE I_IDKONTRAK = #{idKontrak}
+        and not exists (select 1 from tmbast where  tmbast.i_idkontrak = TMKONTRAKRINCI .i_idkontrak)
+    </delete>
+
+    <select id="getBastKontrak" parameterType="java.util.Map" resultType="java.lang.String">
+        select nvl(sum(v_bast),0) as nilaibast from tmbast
+        where i_idkontrak = #{idkontrak} and i_idskpd = #{idskpd}
+    </select>
+
+    <select id="getSisaKontrak" parameterType="java.util.Map" resultType="java.lang.String">
+        select nvl(sum(v_spd - V_KONTR - v_spp_tu - v_spj + v_setoran),0) sisa_kontrak
+        from (
+        select nvl((tmspdrincibl.v_spd),0) v_spd , 0 as V_KONTR ,0  as v_spp_tu, 0 as v_spj , 0 as v_setoran from tmspd, tmspdsah, tmspdrincibl
+        where tmspd.I_id= tmspdsah.i_id
+        and tmspd.I_id = tmspdrincibl.i_idspd
+        and tmspd.c_angg_tahun = #{tahun}
+        and tmspd.i_idskpd = #{idskpd}
+        and tmspd.I_Id = #{idspd}
+        and tmspdrincibl.I_IDKEGIATAN = #{idkegiatan}
+        union all
+        select 0 v_spd , nvl((tmkontrak.V_KONTR),0) as V_KONTR , 0  as v_spp_tu, 0 as v_spj , 0 as v_setoran from tmkontrak
+        where tmkontrak.c_angg_tahun = #{tahun}
+        and tmkontrak.i_idskpd = #{idskpd}
+        and tmkontrak.I_IDKEGIATAN = #{idkegiatan}
+        and tmkontrak.i_id  &lt;&gt; #{idkontrak}
+        and tmkontrak.i_idspd = #{idspd} <!-- di tambah 8 Sept 2015 -->
+        union all
+        select 0 v_spd , 0 as V_KONTR , nvl((v_spp),0)  as v_spp_tu, 0 as v_spj , 0 as v_setoran from tmspp, tmspprincibl
+        where  tmspp.I_id = tmspprincibl.i_idspp
+        and tmspp.C_BEBAN = 'TU'   <!-- BAGIAN YANG BERUABAH -->
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd = #{idskpd}
+        and tmspprincibl.i_idspd = #{idspd}
+        and tmspprincibl.I_IDKEGIATAN = #{idkegiatan}
+        union all
+        select 0 v_spd , 0 as V_KONTR , 0  as v_spp_tu, 0 as v_spj , <!-- ditambah 160816 agar setor TU bisa digunakan kembali -->
+        nvl((v_kas_keluar-v_kas_terima),0) as v_setoran  from tmbkuskpdpengeluaran
+        where C_BEBAN = 'TU'
+        and c_trx = 'ST'
+        and c_jenis = 3
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_jour is not null <!-- HARUS YANG SUDAH JURNAL -->
+        and i_idspd = #{idspd}
+        <!-- remark : judi / 31082015 tidak menghitung SPJ dan setoran (kemungkinan bisa pelampauan anggaran)
+        union all
+        select 0 v_spd , 0 as V_KONTR, 0  as v_spp_tu,  nvl((v_spj),0) as v_spj , 0 as v_setoran from tmspj, tmspjrincibl
+        where  tmspj.I_id = tmspjrincibl.i_idspj
+        and tmspjrincibl.C_BEBAN in ('UP','GU')
+        and tmspj.c_angg_tahun = #{tahun}
+        and tmspj.i_idskpd = #{idskpd}
+        and tmspjrincibl.I_IDKEGIATAN = #{idkegiatan}
+        union all
+        select 0 v_spd , 0 as V_KONTR, 0  as v_spp_tu, 0 as v_spj ,  nvl((tmsetorrinci.V_SETOR),0) as v_setoran from tmsetor, tmsetorrinci
+        where  tmsetor.I_id = tmsetorrinci.i_idsetor
+        and tmsetor.c_angg_tahun = #{tahun}
+        and tmsetor.i_idskpd = #{idskpd}
+        and tmsetorrinci.I_IDKEGIATAN = #{idkegiatan}
+        -->
+        )
+    </select>
+
+    <select id="validasiNomorKontrak" parameterType="java.lang.String" resultType="java.lang.Integer">
+        SELECT COUNT (DISTINCT (A.I_KONTR)) AS banyak
+        FROM tmkontrak a
+        WHERE A.I_KONTR = #{value}
+    </select>
+
+    <select id="getTotalNilaiKontrakPerBast"  parameterType="java.util.Map" resultType="java.math.BigDecimal" >
+        SELECT NVL (SUM (A.V_BAST), 0) AS jumlah
+        FROM tmbast a
+        WHERE A.I_IDKONTRAK = #{idKontrak} AND A.I_IDSKPD = #{idSkpd} and A.C_ANGG_TAHUN=#{tahun}
+    </select>
+
+    <select id="getKodeMultiyear" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select nvl(c_angg_multiyear,0) as kodeMultiyear
+        from tmdpakegiatan
+        where i_id = #{idkegiatan}
+        and i_idskpd = #{idskpd}
+
+    </select>
+
+    <select id="getSisaKontrakSpj" parameterType="java.util.Map" resultType="spp.model.Kontrak">
+        select nvl(sum(nilaiSpd + setotanTU),0) as nilaiSpd,  nvl(sum(nilaiKontrak),0) as nilaiKontrak,
+        nvl(sum(nilaiBku),0) as nilaiBku, nvl(sum (nilaiSpd - nilaiKontrak - nilaiBku) ,0) as nilaiSisa
+        from (
+        SELECT tmspdrincibl.v_spd AS nilaispd, 0 AS nilaikontrak, 0 AS nilaibku,  0 as setotanTU
+        FROM tmspd, tmspdrincibl, tmspdsah
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        UNION ALL
+        SELECT 0 AS nilaispd, v_kontr AS nilaikontrak, 0 AS nilaibku, 0 as setotanTU
+        FROM tmkontrak
+        WHERE i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        and tmkontrak.i_id &lt;&gt; #{idkontrak}
+        UNION ALL
+        SELECT 0 AS nilaispd, 0 AS nilaikontrak,
+        SUM (v_kas_keluar - v_kas_terima) AS nilaibku, 0 as setotanTU
+        FROM tmbkuskpdpengeluaran
+        WHERE c_angg_tahun = #{tahun}
+        AND c_trx = 'JJ'
+        AND i_idskpd = #{idskpd}
+        AND i_idkegiatan = #{idkegiatan}
+
+        union all<!-- ditambah 160816 agar setor TU bisa digunakan kembali -->
+        select 0 AS nilaispd, 0 AS nilaikontrak, 0 AS nilaibku , nvl((v_kas_keluar-v_kas_terima),0) as setotanTU
+        from tmbkuskpdpengeluaran
+        where C_BEBAN = 'TU'
+        and c_trx = 'ST'
+        and c_jenis = 3
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_jour is not null <!-- HARUS YANG SUDAH JURNAL -->
+
+        ) xxx
+    </select>
+
+    <select id="getBankInduk" parameterType="java.util.Map" resultType="spp.model.Kontrak">
+
+
+        SELECT   idBankPfk,kodeBankTransfer, namaBankTransfer, kodeBankPfk,namaBankPfk
+        FROM   (SELECT ROWNUM AS rn, a.*  FROM  (
+        select i_id as idBankPfk, c_bank_transfer as kodeBankTransfer, n_bank_transfer as namaBankTransfer ,
+        c_bank as kodeBankPfk, n_bank as namaBankPfk
+        from trbankpfk  where i_idinduk = 0
+
+        <if test="nama != null and nama != '' ">
+            and upper(n_bank_transfer) like '%'||upper(#{nama})||'%'
+        </if>
+        <if test="kode != null and kode != '' ">
+            and c_bank_transfer like '%'||upper(#{kode})||'%'
+        </if>
+
+        order by n_bank_transfer
+        ) a) WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getCountBankInduk" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak from (
+        select i_id as idBankPfk, c_bank_transfer as kodeBankPfk, n_bank_transfer as namaBankPfk
+        from trbankpfk  where i_idinduk = 0
+
+        <if test="nama != null and nama != '' ">
+            and upper(n_bank_transfer) like '%'||upper(#{nama})||'%'
+        </if>
+        <if test="kode != null and kode != '' ">
+            and c_bank_transfer like '%'||upper(#{kode})||'%'
+        </if>
+        )
+    </select>
+
+    <select id="getNoKontrakCek" parameterType="java.util.Map" resultType="spp.model.Kontrak">
+        select i_spdno as noSpd, c_kegiatan||'/'||n_kegiatan as pesan
+        from tmkontrak , tmspd, tmdpakegiatan
+        where tmkontrak.i_idspd =  tmspd.i_id
+        and tmkontrak.i_idkegiatan = tmdpakegiatan.i_id
+        AND tmkontrak.c_angg_tahun = #{tahun}
+        AND tmkontrak.i_idskpd = #{idskpd}
+        and lower(i_kontr) = lower(#{nokontrak})
+        and tmkontrak.i_id != #{idkontrak}
+    </select>
+
+    <select id="getSisaKontrakSpd" parameterType="java.util.Map" resultType="spp.model.Kontrak">
+        select nvl(sum(nilaispd-nilaikontrak-nilaiupgutu+v_setoran),0) as nilaiSisa
+        from (
+        SELECT tmspdrincibl.v_spd AS nilaispd, 0 AS nilaikontrak, 0 as nilaiupgutu, 0 as v_setoran
+        FROM tmspd, tmspdrincibl, tmspdsah
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        and i_idspd = #{idspd}
+
+        UNION ALL
+        SELECT 0 AS nilaispd, v_kontr AS nilaikontrak, 0 AS nilaiupgutu, 0 as v_setoran
+        FROM tmkontrak
+        WHERE i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        and i_idspd =  #{idspd}
+        and tmkontrak.i_id != #{idkontrak}
+
+        UNION ALL
+        select 0 AS nilaispd, 0 AS nilaikontrak, v_spp AS nilaiupgutu, 0 as v_setoran
+        from tmspp, tmspprincibl
+        where tmspp.i_id = tmspprincibl.i_idspp
+        and i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        and i_idspd = #{idspd}
+        and c_beban != 'LS'
+
+        union all
+        select 0 AS nilaispd, 0 AS nilaikontrak, 0 AS nilaiupgutu , nvl((v_kas_keluar-v_kas_terima),0) as v_setoran
+        from tmbkuskpdpengeluaran
+        where C_BEBAN = 'TU'
+        and c_trx = 'ST'
+        and c_jenis = 3
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_jour is not null -- HARUS YANG SUDAH JURNAL -->
+        and i_idspd = #{idspd}
+        )
+    </select>
+
+
+    <select id="getKegiatan" parameterType="java.util.Map" resultType="spp.model.Kontrak">
+        SELECT idKegiatan AS "kegiatan.idKegiatan", c_kegiatan as "kegiatan.kodeKegiatan",
+        n_kegiatan as "kegiatan.namaKegiatan",  nilaiAngg, kontrakSebelum as nilaiKontrakSebelum, nilaiKontrak,
+        nilaiTU, nilaiSetoran, nilaiUPGU, nilaiSisa
+        FROM   (SELECT   ROWNUM AS rn, a.*  FROM   (
+        select idKegiatan, c_kegiatan, n_kegiatan,  nilaiAngg, kontrakSebelum, nilaiKontrak,
+        nilaiTU, nilaiSetoran, nilaiUPGU, nilaiSisa from (
+        select i_idkegiatan as idKegiatan,  sum(nilaiAngg) as nilaiAngg, sum(kontrakSebelum) as kontrakSebelum,
+        sum(nilaiKontrak) as nilaiKontrak, sum(nilaiTU) as nilaiTU, sum(nilaiSetoran) as nilaiSetoran,
+        sum(nilaiUPGU) as nilaiUPGU, sum(nilaiAngg-kontrakSebelum-nilaiTU-nilaiUPGU+nilaiSetoran) as nilaiSisa
+        from (
+        select i_idkegiatan,  sum(V_ANGG_TAPD) as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmdpabl
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and V_ANGG_TAPD > 0
+        group by i_idkegiatan
+        union all
+        select i_idkegiatan, 0 as nilaiAngg, V_KONTR as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmkontrak where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id != #{idkontrak}
+        union all
+        select i_idkegiatan, 0 as nilaiAngg, 0 as kontrakSebelum, V_KONTR as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmkontrak where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id = #{idkontrak}
+        union all
+        select i_idkegiatan, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, v_spp as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmspp, tmspprincibl
+        where tmspp.i_id =  tmspprincibl.i_idspp
+        and c_beban = 'TU'
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        union all
+        select i_idkegiatan, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, (v_kas_keluar-v_kas_terima) as nilaiSetoran, 0 as nilaiUPGU
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'ST'
+        and c_beban = 'TU'
+        union all
+        select i_idkegiatan, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran,  (v_kas_keluar-v_kas_terima) as nilaiUPGU
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'JJ'
+        and c_beban in ('UP','GU')
+        ) group by i_idkegiatan
+        ) xxx, tmdpakegiatan
+        where xxx.idKegiatan =  tmdpakegiatan.i_id
+        ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        <if test="namakeg != null and namakeg != '' ">
+            and upper(n_kegiatan) like '%'||upper(#{namakeg})||'%'
+        </if>
+        <if test="kodekeg != null and kodekeg != '' ">
+            and upper(c_kegiatan) like '%'||upper(#{kodekeg})||'%'
+        </if>
+    </select>
+    <select id="getCountKegiatan" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (*) as banyak from (
+        select idKegiatan, c_kegiatan, n_kegiatan,  nilaiAngg, kontrakSebelum, nilaiKontrak,
+        nilaiTU, nilaiSetoran, nilaiUPGU, nilaiSisa from (
+        select i_idkegiatan as idKegiatan,  sum(nilaiAngg) as nilaiAngg, sum(kontrakSebelum) as kontrakSebelum,
+        sum(nilaiKontrak) as nilaiKontrak, sum(nilaiTU) as nilaiTU, sum(nilaiSetoran) as nilaiSetoran,
+        sum(nilaiUPGU) as nilaiUPGU, sum(nilaiAngg-kontrakSebelum-nilaiTU-nilaiUPGU+nilaiSetoran) as nilaiSisa
+        from (
+        select i_idkegiatan,  sum(V_ANGG_TAPD) as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmdpabl
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and V_ANGG_TAPD > 0
+        group by i_idkegiatan
+        union all
+        select i_idkegiatan, 0 as nilaiAngg, V_KONTR as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmkontrak where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id != #{idkontrak}
+        union all
+        select i_idkegiatan, 0 as nilaiAngg, 0 as kontrakSebelum, V_KONTR as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmkontrak where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id = #{idkontrak}
+        union all
+        select i_idkegiatan, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, v_spp as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmspp, tmspprincibl
+        where tmspp.i_id =  tmspprincibl.i_idspp
+        and c_beban = 'TU'
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        union all
+        select i_idkegiatan, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, (v_kas_keluar-v_kas_terima) as nilaiSetoran, 0 as nilaiUPGU
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'ST'
+        and c_beban = 'TU'
+        union all
+        select i_idkegiatan, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran,  (v_kas_keluar-v_kas_terima) as nilaiUPGU
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'JJ'
+        and c_beban in ('UP','GU')
+        ) group by i_idkegiatan
+        ) xxx, tmdpakegiatan
+        where xxx.idKegiatan =  tmdpakegiatan.i_id
+        <if test="namakeg != null and namakeg != '' ">
+            and upper(n_kegiatan) like '%'||upper(#{namakeg})||'%'
+        </if>
+        <if test="kodekeg != null and kodekeg != '' ">
+            and upper(c_kegiatan) like '%'||upper(#{kodekeg})||'%'
+        </if>
+        )
+    </select>
+
+    <select id="getSisaAnggaran" parameterType="java.util.Map" resultType="spp.model.Kontrak">
+        select  sum(nilaiAngg-kontrakSebelum-nilaiTU-nilaiUPGU+nilaiSetoran) as nilaiSisa
+        from (
+        select  sum(V_ANGG_TAPD) as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmdpabl
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and V_ANGG_TAPD > 0
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select  0 as nilaiAngg, V_KONTR as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmkontrak where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id != #{idkontrak}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select  0 as nilaiAngg, 0 as kontrakSebelum, V_KONTR as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmkontrak where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id = #{idkontrak}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, v_spp as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU
+        from tmspp, tmspprincibl
+        where tmspp.i_id =  tmspprincibl.i_idspp
+        and c_beban = 'TU'
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select  0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, (v_kas_keluar-v_kas_terima) as nilaiSetoran, 0 as nilaiUPGU
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'ST'
+        and c_beban = 'TU'
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran,  (v_kas_keluar-v_kas_terima) as nilaiUPGU
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'JJ'
+        and c_beban in ('UP','GU')
+        and i_idkegiatan = #{idkegiatan}
+        )
+    </select>
+
+</mapper>

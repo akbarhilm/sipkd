@@ -1,0 +1,794 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spp.entity.SppBtlGajiMapper">
+
+    <select id="getListGaji" parameterType="java.util.Map"  resultType="spp.model.SppBtlGaji">
+        SELECT  bulanRekap, tglPublish, macamGaji, jenisGaji, jumKotor, uraianGaji
+        FROM (SELECT   ROWNUM AS rn, a.*  FROM (
+        <!--
+        SELECT i_id as idList, substr(d_peg_rekap,5,2) || '/' || substr(d_peg_rekap,1,4) as bulanRekap,
+        substr(D_PEG_PUBLISH,1,10) as tglPublish,
+        c_peg_macam as macamGaji, c_peg_jenis as jenisGaji, decode(substr(c_peg_macam,1,3),'TKD',v_peg_jumber,v_peg_jumkot) as jumKotor, e_peg as uraianGaji
+        FROM tmpegrekaplist
+        WHERE i_idskpd = #{idskpd}
+        AND i_idspp = 0
+        and c_angg_tahun = #{tahun}
+        and D_PEG_REKAP between #{tahun}||'01' and #{tahun}||'14'
+
+
+        <if test="macam != null and macam != '' and macam != 'SEMUA' ">
+            and upper(c_peg_macam) like '%'||upper(#{macam})||'%'
+        </if>
+        -->
+
+        SELECT substr(y.TAHUN_BULAN,5,2) || '/' || substr(y.TAHUN_BULAN,1,4) as bulanRekap,
+        substr(y.TGL_PUBLISH,1,10) as tglPublish,
+        y.MACAM as macamGaji, y.JENIS as jenisGaji, decode(substr(y.MACAM,1,3),'TKD',y.JUMBER,y.JUMKOT) as jumKotor, y.KEPERLUAN as uraianGaji
+        from (
+        SELECT
+        TAHUN_BULAN, TGL_PUBLISH, MACAM,   JENIS, KODE_UNIT_SIPKD
+        FROM REKAP_PENGHASILAN
+        where ( substr(TAHUN_BULAN,1,4) = #{tahun} or  TAHUN_BULAN = (#{tahun} - 1) || '12')
+        and   KODE_UNIT_SIPKD = (select c_skpd from trskpd where i_id = #{idskpd})
+        and TGL_PUBLISH is not null
+        minus
+        SELECT   D_PEG_REKAP,D_PEG_PUBLISH, C_PEG_MACAM, C_PEG_JENIS,   C_SKPD
+        FROM TMPEGREKAPLIST
+        ) x, REKAP_PENGHASILAN y
+        where x.TAHUN_BULAN = y.TAHUN_BULAN
+        and x.TGL_PUBLISH = y.TGL_PUBLISH
+        and x.MACAM = y.MACAM
+        and x.JENIS = y.JENIS
+        and x.KODE_UNIT_SIPKD = y.KODE_UNIT_SIPKD
+        and upper(y.MACAM) like '%'||upper(#{macam})||'%'
+
+        )a)WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        order by bulanRekap
+    </select>
+
+    <select id="getBanyakListGaji" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (*) AS banyak from (
+        <!--
+        SELECT i_id as idList, substr(d_peg_rekap,5,2) || '/' || substr(d_peg_rekap,1,4) as bulanRekap,
+        c_peg_macam as macamGaji, c_peg_jenis as jenisGaji, v_peg_jumkot as jumKotor, e_peg as uraianGaji
+        FROM tmpegrekaplist
+        WHERE i_idskpd = #{idskpd}
+        AND i_idspp = 0
+        and c_angg_tahun = #{tahun}
+        and D_PEG_REKAP between #{tahun}||'01' and #{tahun}||'14'
+
+        <if test="macam != null and macam != '' and macam != 'SEMUA' ">
+            and upper(c_peg_macam) like '%'||upper(#{macam})||'%'
+        </if>
+        -->
+
+        SELECT substr(y.TAHUN_BULAN,5,2) || '/' || substr(y.TAHUN_BULAN,1,4) as bulanRekap,
+        substr(y.TGL_PUBLISH,1,10) as tglPublish,
+        y.MACAM as macamGaji, y.JENIS as jenisGaji, decode(substr(y.MACAM,1,3),'TKD',y.JUMBER,y.JUMKOT) as jumKotor, y.KEPERLUAN as uraianGaji
+        from (
+        SELECT
+        TAHUN_BULAN, TGL_PUBLISH, MACAM,   JENIS, KODE_UNIT_SIPKD
+        FROM REKAP_PENGHASILAN
+        where ( substr(TAHUN_BULAN,1,4) = #{tahun} or  TAHUN_BULAN = (#{tahun} - 1) || '12')
+        and   KODE_UNIT_SIPKD = (select c_skpd from trskpd where i_id = #{idskpd})
+        and TGL_PUBLISH is not null
+        minus
+        SELECT   D_PEG_REKAP,D_PEG_PUBLISH, C_PEG_MACAM, C_PEG_JENIS,   C_SKPD
+        FROM TMPEGREKAPLIST
+        ) x, REKAP_PENGHASILAN y
+        where x.TAHUN_BULAN = y.TAHUN_BULAN
+        and x.TGL_PUBLISH = y.TGL_PUBLISH
+        and x.MACAM = y.MACAM
+        and x.JENIS = y.JENIS
+        and x.KODE_UNIT_SIPKD = y.KODE_UNIT_SIPKD
+        and upper(y.MACAM) like '%'||upper(#{macam})||'%'
+        )
+
+    </select>
+
+    <select id="getBankRekByIdSkpd" parameterType="java.util.Map"  resultType="java.util.Map">
+        SELECT   MAX (T.C_BANK) AS C_BANK,
+        T.N_BANK,
+        T.I_REK_BANKSTS,
+        T.I_REK_BANKSPM
+        FROM    TRSKPDBANKREK T
+        WHERE   T.I_IDSKPD = #{idskpd} AND T.C_AKTIF = 1
+        AND #{tahun}  between  T.C_TAHUN_BERLAKU and   T.C_TAHUN_BERAKHIR
+        GROUP BY   T.C_BANK,
+        T.N_BANK,
+        T.I_REK_BANKSTS,
+        T.I_REK_BANKSPM
+    </select>
+
+    <select id="getBankDki" parameterType="java.util.Map"  resultType="java.util.Map">
+        select C_BANK_TRANSFER, N_BANK_TRANSFER, C_BANK, N_BANK, to_char(I_ID) as I_ID
+        from trbankpfk where  i_idinduk = 0
+        and n_bank_transfer = 'BANK DKI'
+    </select>
+
+    <select id="getBendaharaByIdSkpd" parameterType="java.util.Map"  resultType="java.util.Map">
+        SELECT
+        T.I_NIP_PKBLJ,
+        T.N_PKBLJ
+
+        FROM   TMDPA T, TRSKPD S
+
+        WHERE T.I_IDSKPD = S.I_ID
+        AND T.C_ANGG_TAHUN = #{tahun}
+        AND T.I_IDSKPD = #{idskpd}
+        AND S.C_AKTIF = '1'
+    </select>
+
+    <select id="getAllSppBtl" parameterType="java.util.Map"  resultType="spp.model.SppBtl">
+        SELECT   C_ANGG_TAHUN AS tahun,
+        I_ID AS id,
+        I_SPPNO AS noSpp,
+        D_SPPNO AS tglSpp,
+        c_simpeg as kodeSimpeg,
+        V_SPP AS nilaiSpp
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   T.c_angg_tahun,
+        T.I_id,
+        T.i_sppno,
+        T.d_sppno,
+        T.C_JENIS_SIMPEG AS c_simpeg,
+        SUM (B.V_SPP) AS V_SPP
+        FROM   TMSPP T left join  TMSPPRINCIBTL B on (T.I_ID = B.I_IDSPP)
+        WHERE    T.C_JENIS = '1'
+        AND T.C_BEBAN = 'LS'
+        AND T.C_JENIS_SIMPEG &lt;&gt; '-1'
+        AND T.C_ANGG_TAHUN = #{tahun}
+        AND T.I_IDSKPD = #{idskpd}
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPPCETAK C
+        WHERE   T.I_ID = C.I_ID)
+        GROUP BY   T.C_ANGG_TAHUN,
+        T.I_ID,
+        T.I_SPPNO,
+        T.D_SPPNO,
+        T.C_JENIS_SIMPEG)a)WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getBanyakSppBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (T.I_ID) AS banyak
+        FROM   TMSPP T
+        WHERE    T.C_JENIS = '1'
+        AND T.C_BEBAN = 'LS'
+        AND T.C_JENIS_SIMPEG &lt;&gt; '-1'
+        AND T.C_ANGG_TAHUN = #{tahun}
+        AND T.I_IDSKPD = #{idskpd}
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPPCETAK C
+        WHERE   T.I_ID = C.I_ID)
+    </select>
+
+    <select id="getAllRinciBtl" parameterType="java.util.Map"  resultType="spp.model.SppBtlRinci">
+        SELECT   I_IDSPD AS idSpd,
+        I_IDBTL AS idBtl,
+        I_IDBAS AS "akun.idAkun",
+        C_AKUN AS "akun.kodeAkun",
+        N_AKUN AS "akun.namaAkun",
+        V_SPD AS nilaiSpd,
+        V_SPP AS nilaiSpp,
+        V_SPPSEBELUM AS nilaiSppSebelum,
+        V_SPPSISA AS nilaiSppSisa,
+        C_SPD_STATUS AS statusSpd,
+        I_SPDNO AS noSpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   XXXX.c_angg_tahun,
+        XXXX.I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        I_IDBAS,
+        C_AKUN,
+        N_AKUN,
+        SUM (V_SPD) AS V_SPD,
+        SUM (V_SPPSEBELUM) AS V_SPPSEBELUM,
+        SUM (V_SPD - V_SPPSEBELUM) AS V_SPPSISA,
+        SUM (V_SPP) AS V_SPP,
+        I_IDSPD,
+        I_SPDNO,
+        C_SPD_STATUS,
+        I_IDBTL
+        FROM   (
+
+        SELECT   tmspd.c_angg_tahun,
+        tmspd.I_IDSKPD AS I_IDSKPD,
+        TMSPDRINCIBTL.I_IDBAS AS I_IDBAS,
+        TMSPDRINCIBTL.v_spd V_SPD,
+        0 AS V_SPPSEBELUM,
+        0 AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBTL.c_spd_status,
+        TMSPDRINCIBTL.I_IDBTL
+        FROM   tmspd, TMSPDRINCIBTL, TMSPDSAH
+        WHERE   (tmspd.I_id = TMSPDRINCIBTL.I_IDSPD)
+        AND tmspd.I_ID = tmspdSAH.I_ID
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.c_jenis = '1'
+        AND tmspd.i_idskpd = #{idskpd}
+
+        UNION ALL
+        SELECT   TMSPP.c_angg_tahun,
+        TMSPP.I_IDSKPD,
+        TMSPPRINCIBTL.I_IDBAS,
+        0 V_SPD,
+        V_SPP AS V_SPPSEBELUM,
+        0 AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBTL.c_spd_status,
+        TMSPPRINCIBTL.I_IDBTL
+        FROM   TMSPP,
+        TMSPPRINCIBTL,
+        tmspd,
+        TMSPDRINCIBTL
+        WHERE   (TMSPP.I_id = TMSPPRINCIBTL.I_IDSPP)
+        AND TMSPP.c_angg_tahun = #{tahun}
+        AND TMSPP.c_jenis = '1'
+        AND TMSPP.i_idskpd = #{idskpd}
+        AND TMSPP.I_ID &lt; &gt; #{idspp}
+        AND TMSPD.I_ID = TMSPPRINCIBTL.I_IDSPD
+        AND TMSPDRINCIBTL.I_IDBAS = TMSPPRINCIBTL.I_IDBAS
+        AND TMSPD.I_IDSKPD = TMSPP.i_idskpd
+        AND TMSPDRINCIBTL.I_IDSPD = TMSPPRINCIBTL.I_idSPD
+
+        UNION ALL
+        SELECT   TMSPP.c_angg_tahun,
+        TMSPP.I_IDSKPD,
+        TMSPPRINCIBTL.I_IDBAS,
+        0 V_SPD,
+        0 AS V_SPPSEBELUM,
+        V_SPP AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBTL.c_spd_status,
+        TMSPPRINCIBTL.I_IDBTL
+        FROM   TMSPP, TMSPPRINCIBTL, tmspd,TMSPDRINCIBTL
+        WHERE   (TMSPP.I_id = TMSPPRINCIBTL.I_IDSPP)
+        AND TMSPDRINCIBTL.I_IDBAS = TMSPPRINCIBTL.I_IDBAS
+        AND TMSPP.c_angg_tahun = #{tahun}
+        AND TMSPP.c_jenis = '1'
+        AND TMSPP.C_BEBAN = 'LS'
+        AND TMSPP.I_ID = #{idspp}
+        AND TMSPD.I_ID = TMSPPRINCIBTL.I_idSPD
+        AND TMSPP.i_idskpd = #{idskpd}
+        AND TMSPD.I_IDSKPD = TMSPP.i_idskpd
+        AND TMSPDRINCIBTL.I_IDSPD = TMSPPRINCIBTL.I_idSPD
+        ) XXXX,
+        TRSKPD,
+        TRBAS
+        WHERE XXXX.I_IDSKPD = TRSKPD.I_ID
+        AND XXXX.I_IDBAS = TRBAS.I_ID
+
+        <if test="kodesimpeg == 1">
+            AND TRBAS.C_AKUN IN
+            ('5.1.1.01.03.001',
+            '5.1.1.01.03.002',
+            '5.1.1.01.03.003',
+            '5.1.1.01.03.005',
+            '5.1.1.01.03.006',
+            '5.1.1.01.03.009',
+            '5.1.1.01.03.010')
+        </if>
+
+        <if test="kodesimpeg == 2">
+            AND TRBAS.C_AKUN IN ('5.1.1.01.03.014', '5.1.1.02.05.002')
+        </if>
+
+        <if test="kodesimpeg == 3">
+            AND TRBAS.C_AKUN IN ('5.1.1.10.01')
+        </if>
+
+        <if test="kodesimpeg == 4">
+            AND TRBAS.C_AKUN IN ('5.1.1.01.03.008')
+        </if>
+
+        GROUP BY   XXXX.c_angg_tahun,
+        XXXX.I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        XXXX.I_IDBAS,
+        C_AKUN,
+        N_AKUN,
+        I_IDSPD,
+        I_SPDNO,
+        C_SPD_STATUS,
+        I_IDBTL
+        HAVING SUM (V_SPD - V_SPPSEBELUM) &lt; &gt; 0
+        ORDER BY I_SPDNO, C_AKUN
+        ) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakRinciBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count(*)
+        FROM   (  SELECT   XXXX.c_angg_tahun,
+        XXXX.I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        I_IDBAS,
+        C_AKUN,
+        N_AKUN,
+        SUM (V_SPD) AS V_SPD,
+        SUM (V_SPPSEBELUM) AS V_SPPSEBELUM,
+        SUM (V_SPD - V_SPPSEBELUM) AS V_SPPSISA,
+        SUM (V_SPP) AS V_SPP,
+        I_IDSPD,
+        I_SPDNO,
+        C_SPD_STATUS,
+        I_IDBTL
+        FROM   (SELECT   tmspd.c_angg_tahun,
+        tmspd.I_IDSKPD AS I_IDSKPD,
+        TMSPDRINCIBTL.I_IDBAS AS I_IDBAS,
+        TMSPDRINCIBTL.v_spd V_SPD,
+        0 AS V_SPPSEBELUM,
+        0 AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBTL.c_spd_status,
+        TMSPDRINCIBTL.I_IDBTL
+        FROM   tmspd, TMSPDRINCIBTL, TMSPDSAH
+        WHERE   (tmspd.I_id = TMSPDRINCIBTL.I_IDSPD)
+        AND tmspd.I_ID = tmspdSAH.I_ID
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.c_jenis = '1'
+        AND tmspd.i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   TMSPP.c_angg_tahun,
+        TMSPP.I_IDSKPD,
+        TMSPPRINCIBTL.I_IDBAS,
+        0 V_SPD,
+        V_SPP AS V_SPPSEBELUM,
+        0 AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBTL.c_spd_status,
+        TMSPPRINCIBTL.I_IDBTL
+        FROM   TMSPP,
+        TMSPPRINCIBTL,
+        tmspd,
+        TMSPDRINCIBTL
+        WHERE   (TMSPP.I_id = TMSPPRINCIBTL.I_IDSPP)
+        AND TMSPP.c_angg_tahun = #{tahun}
+        AND TMSPP.c_jenis = '1'
+        AND TMSPP.i_idskpd = #{idskpd}
+        AND TMSPP.I_ID &lt; &gt; #{idspp}
+        AND TMSPD.I_ID = TMSPPRINCIBTL.I_IDSPD
+        AND TMSPDRINCIBTL.I_IDBAS = TMSPPRINCIBTL.I_IDBAS
+        AND TMSPD.I_IDSKPD = TMSPP.i_idskpd
+        AND TMSPDRINCIBTL.I_IDSPD = TMSPPRINCIBTL.I_idSPD
+        UNION ALL
+        SELECT   TMSPP.c_angg_tahun,
+        TMSPP.I_IDSKPD,
+        TMSPPRINCIBTL.I_IDBAS,
+        0 V_SPD,
+        0 AS V_SPPSEBELUM,
+        V_SPP AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBTL.c_spd_status,
+        TMSPPRINCIBTL.I_IDBTL
+        FROM   TMSPP, TMSPPRINCIBTL, tmspd,TMSPDRINCIBTL
+        WHERE   (TMSPP.I_id = TMSPPRINCIBTL.I_IDSPP)
+        AND TMSPDRINCIBTL.I_IDBAS = TMSPPRINCIBTL.I_IDBAS
+        AND TMSPP.c_angg_tahun = #{tahun}
+        AND TMSPP.c_jenis = '1'
+        AND TMSPP.C_BEBAN = 'LS'
+        AND TMSPP.I_ID = #{idspp}
+        AND TMSPD.I_ID = TMSPPRINCIBTL.I_idSPD
+        AND TMSPP.i_idskpd = #{idskpd}
+        AND TMSPD.I_IDSKPD = TMSPP.i_idskpd
+        AND TMSPDRINCIBTL.I_IDSPD = TMSPPRINCIBTL.I_idSPD
+        ) XXXX,
+        TRSKPD,
+        TRBAS
+        WHERE XXXX.I_IDSKPD = TRSKPD.I_ID
+        AND XXXX.I_IDBAS = TRBAS.I_ID
+
+        <if test="kodesimpeg == 1">
+            AND TRBAS.C_AKUN IN
+            ('5.1.1.01.03.001',
+            '5.1.1.01.03.002',
+            '5.1.1.01.03.003',
+            '5.1.1.01.03.005',
+            '5.1.1.01.03.006',
+            '5.1.1.01.03.009',
+            '5.1.1.01.03.010')
+        </if>
+
+        <if test="kodesimpeg == 2">
+            AND TRBAS.C_AKUN IN ('5.1.1.01.03.014', '5.1.1.02.05.002')
+        </if>
+
+        <if test="kodesimpeg == 3">
+            AND TRBAS.C_AKUN IN ('5.1.1.10.01')
+        </if>
+
+        <if test="kodesimpeg == 4">
+            AND TRBAS.C_AKUN IN ('5.1.1.01.03.008')
+        </if>
+
+        GROUP BY   XXXX.c_angg_tahun,
+        XXXX.I_IDSKPD,
+        C_SKPD,
+        N_SKPD,
+        XXXX.I_IDBAS,
+        C_AKUN,
+        N_AKUN,
+        I_IDSPD,
+        I_SPDNO,
+        C_SPD_STATUS,
+        I_IDBTL
+        HAVING SUM (V_SPD - V_SPPSEBELUM) &lt; &gt; 0
+        )
+    </select>
+
+    <select id="getNilaiSPPGaji" parameterType="java.lang.Integer"  resultType="java.util.Map">
+        SELECT a.c_angg_tahun as TAHUN,
+        a.i_idskpd as IDSKPD,
+        trbas.i_id AS IDBAS,
+        '5.1.1.01.03.001' AS KODEAKUN,
+        trbas.n_akun as NAMAAKUN,
+        NVL (V_PEG_GAPOK, 0) AS NILAISPP,
+        NVL (V_PEG_JUMKOT, 0) as JUMKOT
+        FROM tmpegrekaplist a, trbas
+        WHERE trbas.c_akun = '5.1.1.01.03.001'
+        AND a.i_id = #{id}
+
+        UNION ALL
+        SELECT a.c_angg_tahun,
+        a.i_idskpd,
+        trbas.i_id AS i_idbas,
+        '5.1.1.01.03.002' AS c_akun,
+        trbas.n_akun,
+        NVL (V_PEG_TUNKEL, 0) AS v_spp_pengajuan,
+        NVL (V_PEG_JUMKOT, 0) as JUMKOT
+        FROM tmpegrekaplist a, trbas
+        WHERE trbas.c_akun = '5.1.1.01.03.002'
+        AND a.i_id = #{id}
+
+        UNION ALL
+        SELECT a.c_angg_tahun,
+        a.i_idskpd,
+        trbas.i_id AS i_idbas,
+        '5.1.1.01.03.003' AS c_akun,
+        trbas.n_akun,
+        NVL (V_PEG_TUNJAB, 0) AS v_spp_pengajuan,
+        NVL (V_PEG_JUMKOT, 0) as JUMKOT
+        FROM tmpegrekaplist a, trbas
+        WHERE trbas.c_akun = '5.1.1.01.03.003'
+        AND a.i_id = #{id}
+
+        UNION ALL
+        SELECT a.c_angg_tahun,
+        a.i_idskpd,
+        trbas.i_id AS i_idbas,
+        '5.1.1.01.03.005' AS c_akun,
+        trbas.n_akun,
+        NVL (V_PEG_TUNFUNG, 0) AS v_spp_pengajuan,
+        NVL (V_PEG_JUMKOT, 0) as JUMKOT
+        FROM tmpegrekaplist a, trbas
+        WHERE trbas.c_akun = '5.1.1.01.03.005'
+        AND a.i_id = #{id}
+
+        UNION ALL
+        SELECT a.c_angg_tahun,
+        a.i_idskpd,
+        trbas.i_id AS i_idbas,
+        '5.1.1.01.03.006' AS c_akun,
+        trbas.n_akun,
+        NVL (V_PEG_TUNUM, 0) AS v_spp_pengajuan,
+        NVL (V_PEG_JUMKOT, 0) as JUMKOT
+        FROM tmpegrekaplist a, trbas
+        WHERE trbas.c_akun = '5.1.1.01.03.006'
+        AND a.i_id = #{id}
+
+        UNION ALL
+        SELECT a.c_angg_tahun,
+        a.i_idskpd,
+        trbas.i_id AS i_idbas,
+        '5.1.1.01.03.009' AS c_akun,
+        trbas.n_akun,
+        NVL (V_PEG_TUNRAS, 0) AS v_spp_pengajuan,
+        NVL (V_PEG_JUMKOT, 0) as JUMKOT
+        FROM tmpegrekaplist a, trbas
+        WHERE trbas.c_akun = '5.1.1.01.03.009'
+        AND a.i_id = #{id}
+
+        UNION ALL
+        SELECT a.c_angg_tahun,
+        a.i_idskpd,
+        trbas.i_id AS i_idbas,
+        '5.1.1.01.03.010' AS c_akun,
+        trbas.n_akun,
+        NVL (V_PEG_PEMBULATAN, 0) AS v_spp_pengajuan,
+        NVL (V_PEG_JUMKOT, 0) as JUMKOT
+        FROM tmpegrekaplist a, trbas
+        WHERE trbas.c_akun = '5.1.1.01.03.010'
+        AND a.i_id = #{id}
+    </select>
+
+    <select id="getNilaiSPPTkd" parameterType="java.lang.Integer"  resultType="java.util.Map">
+        SELECT a.c_angg_tahun as TAHUN,
+        a.i_idskpd as IDSKPD,
+        trbas.i_id AS IDBAS,
+        <!-- '5.1.1.01.03.014' AS KODEAKUN, diubah 22012019 oleh zainab ganti akun tunjangan kinerja-->
+        '5.1.1.02.05.002' AS KODEAKUN,
+        trbas.n_akun as NAMAAKUN,
+        NVL (V_PEG_JUMBER, 0) AS NILAISPP,
+        NVL (V_PEG_JUMBER, 0) as JUMKOT
+        FROM tmpegrekaplist a, trbas
+        WHERE trbas.c_akun = '5.1.1.02.05.002'
+        AND a.i_id = #{id}
+    </select>
+
+    <select id="getNilaiSPPTransport" parameterType="java.lang.Integer"  resultType="java.util.Map">
+        SELECT a.c_angg_tahun as TAHUN,
+        a.i_idskpd as IDSKPD,
+        trbas.i_id AS IDBAS,
+        '5.1.1.10.01' AS KODEAKUN,
+        trbas.n_akun as NAMAAKUN,
+        NVL (V_PEG_JUMKOT, 0) AS NILAISPP,
+        NVL (V_PEG_JUMKOT, 0) as JUMKOT
+        FROM tmpegrekaplist a, trbas
+        WHERE trbas.c_akun = '5.1.1.10.01'
+        AND a.i_id = #{id}
+    </select>
+
+    <select id="getNilaiSPPPph" parameterType="java.lang.Integer"  resultType="java.util.Map">
+        SELECT a.c_angg_tahun as TAHUN,
+        a.i_idskpd as IDSKPD,
+        trbas.i_id AS IDBAS,
+        '5.1.1.01.03.008' AS KODEAKUN,
+        trbas.n_akun as NAMAAKUN,
+        NVL (V_PEG_JUMKOT, 0) AS NILAISPP,
+        NVL (V_PEG_JUMKOT, 0) as JUMKOT
+        FROM tmpegrekaplist a, trbas
+        WHERE trbas.c_akun = '5.1.1.01.03.008'
+        AND a.i_id = #{id}
+    </select>
+
+    <insert id="insertSppBtlMaster" parameterType="spp.model.SppBtl" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="id" >
+        INSERT INTO  TMSPP (
+        I_ID,
+        C_ANGG_TAHUN,
+        C_BULAN,
+        I_SPPNO,
+        D_SPPNO,
+        C_JENIS,
+        C_BEBAN,
+        I_IDSKPD,
+        C_UANGMUKA,
+        E_SPP,
+        I_PPTK_NIP,
+        N_PPTK,
+        C_BANK,
+        N_BANK,
+        C_BANK_TRANSFER,
+        N_BANK_TRANSFER,
+        I_IDBANKPFK,
+        I_REK_BANK,
+        N_WP,
+        N_TUJUAN,
+        N_OBJEKPAJAK,
+        C_JENIS_SIMPEG
+        )
+        VALUES   (
+        SEQ_TMSPP.NEXTVAL,
+        #{tahun},
+        #{bulan},
+        #{noSpp},
+        #{tglSpp},
+        '1',
+        'LS',
+        #{skpd.idSkpd},
+        #{kodeUangMuka},
+        UPPER(REPLACE ( REPLACE (REPLACE (#{keterangan} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )),
+        #{nipPptk},
+        UPPER(#{namaPptk}),
+        #{kodeBank},
+        #{namaBankTransfer},
+        #{kodeBankTransfer},
+        #{namaBankTransfer},
+        #{idBank},
+        regexp_replace(#{nomorRekBank},'[-. /]',''),
+        UPPER(#{namaPenerima}),
+        #{namaTujuan},
+        #{namaTujuan},<!--UPPER(#{namaYayasan}),-->
+        #{kodeSimpeg}
+        )
+    </insert>
+
+    <update id="updateSimpeg" parameterType="spp.model.SppBtl">
+        UPDATE TMPEGREKAPLIST
+        SET
+        I_IDSPP = #{id}
+        WHERE I_ID = #{idSimpeg}
+    </update>
+
+    <insert id="insertSppBtlRinci" parameterType="spp.model.SppBtlRinci"    >
+        INSERT  INTO TMSPPRINCIBTL (I_ID,
+        I_IDSPP,
+        I_IDSPD,
+        I_IDBTL,
+        I_IDBAS,
+        V_SPP,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM ) VALUES
+        (  SEQ_TMSPPRINCIBTL.NEXTVAL ,
+        #{idspp},
+        #{idSpd},
+        #{idBtl},
+        #{akun.idAkun},
+        #{nilaiSpp},
+        #{idEntry},
+        #{tglEntry})
+    </insert>
+
+    <select id="getSppBtlById" parameterType="java.lang.Integer"  resultType="spp.model.SppBtl">
+        SELECT  distinct T.I_ID AS id,
+        T.C_ANGG_TAHUN AS tahun,
+        T.I_SPPNO AS noSpp,
+        T.D_SPPNO AS tglSpp,
+        T.C_JENIS AS kodeJenis,
+        T.C_BEBAN AS kodeBeban,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        P.N_SKPD AS "skpd.namaSkpd",
+        T.N_PPTK AS namaPptk,
+        T.I_PPTK_NIP AS nipPptk,
+        T.C_UANGMUKA AS kodeUangMuka,
+        T.C_BULAN || '/' || T.C_ANGG_TAHUN AS bulan,
+        T.E_SPP AS keterangan,
+        T.C_BANK AS kodeBank,
+        T.C_BANK_TRANSFER AS kodeBankTransfer,
+        T.N_BANK_TRANSFER AS namaBankTransfer,
+        T.I_IDBANKPFK AS idBank,
+        T.N_WP AS namaPenerima,
+        T.N_OBJEKPAJAK AS namaYayasan,
+        T.I_REK_BANK AS nomorRekBank,
+        T.C_JENIS_SIMPEG AS kodeSimpeg,
+        x.i_id AS idSimpeg,
+        x.V_PEG_JUMKOT AS jumkotSimpeg
+        FROM      TMSPP T
+        LEFT JOIN
+        trskpd p
+        ON P.I_ID = T.I_IDSKPD
+        left join tmpegrekaplist x
+        on t.i_id = x.i_idspp
+        WHERE T.I_ID = #{value}
+    </select>
+
+    <update id="updateSppBtlMaster" parameterType="spp.model.SppBtl"  >
+        UPDATE  TMSPP
+        SET
+        C_BULAN  = #{bulan},
+        E_SPP  = UPPER(REPLACE ( REPLACE (REPLACE (#{keterangan} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )),
+        N_PPTK   = UPPER(#{namaPptk}) ,
+        I_PPTK_NIP = #{nipPptk},
+        <!--
+        C_BANK = #{kodeBank},
+        N_BANK = #{namaBankTransfer},
+        C_BANK_TRANSFER = #{kodeBankTransfer},
+        N_BANK_TRANSFER = #{namaBankTransfer},
+        -->
+        I_IDBANKPFK = #{idBank},
+        <!--
+       N_WP = UPPER(#{namaPenerima}),
+       N_OBJEKPAJAK = UPPER(#{namaYayasan}),
+        N_TUJUAN = #{namaTujuan}, -->
+        I_REK_BANK = regexp_replace(#{nomorRekBank},'[-. /]',''),
+        C_JENIS_SIMPEG = #{kodeSimpeg}
+        WHERE  I_ID = #{id}
+
+    </update>
+
+    <update id="deleteSimpegOld" parameterType="java.lang.Integer"  >
+        UPDATE  TMPEGREKAPLIST
+        SET
+        I_IDSPP = 0
+        WHERE  I_IDSPP = #{value}
+    </update>
+
+    <delete id="deleteSimpeg" parameterType="java.lang.Integer" >
+        delete TMPEGREKAPLIST where I_IDSPP = #{value}
+    </delete>
+
+    <delete id="deleteSppBtlRinci" parameterType="java.lang.Integer" >
+        delete TMSPPRINCIBTL where I_IDSPP = #{value}
+    </delete>
+
+    <delete id="deleteSppBtlMaster" parameterType="java.lang.Integer" >
+        delete TMSPP where I_ID = #{value}
+    </delete>
+
+    <delete id="deletePegRekap"  >
+        delete TMPEGREKAPLIST where I_IDSPP = 0
+    </delete>
+
+    <delete id="deletePegRekap1" parameterType="java.util.Map" >
+        delete TMPEGREKAPLIST where I_IDSPP = 0 and i_idskpd = #{idskpd}
+    </delete>
+
+    <insert id="insertPegRekap" parameterType="java.util.Map"   >
+        insert into TMPEGREKAPLIST
+        SELECT #{id} as i_id,
+        c_angg_tahun,
+        d_peg_publish,
+        d_peg_rekap,
+        i_idspp,
+        i_idspm,
+        c_peg_macam,
+        c_peg_jenis,
+        i_idskpd,
+        c_skpd,
+        v_peg_jumkot,
+        v_peg_gapok,
+        v_peg_tunkel,
+        v_peg_tunjab,
+        v_peg_tunfung,
+        v_peg_tunum,
+        v_peg_tunras,
+        v_peg_pembulatan,
+        v_peg_potdapen,
+        v_peg_potbpjs,
+        v_peg_pottht,
+        v_peg_pottaperum,
+        v_peg_jumpot,
+        v_peg_jumber,
+        e_peg,
+        d_pgun_rekam
+        FROM (SELECT SUBSTR (tahun_bulan, 1, 4) AS c_angg_tahun,
+        tgl_publish d_peg_publish,
+        tahun_bulan d_peg_rekap,
+        0 AS i_idspp,
+        0 AS i_idspm,
+        UPPER (macam) AS c_peg_macam,
+        UPPER (jenis) AS c_peg_jenis,
+        trskpd.i_id AS i_idskpd,
+        trskpd.c_skpd c_skpd,
+        jumkot AS v_peg_jumkot,
+        gapok AS v_peg_gapok,
+        tunkel AS v_peg_tunkel,
+        tunjab AS v_peg_tunjab,
+        tunfung AS v_peg_tunfung,
+        tunum AS v_peg_tunum,
+        tunras AS v_peg_tunras,
+        pembulatan AS v_peg_pembulatan,
+        danpen AS v_peg_potdapen,
+        bpjs AS v_peg_potbpjs,
+        tht AS v_peg_pottht,
+        taperum AS v_peg_pottaperum,
+        jumpot AS v_peg_jumpot,
+        jumber AS v_peg_jumber,
+        keperluan AS e_peg,
+        SYSDATE d_pgun_rekam
+        FROM rekap_penghasilan a, trskpd
+        WHERE     a.kode_unit_sipkd = trskpd.c_skpd
+        and trskpd.I_id = #{idskpd}
+        and tahun_bulan = #{bulan}
+        and to_char(a.tgl_publish,'dd/mm/yyyy') = #{tglpublish}
+        and macam = #{macam}
+        and jenis = #{jenis}
+        ) aaa
+    </insert>
+
+    <select id="getIdPegRekap"  resultType="java.lang.Integer">
+        SELECT NVL (MAX (i_id)+1, 1)  FROM tmpegrekaplist
+    </select>
+
+    <select id="getBulan" parameterType="java.util.Map"  resultType="spp.model.SppBtlGaji">
+        SELECT distinct kodeBulan , bulanPosting FROM (
+        <!--
+        select  to_char(D_SPPNO,'MM') kodeBulan, bulan(to_char(D_SPPNO,'MM')) bulanPosting
+        from tmspp where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd} and C_JENIS_SIMPEG > 0
+        -->
+        select substr(d_peg_rekap,5,2) kodeBulan, bulan(substr(d_peg_rekap,5,2)) bulanPosting
+        from tmpegrekaplist where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and i_idspp > 0
+        )
+        ORDER BY 1
+    </select>
+</mapper>

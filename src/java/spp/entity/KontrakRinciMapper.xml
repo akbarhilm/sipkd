@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spp.entity.KontrakRinciMapper">
+
+    <insert id="insertKontrakRinci" parameterType="spp.model.KontrakRinci">
+        INSERT INTO TMKONTRAKRINCI(
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDKONTRAK,
+        I_IDSKPD,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        V_KONTRAK,
+        V_UANGMUKA_SALDO,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )
+        VALUES
+        (
+        SEQ_TMKONTRAKRINCI.nextval,
+        #{tahun},
+        #{idKontrak},
+        #{idSkpd},
+        #{idKegiatan},
+        #{idBas},
+        round(#{nilaiKontrak},0),
+        #{nilaiUmk},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <delete id="deleteKontrakRinci" parameterType="java.lang.Integer"   >
+        delete TMKONTRAKRINCI     WHERE I_ID  = #{value}
+        and not exists (select 1 from tmbast where  tmbast.i_idkontrak = TMKONTRAKRINCI .i_idkontrak)
+    </delete>
+
+
+    <update id="updateKontrakRinci" parameterType="spp.model.KontrakRinci"   >
+        UPDATE TMKONTRAKRINCI
+        SET
+        I_IDBAS = #{idBas},
+        V_KONTRAK = round(#{nilaiKontrak},0),
+        V_UANGMUKA_SALDO = #{nilaiUmk},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE I_ID = #{idKontrakRinci}
+
+    </update>
+
+    <update id="updateNolKontrakRinci" parameterType="spp.model.KontrakRinci"   >
+        UPDATE TMKONTRAKRINCI
+        SET
+        V_KONTRAK = 0,
+        V_UANGMUKA_SALDO = 0
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idSkpd}
+        AND I_IDKONTRAK = #{idKontrak}
+    </update>
+
+    <select id="getAkun" parameterType="java.util.Map"  resultType="spp.model.KontrakRinci">
+
+        SELECT idBas, namaAkun, nilaiAngg, kontrakSebelum, sisaKontrak, nilaiKontrak,
+        idKontrakRinci, saldoUMK, nilaiUmk
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        select  idBas, c_akun || '/' || n_akun as namaAkun, nilaiAngg, kontrakSebelum,
+        sisaKontrak, nilaiKontrak, idKontrakRinci, saldoUMK, nilaiUmk
+        from (
+        select i_idbas as idBas, sum(idrinci) as idKontrakRinci, sum(nilaiAngg) as nilaiAngg, sum(kontrakSebelum) as kontrakSebelum,
+        sum(nilaiKontrak) as nilaiKontrak, sum(nilaiTU) as nilaiTU, sum(nilaiSetoran) as nilaiSetoran,
+        sum(nilaiUPGU) as nilaiUPGU, sum(nilaiAngg-kontrakSebelum-nilaiTU-nilaiUPGU+nilaiSetoran) as sisaKontrak,
+        sum(v_umk-umk_sebelum) as saldoUMK, sum(v_umk_input) as nilaiUmk
+        from (
+        select 0 as idrinci, i_idbas,  sum(V_ANGG_TAPD) as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU,
+        sum(v_uangmuka_saldo) as v_umk, 0 as umk_sebelum, 0 as v_umk_input
+        from tmdpabl
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkegiatan = #{idkegiatan}
+        group by i_idbas
+
+        union all
+        select 0 as idrinci, i_idbas, 0 as nilaiAngg, V_KONTRAK as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU,
+        0 as v_umk, nvl((v_uangmuka_saldo ),0) as umk_sebelum, 0 as v_umk_input
+        from tmkontrakrinci where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak != #{idkontrak}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select i_id as idrinci, i_idbas, 0 as nilaiAngg, 0 as kontrakSebelum, V_KONTRAK as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU,
+        0 as v_umk, 0 as umk_sebelum, nvl((v_uangmuka_saldo ),0) as v_umk_input
+        from tmkontrakrinci where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak = #{idkontrak}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select 0 as idrinci, i_idbas, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, v_spp as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU,
+        0 as v_umk, 0 as umk_sebelum, 0 as v_umk_input
+        from tmspp, tmspprincibl
+        where tmspp.i_id =  tmspprincibl.i_idspp
+        and c_beban = 'TU'
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select 0 as idrinci, i_idbas, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, (v_kas_keluar-v_kas_terima) as nilaiSetoran, 0 as nilaiUPGU,
+        0 as v_umk, 0 as umk_sebelum, 0 as v_umk_input
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'ST'
+        and c_beban = 'TU'
+        and i_jour is not null
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select 0 as idrinci, i_idbas, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran,  (v_kas_keluar-v_kas_terima) as nilaiUPGU,
+        0 as v_umk, 0 as umk_sebelum, 0 as v_umk_input
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'JJ'
+        and c_beban in ('UP','GU')
+        and i_idkegiatan = #{idkegiatan}
+        ) group by i_idbas
+        ) xxx, trbas
+        where xxx.idBas =  trbas.i_id
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakAkun" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from (
+        select  idBas, c_akun || '/' || n_akun as namaAkun, nilaiAngg, kontrakSebelum,
+        sisaKontrak, nilaiKontrak, idKontrakRinci, saldoUMK, nilaiUmk
+        from (
+        select i_idbas as idBas, sum(idrinci) as idKontrakRinci, sum(nilaiAngg) as nilaiAngg, sum(kontrakSebelum) as kontrakSebelum,
+        sum(nilaiKontrak) as nilaiKontrak, sum(nilaiTU) as nilaiTU, sum(nilaiSetoran) as nilaiSetoran,
+        sum(nilaiUPGU) as nilaiUPGU, sum(nilaiAngg-kontrakSebelum-nilaiTU-nilaiUPGU+nilaiSetoran) as sisaKontrak,
+        sum(v_umk-umk_sebelum) as saldoUMK, sum(v_umk_input) as nilaiUmk
+        from (
+        select 0 as idrinci, i_idbas,  sum(V_ANGG_TAPD) as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU,
+        sum(v_uangmuka_saldo) as v_umk, 0 as umk_sebelum, 0 as v_umk_input
+        from tmdpabl
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkegiatan = #{idkegiatan}
+        group by i_idbas
+
+        union all
+        select 0 as idrinci, i_idbas, 0 as nilaiAngg, V_KONTRAK as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU,
+        0 as v_umk, nvl((v_uangmuka_saldo ),0) as umk_sebelum, 0 as v_umk_input
+        from tmkontrakrinci where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak != #{idkontrak}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select i_id as idrinci, i_idbas, 0 as nilaiAngg, 0 as kontrakSebelum, V_KONTRAK as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU,
+        0 as v_umk, 0 as umk_sebelum, nvl((v_uangmuka_saldo ),0) as v_umk_input
+        from tmkontrakrinci where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak = #{idkontrak}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select 0 as idrinci, i_idbas, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, v_spp as nilaiTU, 0 as nilaiSetoran, 0 as nilaiUPGU,
+        0 as v_umk, 0 as umk_sebelum, 0 as v_umk_input
+        from tmspp, tmspprincibl
+        where tmspp.i_id =  tmspprincibl.i_idspp
+        and c_beban = 'TU'
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select 0 as idrinci, i_idbas, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, (v_kas_keluar-v_kas_terima) as nilaiSetoran, 0 as nilaiUPGU,
+        0 as v_umk, 0 as umk_sebelum, 0 as v_umk_input
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'ST'
+        and c_beban = 'TU'
+        and i_jour is not null
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select 0 as idrinci, i_idbas, 0 as nilaiAngg, 0 as kontrakSebelum, 0 as nilaiKontrak, 0 as nilaiTU, 0 as nilaiSetoran,  (v_kas_keluar-v_kas_terima) as nilaiUPGU,
+        0 as v_umk, 0 as umk_sebelum, 0 as v_umk_input
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'JJ'
+        and c_beban in ('UP','GU')
+        and i_idkegiatan = #{idkegiatan}
+        ) group by i_idbas
+        ) xxx, trbas
+        where xxx.idBas =  trbas.i_id
+        )
+
+    </select>
+
+    <insert id="insertBastUpdate" parameterType="spp.model.KontrakRinci">
+        INSERT INTO TMBAST(
+        I_ID,
+        C_ANGG_TAHUN,
+        I_BASTNO,
+        D_BASTNO,
+        I_IDKONTRAK,
+        I_IDKEGIATAN,
+        I_IDSKPD,
+        I_IDBAS,
+        V_BAST,
+        P_PRESTASI,
+        N_PPTK,
+        I_PPTK_NIP,
+        E_BAST,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM ,
+        N_PB  ,
+        I_PB_NIP ,
+        C_UANGMUKA,
+        I_IDSPD
+        )
+        VALUES
+        (
+        <choose>
+            <when test="idBast != 0">
+                #{idBast}
+            </when>
+            <otherwise>
+                SEQ_TMBAST.nextval
+            </otherwise>
+        </choose>,
+        <!-- #{idBast}, -->
+        #{tahunAnggaran},
+        #{noBast},
+        #{tglBast},
+        #{kontrak.idKontrak},
+        #{idkegiatan},
+        #{skpd.idSkpd},
+        #{akun.idAkun},
+        #{nilaiBast},
+        #{nilaiPrestasi},
+        #{namaPptk},
+        #{nipPptk},
+        #{ketBast},
+        #{idEntry},
+        #{tglEntry} ,
+        #{namaPemeriksaBarang},
+        #{nipPemeriksaBarang} ,
+        <choose>
+            <when test="statusUangMuka != null">
+                #{statusUangMuka}
+            </when>
+            <otherwise>
+                0
+            </otherwise>
+        </choose>,
+        #{idSpd}
+        )
+    </insert>
+
+    <select id="getNilaiKontrak" parameterType="java.util.Map"  resultType="spp.model.KontrakRinci">
+        select v_kontr as nilaiKontrak from tmkontrak where i_id = #{id}
+    </select>
+
+</mapper>

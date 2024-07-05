@@ -1,0 +1,707 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spp.entity.SppBlMapper">
+    <select id="getAllSppBl" parameterType="java.util.Map"  resultType="spp.model.SppBl">
+
+        SELECT   C_ANGG_TAHUN AS tahun,
+        I_ID AS id,
+        C_BULAN AS bulan,
+        I_SPPNO AS noSpp,
+        D_SPPNO AS tglSpp,
+        V_SPP AS nilaiSpp
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   T.c_angg_tahun,
+        T.I_id,
+        T.c_bulan,
+        T.i_sppno,
+        T.d_sppno,
+        SUM (B.V_SPP) AS V_SPP
+        FROM   TMSPP T left join TMSPPRINCIBL B on (T.I_id = B.I_IDSPP)
+
+        WHERE  T.C_JENIS = '3'
+        AND T.C_BEBAN = 'LS'
+        AND T.C_ANGG_TAHUN = #{tahun}
+        AND T.I_IDSKPD = #{idskpd}
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPPCETAK C
+        WHERE   T.I_ID = C.I_ID)
+        GROUP BY   T.C_ANGG_TAHUN,
+        T.I_ID,
+        T.C_BULAN,
+        T.I_SPPNO,
+        T.D_SPPNO
+        ORDER BY T.I_SPPNO
+        ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset} order by noSpp
+    </select>
+    <select id="getBanyakSppBl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   count(*) AS banyak
+        FROM  (
+        SELECT   T.c_angg_tahun,
+        T.I_id,
+        T.c_bulan,
+        T.i_sppno,
+        T.d_sppno,
+        SUM (B.V_SPP) AS V_SPP
+        FROM   TMSPP T left join TMSPPRINCIBL B on (T.I_id = B.I_IDSPP)
+
+        WHERE  T.C_JENIS = '3'
+        AND T.C_BEBAN = 'LS'
+        AND T.C_ANGG_TAHUN = #{tahun}
+        AND T.I_IDSKPD = #{idskpd}
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPPCETAK C
+        WHERE   T.I_ID = C.I_ID)
+        GROUP BY   T.C_ANGG_TAHUN,
+        T.I_ID,
+        T.C_BULAN,
+        T.I_SPPNO,
+        T.D_SPPNO
+        )
+    </select>
+    <select id="getAllSpdBl" parameterType="java.util.Map"  resultType="spp.model.SppBlRinci">
+        <!-- diubah 201018 oleh zainab, baca SPD nya ke BAST -->
+        SELECT     distinct  I_IDBL AS idBl,
+        I_IDSPD AS idSpd,
+        I_IDKEGIATAN AS "kegiatan.idKegiatan",
+        I_IDBAS AS "akun.idAkun",
+        C_AKUN AS "akun.kodeAkun",
+        N_AKUN AS "akun.namaAkun",
+        V_SPD AS nilaiSpd,
+        V_SPP AS nilaiSpp,
+         C_SPD_STATUS AS statusSpd,
+        I_SPDNO AS noSpd ,  isCek AS isCek
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   TMSPDRINCIBL.I_IDBAS AS I_IDBAS,
+        tmspd.c_angg_tahun,
+        tmspd.I_IDSKPD AS I_IDSKPD,
+        TMSPDRINCIBL.I_IDKEGIATAN
+        AS I_IDKEGIATAN,
+        TMSPDRINCIBL.v_spd V_SPD,
+        v_bast AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBL.C_SPD_STATUS,
+        TMSPDRINCIBL.I_IDBL,
+        trbas.n_akun, trbas.c_akun,
+        (CASE WHEN (v_bast) > 0 THEN 1 ELSE 0 END) AS isCek
+        FROM   tmspd, TMSPDRINCIBL, TMSPDSAH, tmbast, trbas
+        WHERE   (tmspd.I_id = TMSPDRINCIBL.I_IDSPD)
+        AND tmspd.I_ID = tmspdSAH.I_ID
+        and tmbast.i_idbas = trbas.i_id
+        and tmbast.i_idbas = TMSPDRINCIBL.i_idbas
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.c_jenis = '3'
+        AND TMSPDRINCIBL.C_SPD_STATUS &lt; &gt; 'P'
+        AND tmspd.i_idskpd = #{idskpd}
+        and tmspd.i_id = tmbast.i_idspd
+        AND TMSPDRINCIBL.I_IDKEGIATAN = #{idkegiatan}
+        and tmbast.c_angg_tahun  = TMSPD.c_angg_tahun
+        and tmbast.i_idskpd  = TMSPD.i_idskpd
+        and tmbast.I_IDKEGIATAN = TMSPDRINCIBL.I_IDKEGIATAN
+        and tmbast.I_IDBAS = TMSPDRINCIBL.I_IDBAS
+        and  tmbast.V_BAST &gt; 0
+        AND tmbast.I_BASTNO = #{nomorBast}
+        ) a)WHERE  V_SPD  &gt; 0 and  ROWNUM &lt;= #{limit} AND rn &gt; #{offset} order by I_IDBAS
+        <!--
+        SELECT     distinct  I_IDBL AS idBl,
+        I_IDSPD AS idSpd,
+        I_IDKEGIATAN AS "kegiatan.idKegiatan",
+        I_IDBAS AS "akun.idAkun",
+        C_AKUN AS "akun.kodeAkun",
+        N_AKUN AS "akun.namaAkun",
+        V_SPD AS nilaiSpd,
+        V_SPP AS nilaiSpp,
+         C_SPD_STATUS AS statusSpd,
+        I_SPDNO AS noSpd ,  isCek AS isCek
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   TMSPDRINCIBL.I_IDBAS AS I_IDBAS,
+        tmspd.c_angg_tahun,
+        tmspd.I_IDSKPD AS I_IDSKPD,
+        TMSPDRINCIBL.I_IDKEGIATAN
+        AS I_IDKEGIATAN,
+        TMSPDRINCIBL.v_spd V_SPD,
+        v_bast AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBL.C_SPD_STATUS,
+        TMSPDRINCIBL.I_IDBL,
+        trbas.n_akun, trbas.c_akun,
+        (CASE WHEN (v_bast) > 0 THEN 1 ELSE 0 END) AS isCek
+        FROM   tmspd, TMSPDRINCIBL, TMSPDSAH, tmkontrak, tmbast, trbas
+        WHERE   (tmspd.I_id = TMSPDRINCIBL.I_IDSPD)
+        AND tmspd.I_ID = tmspdSAH.I_ID
+        and tmbast.i_idbas = trbas.i_id
+        and tmbast.i_idbas = TMSPDRINCIBL.i_idbas
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.c_jenis = '3'
+        AND TMSPDRINCIBL.C_SPD_STATUS &lt; &gt; 'P'
+        AND tmspd.i_idskpd = #{idskpd}
+        and tmspd.i_id = tmkontrak.i_idspd
+        and tmkontrak.i_id = tmbast.i_idkontrak
+        AND TMSPDRINCIBL.I_IDKEGIATAN = #{idkegiatan}
+        and tmbast.c_angg_tahun  = TMSPD.c_angg_tahun
+        and tmbast.i_idskpd  = TMSPD.i_idskpd
+        and tmbast.I_IDKEGIATAN = TMSPDRINCIBL.I_IDKEGIATAN
+        and tmbast.I_IDBAS = TMSPDRINCIBL.I_IDBAS
+        and  tmbast.V_BAST &gt; 0
+        AND tmbast.I_BASTNO = #{nomorBast}
+
+        ) a)WHERE  V_SPD  &gt; 0 and  ROWNUM &lt;= #{limit} AND rn &gt; #{offset} order by I_IDBAS
+        -->
+    </select>
+    <select id="getBanyakSpdBl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak from (
+        SELECT   TMSPDRINCIBL.I_IDBAS AS I_IDBAS,
+        tmspd.c_angg_tahun,
+        tmspd.I_IDSKPD AS I_IDSKPD,
+        TMSPDRINCIBL.I_IDKEGIATAN
+        AS I_IDKEGIATAN,
+        TMSPDRINCIBL.v_spd V_SPD,
+        v_bast AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBL.C_SPD_STATUS,
+        TMSPDRINCIBL.I_IDBL,
+        trbas.n_akun, trbas.c_akun,
+        (CASE WHEN (v_bast) > 0 THEN 1 ELSE 0 END) AS isCek
+        FROM   tmspd, TMSPDRINCIBL, TMSPDSAH, tmbast, trbas
+        WHERE   (tmspd.I_id = TMSPDRINCIBL.I_IDSPD)
+        AND tmspd.I_ID = tmspdSAH.I_ID
+        and tmbast.i_idbas = trbas.i_id
+        and tmbast.i_idbas = TMSPDRINCIBL.i_idbas
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.c_jenis = '3'
+        AND TMSPDRINCIBL.C_SPD_STATUS &lt; &gt; 'P'
+        AND tmspd.i_idskpd = #{idskpd}
+        and tmspd.i_id = tmbast.i_idspd
+        AND TMSPDRINCIBL.I_IDKEGIATAN = #{idkegiatan}
+        and tmbast.c_angg_tahun  = TMSPD.c_angg_tahun
+        and tmbast.i_idskpd  = TMSPD.i_idskpd
+        and tmbast.I_IDKEGIATAN = TMSPDRINCIBL.I_IDKEGIATAN
+        and tmbast.I_IDBAS = TMSPDRINCIBL.I_IDBAS
+        and  tmbast.V_BAST &gt; 0
+        AND tmbast.I_BASTNO = #{nomorBast}
+        )
+    </select>
+    <insert id="insertSppBlMaster" parameterType="spp.model.SppBl" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="id" >
+        INSERT INTO  TMSPP (
+        I_ID,
+        C_ANGG_TAHUN,
+        C_BULAN,
+        I_SPPNO,
+        D_SPPNO,
+        C_JENIS,
+        C_BEBAN,
+        I_IDSKPD,
+        C_UANGMUKA,
+        I_IDKONTRAK,
+        I_KONTR,
+        I_BASTNO,
+        E_SPP,
+        I_PPTK_NIP,
+        N_PPTK,
+        N_REKAN_DIR,
+        N_REKAN,
+        N_TUJUAN,
+        N_WP,
+        A_REKAN,
+        A_OBJEKPAJAK,
+        I_REKAN_NPWP,
+        N_BANK,
+        C_BANK,
+        N_BANK_TRANSFER,
+        C_BANK_TRANSFER,
+        I_IDBANKPFK,
+        I_REK_BANK
+        )
+        VALUES   (
+        SEQ_TMSPP.NEXTVAL,
+        #{tahun},
+        #{bulan},
+        #{noSpp},
+        #{tglSpp},
+        '3',
+        'LS',
+        #{skpd.idSkpd},
+        #{kodeUangMuka},
+        #{kontrak.idKontrak},
+        #{kontrak.noKontrak},
+        #{bast.noBast},
+        UPPER(REPLACE ( REPLACE (REPLACE (#{keterangan} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )),
+        #{nipPptk},
+        UPPER(#{namaPptk}),
+        UPPER(#{dirRekanan}),
+        UPPER(#{namaRekanan}),
+        UPPER(#{namaRekanan}),
+        UPPER(#{namaRekanan}),
+        UPPER(#{alamatRekanan}),
+        UPPER(#{alamatRekanan}),
+        regexp_replace(#{noNpwp},'[-. /]',''),
+        #{namaBank},
+        #{kodeBank},
+        #{namaBank},
+        #{kodeBankTransfer},
+        #{idBank},
+        regexp_replace(#{rekeningBank},'[-. /]','')
+        )
+    </insert>
+    <insert id="insertSppBlMasterExceptIdBast" parameterType="spp.model.SppBl" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="id" >
+        INSERT INTO  TMSPP (I_ID,
+        C_ANGG_TAHUN,
+        C_BULAN,
+        I_SPPNO,
+        D_SPPNO,
+        C_JENIS,
+        C_BEBAN,
+        I_IDSKPD,
+        C_UANGMUKA,
+        I_IDKONTRAK,
+        E_SPP,
+        I_PPTK_NIP,
+        N_PPTK
+        )
+        VALUES   (  SEQ_TMSPP.NEXTVAL,
+        #{tahun},
+        #{bulan},
+        #{noSpp},
+        #{tglSpp},
+        '3',
+        'LS',
+        #{skpd.idSkpd},
+        #{kodeUangMuka},
+        #{kontrak.idKontrak},
+        #{keterangan},
+        #{nipPptk},
+        #{namaPptk}
+        )
+    </insert>
+    <!-- <insert id="insertSppTuRinci" parameterType="spp.model.SppTu"   >
+        INSERT  INTO TMSPPRINCIBL (I_ID,
+                                I_IDSPP,
+                                I_IDSPD,
+                                I_IDBL,
+                                I_IDKEGIATAN,
+                                I_IDBAS,
+                                V_SPP,
+                                I_PGUN_REKAM,
+                                D_PGUN_REKAM ) VALUES
+          <foreach collection="sppUpRinci" item="rinci" separator=" , " >
+                   (  SEQ_I_SPPRINCINO.NEXTVAL , #{id},
+                #{rinci.idSpd},
+                #{rinci.idBl},
+                #{rinci.kegiatan.idKegiatan},
+                #{rinci.akun.idAkun},
+                #{rinci.nilaiSpp},
+                #{idEntry},
+                #{tglEntry})
+            </foreach>
+    </insert>-->
+    <insert id="insertSppBlRinci" parameterType="spp.model.SppBlRinci"   >
+        INSERT  INTO TMSPPRINCIBL (I_ID,
+        I_IDSPP,
+        I_IDSPD,
+        I_IDBL,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        V_SPP,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM ) VALUES
+        ( SEQ_TMSPPRINCIBL.NEXTVAL, #{idspp},
+        #{idSpd},
+        #{idBl},
+        #{kegiatan.idKegiatan},
+        #{akun.idAkun},
+        #{nilaiSpp},
+        #{idEntry},
+        #{tglEntry})
+    </insert>
+    <select id="getSppBlById" parameterType="java.lang.Integer"  resultType="spp.model.SppBl">
+
+        SELECT DISTINCT T.I_ID AS id,
+        T.C_ANGG_TAHUN AS tahun,
+        T.I_SPPNO AS noSpp,
+        T.D_SPPNO AS tglSpp,
+        T.C_JENIS AS kodeJenis,
+        T.C_BEBAN AS kodeBeban,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        P.N_SKPD AS "skpd.namaSkpd",
+        TMKONTRAK.I_KONTR AS "kontrak.noKontrak",
+        TMKONTRAK.V_KONTR AS "kontrak.nilaiKontrak",
+        TMKONTRAK.I_IDKEGIATAN AS "kegiatan.idKegiatan",
+        TMDPAKEGIATAN.N_KEGIATAN AS "kegiatan.namaKegiatan",
+        MAX (TMBAST.I_BASTNO) AS "bast.noBast",
+        T.N_PPTK AS namaPptk,
+        T.I_PPTK_NIP AS nipPptk,
+        T.C_UANGMUKA AS kodeUangMuka,
+        T.C_UANGMUKA AS potonganUangMuka,
+        T.C_BULAN || '/' || T.C_ANGG_TAHUN AS bulan,
+        T.E_SPP AS keterangan,
+        TMKONTRAK.n_rekan as namaRekanan,
+        TMKONTRAK.n_rekan_dir as dirRekanan,
+        TMKONTRAK.a_rekan as alamatRekanan,
+        TMKONTRAK.i_rekan_npwp as noNpwp,
+        TMKONTRAK.a_bank as alamatBank,
+        TMKONTRAK.n_bank_transfer as namaBank,
+        TMKONTRAK.c_bank_transfer as kodeBank,
+        TMKONTRAK.i_rek_bank as rekeningBank
+        FROM TMSPP T,
+        TMKONTRAK,
+        TRSKPD P,
+        TMBAST,
+        TMDPAKEGIATAN,
+        trbas
+        WHERE T.I_IDKONTRAK = TMKONTRAK.I_ID
+        AND TMBAST.I_IDKONTRAK = TMkontrak.i_id
+        AND TMDPAKEGIATAN.I_ID = TMKONTRAK.I_IDKEGIATAN
+        AND tmdpakegiatan.i_id = TMBAST.I_IDKEGIATAN
+        AND P.I_ID = T.I_IDSKPD
+        AND TRBAS.I_ID = TMBAST.I_IDBAS
+        AND T.I_ID = #{value}
+        GROUP BY T.I_ID,
+        T.C_ANGG_TAHUN,
+        T.I_SPPNO,
+        T.D_SPPNO,
+        T.C_JENIS,
+        T.C_BEBAN,
+        T.I_IDSKPD,
+        P.N_SKPD,
+        TMKONTRAK.I_KONTR,
+        TMKONTRAK.V_KONTR,
+        TMKONTRAK.I_IDKEGIATAN,
+        TMDPAKEGIATAN.N_KEGIATAN,
+        T.N_PPTK,
+        T.I_PPTK_NIP,
+        T.C_UANGMUKA,
+        T.C_BULAN,
+        T.C_ANGG_TAHUN,
+        T.E_SPP,
+        TMKONTRAK.n_rekan,
+        TMKONTRAK.n_rekan_dir,
+        TMKONTRAK.a_rekan,
+        TMKONTRAK.i_rekan_npwp,
+        TMKONTRAK.a_bank,
+        TMKONTRAK.n_bank_transfer,
+        TMKONTRAK.c_bank_transfer,
+        TMKONTRAK.i_rek_bank
+
+    </select>
+
+    <select id="getSppBlByIdExceptIdBast" parameterType="java.lang.Integer"  resultType="spp.model.SppBl">
+        SELECT   distinct(  T.I_ID)  AS id,
+        T.C_ANGG_TAHUN AS tahun,
+        T.I_SPPNO AS noSpp,
+        T.D_SPPNO AS tglSpp,
+        T.C_JENIS AS kodeJenis,
+        T.C_BEBAN AS kodeBeban,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        P.N_SKPD AS "skpd.namaSkpd",
+        TMKONTRAK.I_KONTR AS "kontrak.noKontrak",
+        TMKONTRAK.V_KONTR AS "kontrak.nilaiKontrak",
+        TMKONTRAK.I_IDKEGIATAN AS "kegiatan.idKegiatan",
+        TMDPAKEGIATAN.N_KEGIATAN AS "kegiatan.namaKegiatan",
+        T.N_PPTK AS namaPptk,
+        T.I_PPTK_NIP AS nipPptk,
+        T.C_UANGMUKA AS kodeUangMuka,
+        T.C_UANGMUKA AS potonganUangMuka,
+        TMBAST.I_BASTNO  AS "bast.noBast",
+        T.C_BULAN || '/' || T.C_ANGG_TAHUN AS bulan,
+        T.E_SPP AS keterangan,
+        TMKONTRAK.n_rekan as namaRekanan,
+        TMKONTRAK.n_rekan_dir as dirRekanan,
+        TMKONTRAK.a_rekan as alamatRekanan,
+        TMKONTRAK.i_rekan_npwp as noNpwp,
+        TMKONTRAK.a_bank as alamatBank,
+        TMKONTRAK.n_bank_transfer as namaBank,
+        TMKONTRAK.c_bank_transfer as kodeBank,
+        TMKONTRAK.i_rek_bank as rekeningBank
+
+        FROM   TMSPP T,
+        TMKONTRAK,
+        TRSKPD P,
+        TMBAST,
+        TMDPAKEGIATAN,
+        trbas
+        WHERE  T.I_IDKONTRAK = TMKONTRAK.I_ID
+        AND TMDPAKEGIATAN.I_ID = TMKONTRAK.I_IDKEGIATAN
+        AND tmdpakegiatan.i_id = TMBAST.I_IDKEGIATAN
+        AND P.I_ID = T.I_IDSKPD
+        and TRBAS.I_ID = TMBAST.I_IDBAS
+        and T.i_bastno = tmbast.i_bastno
+        AND T.I_ID = #{value}
+
+
+    </select>
+    <select id="getSppBlRinciByIdSpp" parameterType="java.lang.Integer"  resultType="spp.model.SppBlRinci">
+        SELECT   T.I_ID AS idSppRinci,
+        T.I_IDSPP AS idspp,
+        T.I_IDSPD AS idSpd,
+        T.I_IDBL AS idBl,
+        T.I_IDKEGIATAN AS "kegiatan.idKegiatan",
+        T.I_IDBAS AS "akun.idAkun",
+        T.V_SPP AS nilaiSpp
+        FROM    TMSPPRINCIBL T
+        WHERE   I_IDSPP = #{value}
+    </select>
+    <update id="updateSppBlMaster" parameterType="spp.model.SppBl"  >
+        UPDATE  TMSPP
+        SET <!--
+        C_ANGG_TAHUN    = #{tahun},
+        I_SPPNO         = #{noSpp},
+        I_IDSKPD        = #{skpd.idSkpd},-->
+        C_BULAN  = #{bulan},
+        E_SPP  = UPPER(REPLACE ( REPLACE (REPLACE (#{keterangan} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )),
+        N_PPTK   = UPPER(#{namaPptk}),
+        I_PPTK_NIP = #{nipPptk}
+        WHERE  I_ID            = #{id}
+    </update>
+
+    <delete id="deleteSppBlMaster" parameterType="java.lang.Integer" >
+        delete TMSPPRINCIBL where I_IDSPP = #{value}
+    </delete>
+    <delete id="deleteSppBlRinci" parameterType="java.lang.Integer" >
+        delete TMSPP where I_ID = #{value}
+    </delete>
+    <select id="getTotalSPDDanSPP" parameterType="java.util.Map"  resultType="java.util.Map">
+        SELECT   SUM (V_SPD) AS V_SPD, SUM (V_SPP) AS V_SPP
+        FROM   (SELECT   tmspd.c_angg_tahun,
+        tmspd.I_IDSKPD AS I_IDSKPD,
+        TMSPDRINCIBL.I_IDKEGIATAN AS I_IDKEGIATAN,
+        TMSPDRINCIBL.I_IDBAS AS I_IDBAS,
+        TMSPDRINCIBL.v_spd V_SPD,
+        0 AS V_SPPSEBELUM,
+        0 AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBL.I_IDBL
+        FROM   tmspd, TMSPDRINCIBL, TMSPDSAH
+        WHERE       (tmspd.I_id = TMSPDRINCIBL.I_IDSPD)
+        AND tmspd.I_ID = tmspdSAH.I_ID
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.c_jenis = '3'
+        AND tmspd.i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   TMSPP.c_angg_tahun,
+        TMSPP.I_IDSKPD,
+        TMSPPRINCIBL.I_IDKEGIATAN,
+        TMSPPRINCIBL.I_IDBAS,
+        0 V_SPD,
+        V_SPP AS V_SPPSEBELUM,
+        0 AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPPRINCIBL.I_IDBL
+        FROM   TMSPP,
+        TMSPPRINCIBL,
+        tmspd
+        WHERE       (TMSPP.I_id = TMSPPRINCIBL.I_IDSPP)
+        AND TMSPP.c_angg_tahun = #{tahun}
+        AND TMSPP.c_jenis = '3'
+        AND TMSPP.i_idskpd = #{idskpd}
+        AND TMSPD.I_ID = TMSPPRINCIBL.I_IDSPD
+        UNION ALL
+        SELECT   TMSPP.c_angg_tahun,
+        TMSPP.I_IDSKPD,
+        TMSPPRINCIBL.I_IDKEGIATAN,
+        TMSPPRINCIBL.I_IDBAS,
+        0 V_SPD,
+        0 AS V_SPPSEBELUM,
+        V_SPP AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPPRINCIBL.I_IDBL
+        FROM   TMSPP, TMSPPRINCIBL, tmspd
+        WHERE       (TMSPP.I_id = TMSPPRINCIBL.I_IDSPP)
+        AND TMSPP.c_angg_tahun = #{tahun}
+        AND TMSPP.c_jenis = '3'
+        AND TMSPP.C_BEBAN = 'UP'
+        AND TMSPD.I_ID = TMSPPRINCIBL.I_idSPD
+        AND TMSPP.i_idskpd = #{idskpd}
+        AND TMSPP.I_ID = #{idspp}) XXXX,
+        TMDPAKEGIATAN,
+        TRSKPD,
+        TRBAS
+        WHERE       XXXX.I_IDSKPD = TRSKPD.I_ID
+        AND XXXX.I_IDBAS = TRBAS.I_ID
+        AND XXXX.I_IDKEGIATAN = TMDPAKEGIATAN.I_ID
+        AND TMDPAKEGIATAN.c_angg_tahun = #{tahun}
+        <if test="kodekegiatan != null and kodekegiatan != '' and kodekegiatan != '-'  ">
+            AND  TMDPAKEGIATAN.C_KEGIATAN LIKE  #{kodekegiatan}||'%'
+        </if>
+        <if test="spdno != null and spdno != '' and spdno != '-' ">
+            AND  I_SPDNO = #{spdno}
+        </if>
+    </select>
+    <select id="getBast" parameterType="java.util.Map" resultType="spp.model.SppBl">
+        SELECT i_idskpd AS idSkpd,
+        i_idkegiatan AS "kegiatan.idKegiatan",
+        i_id AS "kontrak.idKontrak",
+        i_kontr AS "kontrak.noKontrak",
+        c_kegiatan AS "kegiatan.kodeKegiatan",
+        n_kegiatan AS "kegiatan.namaKegiatan",
+        n_rekan AS "rekanan.namaRekanan",
+        a_bank AS alamatBank,
+        n_bank AS namaBank,
+        i_rek_bank AS rekeningBank
+        from ( select rownum AS rn, a.*
+        from ( select G.i_idskpd,
+        K.i_idkegiatan,
+        K.i_id,
+        K.i_kontr,
+        c_kegiatan,
+        n_kegiatan,
+        n_rekan,
+        a_bank,
+        n_bank,
+        i_rek_bank
+
+        from tmdpakegiatan G, tmkontrak K
+        where G.i_id = K.i_idkegiatan
+        and  G.c_angg_tahun = #{tahun}
+        and G.i_idskpd = #{idskpd}
+        and not exists (select 1 from tmbast T
+        where T.I_IDKONTRAK = K.I_ID))a)WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getCountBast" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count(distinct K.i_id) as banyak
+        FROM   tmdpakegiatan G, tmkontrak K
+        WHERE       G.i_id = K.i_idkegiatan
+        AND G.c_angg_tahun = #{tahun}
+        AND G.i_idskpd = #{idskpd}
+        AND NOT EXISTS (SELECT   1
+        FROM   tmbast T
+        WHERE   T.I_IDKONTRAK = K.I_ID)
+    </select>
+    <select id="getBast2" parameterType="java.util.Map" resultType="spp.model.SppBl">
+
+        SELECT I_BASTNO AS "bast.noBast",
+        i_idskpd AS idSkpd,
+        i_idkegiatan AS "kegiatan.idKegiatan",
+        i_id AS "kontrak.idKontrak",
+        i_kontr AS "kontrak.noKontrak",
+        D_KONTR AS "kontrak.tanggalKontrak",
+        V_BAST AS "kontrak.nilaiKontrak",
+        c_kegiatan AS "kegiatan.kodeKegiatan",
+        n_kegiatan AS "kegiatan.namaKegiatan",
+        n_rekan AS namaRekanan,
+        n_rekan_dir as dirRekanan,
+        a_rekan as alamatRekanan,
+        i_rekan_npwp as noNpwp,
+        a_bank AS alamatBank,
+        n_bank_transfer AS namaBank,
+        c_bank AS kodeBank,
+        c_bank_transfer AS kodeBankTransfer,
+        i_idbankpfk_induk AS idBank,
+        i_rek_bank AS rekeningBank,
+        D_BASTNO AS "bast.tglBast"
+        FROM (SELECT ROWNUM AS rn, a.*
+        FROM (  SELECT DISTINCT B.I_BASTNO AS I_BASTNO,
+        B.i_idskpd,
+        B.i_idkegiatan,
+        B.I_IDKONTRAK AS i_id,
+        K.i_kontr,
+        K.D_KONTR,
+        SUM (B.V_BAST) AS V_BAST,
+        n_rekan,
+        n_rekan_dir,
+        a_rekan,
+        i_rekan_npwp,
+        a_bank,
+        n_bank_transfer,
+        c_bank_transfer,
+        c_bank,
+        i_idbankpfk_induk,
+        i_rek_bank,
+        B.D_BASTNO,
+        g.c_kegiatan,
+        g.n_kegiatan
+
+        FROM tmkontrak K, tmbast B, tmdpakegiatan g
+        WHERE     B.I_IDKONTRAK = K.I_ID
+        AND B.I_IDKEGIATAN = K.i_idkegiatan
+        AND G.I_ID = B.I_IDKEGIATAN
+        and k.i_idskpd =b.i_idskpd
+        AND B.c_angg_tahun = #{tahun}
+        AND B.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT 1
+        FROM TMSPP T, tmbast x
+        WHERE  T.I_BASTNO = B.I_BASTNO
+        and t.i_idskpd =x.i_idskpd
+        AND T.I_IDSKPD = #{idskpd}
+        AND T.C_ANGG_TAHUN =  #{tahun}  )
+        GROUP BY B.I_BASTNO,
+        B.i_idskpd,
+        B.i_idkegiatan,
+        B.I_IDKONTRAK,
+        K.i_kontr,
+        K.D_KONTR,
+        n_rekan,
+        a_bank,
+        n_bank_transfer,
+        c_bank_transfer,
+        c_bank,
+        i_rek_bank,
+        B.D_BASTNO,
+        g.c_kegiatan,
+        g.n_kegiatan,
+        n_rekan_dir,
+        a_rekan,
+        i_idbankpfk_induk,
+        i_rekan_npwp) a) WHERE ROWNUM &lt;=#{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getCountBast2" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak FROM (SELECT DISTINCT B.I_BASTNO AS I_BASTNO,
+        B.i_idskpd,
+        B.i_idkegiatan,
+        B.I_IDKONTRAK AS i_id,
+        K.i_kontr,
+        K.D_KONTR,
+        SUM (B.V_BAST) AS V_BAST,
+        n_rekan,
+        n_rekan_dir,
+        a_rekan,
+        i_rekan_npwp,
+        a_bank,
+        n_bank,
+        i_rek_bank,
+        B.D_BASTNO,
+        g.c_kegiatan,
+        g.n_kegiatan
+
+        FROM tmkontrak K, tmbast B, tmdpakegiatan g
+        WHERE     B.I_IDKONTRAK = K.I_ID
+        AND B.I_IDKEGIATAN = K.i_idkegiatan
+        AND G.I_ID = B.I_IDKEGIATAN
+        and k.i_idskpd =b.i_idskpd
+        AND B.c_angg_tahun = #{tahun}
+        AND B.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT 1
+        FROM TMSPP T, tmbast x
+        WHERE  T.I_BASTNO = B.I_BASTNO
+        and t.i_idskpd =x.i_idskpd
+        AND T.I_IDSKPD = #{idskpd}
+        AND T.C_ANGG_TAHUN =  #{tahun}  )
+        GROUP BY B.I_BASTNO,
+        B.i_idskpd,
+        B.i_idkegiatan,
+        B.I_IDKONTRAK,
+        K.i_kontr,
+        K.D_KONTR,
+        n_rekan,
+        a_bank,
+        n_bank,
+        i_rek_bank,
+        B.D_BASTNO,
+        g.c_kegiatan,
+        g.n_kegiatan,
+        n_rekan_dir,
+        a_rekan,
+        i_rekan_npwp)
+    </select>
+</mapper>

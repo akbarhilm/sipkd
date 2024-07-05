@@ -1,0 +1,1678 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spp.entity.BastMapper">
+
+    <select id="getBast" parameterType="java.util.Map" resultType="spp.model.Bast">
+        SELECT distinct I_BASTNO AS noBast, C_ANGG_TAHUN AS tahunAnggaran,
+        D_BASTNO AS tglBast,
+        I_IDKONTRAK AS "kontrak.idKontrak",
+        I_IDKEGIATAN AS "idkegiatan",
+        C_KEGIATAN AS "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        V_BAST AS nilaiBast,
+        N_PPTK AS namaPptk,
+        I_PPTK_NIP AS nipPptk,
+        E_BAST AS ketBast,
+        I_IDSKPD AS "skpd.idSkpd",
+        C_SKPD AS "skpd.kodeSkpd",
+        N_SKPD AS "skpd.namaSkpd"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT DISTINCT T.I_BASTNO,
+        T.C_ANGG_TAHUN,
+        T.D_BASTNO,
+        T.I_IDKONTRAK,
+        T.I_IDKEGIATAN,
+        E.C_KEGIATAN,
+        E.N_KEGIATAN,
+        SUM (T.V_BAST) AS V_BAST,
+        T.N_PPTK,
+        T.I_PPTK_NIP,
+        T.E_BAST,
+        S.C_SKPD,
+        S.N_SKPD,
+        T.I_IDSKPD
+        FROM TMBAST T
+        INNER JOIN TRSKPD S
+        ON S.I_ID = T.I_IDSKPD
+        LEFT JOIN TMKONTRAK K
+        ON K.I_ID = T.I_IDKONTRAK
+        LEFT JOIN TMDPAKEGIATAN E
+        ON T.I_IDKEGIATAN = E.I_ID
+        LEFT JOIN TRBAS B
+        ON T.I_IDBAS = B.I_ID
+        WHERE t.I_IDSKPD = #{idskpd}  AND t.C_ANGG_TAHUN = #{tahun}
+        and not exists(select 1 from tmspp where tmspp.i_bastno = t.i_bastno
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd = #{idskpd}
+        )
+
+        <if test="nomorbast != null and nomorbast != '' and nomorbast != '-' ">
+            AND  T.I_BASTNO = #{nomorbast}
+        </if>
+        <if test="namakegiatan != null and namakegiatan != '' ">
+            AND  E.N_KEGIATAN = LIKE #{namakegiatan} ||'%'
+        </if>
+        <if test="kodekegiatan != null and kodekegiatan != '' ">
+            AND  E.C_KEGIATAN LIKE  #{kodekegiatan}||'%'
+        </if>
+        GROUP BY T.I_BASTNO,
+        T.C_ANGG_TAHUN,
+        T.D_BASTNO,
+        T.I_IDKONTRAK,
+        T.I_IDKEGIATAN,
+        E.C_KEGIATAN,
+        E.N_KEGIATAN,
+        T.N_PPTK,
+        T.I_PPTK_NIP,
+        T.E_BAST,
+        S.C_SKPD,
+        S.N_SKPD,
+        T.I_IDSKPD
+        ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        order by I_BASTNO
+
+    </select>
+
+
+    <select id="getBanyakAllBast" parameterType="java.util.Map"  resultType="java.lang.Integer">
+      SELECT COUNT (*) as banyak from (
+      SELECT distinct I_BASTNO AS noBast, C_ANGG_TAHUN AS tahunAnggaran,
+        D_BASTNO AS tglBast,
+        I_IDKONTRAK AS "kontrak.idKontrak",
+        I_IDKEGIATAN AS "idkegiatan",
+        C_KEGIATAN AS "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        V_BAST AS nilaiBast,
+        N_PPTK AS namaPptk,
+        I_PPTK_NIP AS nipPptk,
+        E_BAST AS ketBast,
+        I_IDSKPD AS "skpd.idSkpd",
+        C_SKPD AS "skpd.kodeSkpd",
+        N_SKPD AS "skpd.namaSkpd"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT DISTINCT T.I_BASTNO,
+        T.C_ANGG_TAHUN,
+        T.D_BASTNO,
+        T.I_IDKONTRAK,
+        T.I_IDKEGIATAN,
+        E.C_KEGIATAN,
+        E.N_KEGIATAN,
+        SUM (T.V_BAST) AS V_BAST,
+        T.N_PPTK,
+        T.I_PPTK_NIP,
+        T.E_BAST,
+        S.C_SKPD,
+        S.N_SKPD,
+        T.I_IDSKPD
+        FROM TMBAST T
+        INNER JOIN TRSKPD S
+        ON S.I_ID = T.I_IDSKPD
+        LEFT JOIN TMKONTRAK K
+        ON K.I_ID = T.I_IDKONTRAK
+        LEFT JOIN TMDPAKEGIATAN E
+        ON T.I_IDKEGIATAN = E.I_ID
+        LEFT JOIN TRBAS B
+        ON T.I_IDBAS = B.I_ID
+        WHERE t.I_IDSKPD = #{idskpd}  AND t.C_ANGG_TAHUN = #{tahun}
+        and not exists(select 1 from tmspp where tmspp.i_bastno = t.i_bastno
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd = #{idskpd}
+        )
+
+        <if test="nomorbast != null and nomorbast != '' and nomorbast != '-' ">
+            AND  T.I_BASTNO = #{nomorbast}
+        </if>
+        <if test="namakegiatan != null and namakegiatan != '' ">
+            AND  E.N_KEGIATAN = LIKE #{namakegiatan} ||'%'
+        </if>
+        <if test="kodekegiatan != null and kodekegiatan != '' ">
+            AND  E.C_KEGIATAN LIKE  #{kodekegiatan}||'%'
+        </if>
+        GROUP BY T.I_BASTNO,
+        T.C_ANGG_TAHUN,
+        T.D_BASTNO,
+        T.I_IDKONTRAK,
+        T.I_IDKEGIATAN,
+        E.C_KEGIATAN,
+        E.N_KEGIATAN,
+        T.N_PPTK,
+        T.I_PPTK_NIP,
+        T.E_BAST,
+        S.C_SKPD,
+        S.N_SKPD,
+        T.I_IDSKPD ) a)
+
+      )
+
+    </select>
+    <!--
+    <select id="getBastById" parameterType="java.lang.Integer" resultType="spp.model.Bast">
+
+        SELECT   T.I_ID AS idBast,
+        T.C_ANGG_TAHUN AS tahunAnggaran,
+        T.I_BASTNO AS noBast,
+        T.D_BASTNO AS tglBast,
+        T.I_IDKONTRAK AS "kontrak.idKontrak",
+        E.I_ID AS idkegiatan,
+        E.C_KEGIATAN || '/' || E.N_KEGIATAN AS "kegiatan.namaKegiatan",
+        T.I_IDBAS AS "akun.idAkun",
+        T.V_BAST AS nilaiBast,
+        T.P_PRESTASI AS nilaiPrestasi,
+        T.N_PPTK AS namaPptk,
+        T.I_PPTK_NIP AS nipPptk,
+        T.E_BAST AS ketBast,
+        S.C_SKPD AS "skpd.kodeSkpd",
+        S.N_SKPD AS "skpd.namaSkpd",
+        K.I_IDSKPD AS "skpd.idSkpd",
+        B.C_AKUN ||'/'|| B.N_AKUN   AS "akun.namaAkun",
+        N_PB AS namaPemeriksaBarang ,
+        I_PB_NIP  as nipPemeriksaBarang
+        FROM   TMBAST T,
+        TRSKPD S,
+        TMKONTRAK K,
+        TMDPAKEGIATAN E,
+        TRBAS B
+        WHERE       T.I_IDKONTRAK = K.I_ID
+        AND K.I_IDKEGIATAN = E.I_ID
+        AND K.I_IDSKPD = S.I_ID
+        AND T.I_IDBAS = B.I_ID
+        AND not exists (select 1 from tmspp where tmspp.i_bastno = t.i_bastno
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd = #{idskpd})
+        AND T.I_ID = #{value}
+
+    </select>
+    -->
+
+    <insert id="insertBast" parameterType="spp.model.Bast">
+        INSERT INTO TMBAST(
+        I_ID,
+        C_ANGG_TAHUN,
+        I_BASTNO,
+        D_BASTNO,
+        I_IDKONTRAK,
+        I_IDKEGIATAN,
+        I_IDSKPD,
+        I_IDBAS,
+        V_BAST,
+        P_PRESTASI,
+        N_PPTK,
+        I_PPTK_NIP,
+        E_BAST,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM, N_PB  ,
+        I_PB_NIP  ,
+        C_UANGMUKA,
+        I_IDSPD,
+        I_IDBL
+        )
+        VALUES
+        (
+        SEQ_TMBAST.nextval,
+        #{tahunAnggaran},
+        #{noBast},
+        #{tglBast},
+        #{idKontrak},
+        #{idkegiatan},
+        #{skpd.idSkpd},
+        #{idAkun},
+        #{nilaiBast},
+        #{nilaiPrestasi},
+        #{namaPptk},--10
+        #{nipPptk},
+        #{ketBast},
+        #{idEntry},
+        #{tglEntry},
+        #{namaPemeriksaBarang},
+        #{nipPemeriksaBarang},
+        <choose>
+            <when test="statusUangMuka != null">
+                #{statusUangMuka}
+            </when>
+            <otherwise>
+                0
+            </otherwise>
+        </choose>,
+        #{idSpd},
+        #{idBl}
+        )
+    </insert>
+
+    <delete id="deleteBast" parameterType="java.lang.Integer"   >
+        delete TMBAST     WHERE I_ID      = #{idBast}
+    </delete>
+
+
+    <update id="updateBast" parameterType="spp.model.Bast"   >
+        UPDATE TMBAST
+        SET
+        C_ANGG_TAHUN = #{tahunAnggaran},
+        I_BASTNO = #{noBast},
+        D_BASTNO = #{tglBast},
+        I_IDKONTRAK = #{kontrak.idKontrak},
+        I_IDKEGIATAN = #{idkegiatan},
+        I_IDSKPD = #{skpd.idSkpd},
+        I_IDBAS =  #{akun.idAkun},
+        V_BAST =  #{nilaiBast},
+        P_PRESTASI = #{nilaiPrestasi},
+        N_PPTK = #{namaPptk},
+        I_PPTK_NIP = #{nipPptk},
+        E_BAST =  #{ketBast},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = #{tglEntry},
+        N_PB  = #{namaPemeriksaBarang},
+        I_PB_NIP = #{nipPemeriksaBarang},
+        C_UANGMUKA = #{statusUangMuka},
+        I_IDBL =  #{idBl}
+        WHERE  I_ID  =  #{idBast}
+    </update>
+
+    <select id="getKontrak" parameterType="java.util.Map" resultType="spp.model.Bast">
+        SELECT   I_ID AS "kontrak.idKontrak",
+        C_ANGG_TAHUN AS tahunAnggaran,
+        I_IDKEGIATAN AS idkegiatan,
+        C_KEGIATAN AS "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        I_KONTR AS "kontrak.noKontrak",
+        --I_IDSPD AS "kontrak.idSpd",
+        I_IDSKPD AS "kontrak.idSkpd",
+        N_SKPD AS "skpd.namaSkpd",
+        V_KONTR AS nilaiKontrak,
+        v_bast AS nilaiBast
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   I_ID,
+        C_ANGG_TAHUN,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        N_KEGIATAN,
+        I_KONTR,
+        --I_IDSPD,
+        I_IDSKPD,
+        N_SKPD,
+        SUM (V_KONTR) AS V_KONTR,
+        SUM (v_bast) AS v_bast
+        FROM   (
+
+        SELECT   TMKONTRAK.I_ID,
+        TMKONTRAK.C_ANGG_TAHUN,
+        TMKONTRAK.I_IDKEGIATAN,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        TMKONTRAK.I_KONTR,
+        --TMKONTRAK.I_IDSPD,
+        TMKONTRAK.I_IDSKPD,
+        trskpd.N_SKPD,
+        V_KONTR,
+        0 v_bast
+        FROM   TMKONTRAK,
+        --tmspd,
+        trskpd,
+        tmdpakegiatan
+        WHERE TMKONTRAK.I_IDSKPD = trskpd.I_ID
+        --AND TMKONTRAK.I_IDSPD = tmspd.i_id
+        AND TMKONTRAK.I_IDKEGIATAN = tmdpakegiatan.I_ID
+        and exists (select 1 from tmkontrakrinci where  tmkontrakrinci.i_idkontrak = TMKONTRAK.i_id) <!-- jika belum ada kontrak rinci-->
+        and v_kontr = (select sum(v_kontrak) from tmkontrakrinci where i_idkontrak = tmkontrak.i_id) <!-- jika total kontrak != total kontrak rinci-->
+        AND TMDPAKEGIATAN.C_ANGG_TAHUN = #{tahun}
+        AND TMKONTRAK.C_ANGG_TAHUN = #{tahun}
+        AND TMKONTRAK.I_IDSKPD = #{idskpd}
+        AND TMKONTRAK.I_IDSKPD =
+        tmdpakegiatan.I_IDSKPD
+        <if test='nokontrak != null and nokontrak != "" and nokontrak != "-" '>
+            AND upper(TMKONTRAK.I_KONTR) LIKE '%'||upper(#{nokontrak,jdbcType=VARCHAR})||'%'
+        </if>
+        <if test='kodekegiatan != null and kodekegiatan != "" and kodekegiatan != "-" '>
+            AND tmdpakegiatan.C_KEGIATAN = #{kodekegiatan,jdbcType=VARCHAR}
+        </if>
+        <if test='namakegiatan != null and namakegiatan != "" and namakegiatan != "-" '>
+            AND upper(tmdpakegiatan.N_KEGIATAN) LIKE '%'||upper(#{namakegiatan,jdbcType=VARCHAR})||'%'
+        </if>
+
+        UNION ALL
+        SELECT   TMKONTRAK.I_ID,
+        TMKONTRAK.C_ANGG_TAHUN,
+        TMKONTRAK.I_IDKEGIATAN,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        TMKONTRAK.I_KONTR,
+        --TMKONTRAK.I_IDSPD,
+        TMKONTRAK.I_IDSKPD,
+        trskpd.N_SKPD,
+        0 V_KONTR,
+        v_bast
+        FROM   TMKONTRAK,
+        TMBAST,
+        TMDPAKEGIATAN,
+        TRSKPD
+        WHERE   TMKONTRAK.I_ID = TMBAST.I_IDKONTRAK
+        AND TMKONTRAK.I_IDKEGIATAN =
+        TMDPAKEGIATAN.I_ID
+        AND TMKONTRAK.I_IDSKPD = trskpd.I_ID
+        AND TMDPAKEGIATAN.C_ANGG_TAHUN = #{tahun}
+        AND TMKONTRAK.C_ANGG_TAHUN = #{tahun}
+        AND TMKONTRAK.I_IDSKPD = #{idskpd}
+        AND TMKONTRAK.I_IDSKPD =
+        tmdpakegiatan.I_IDSKPD
+        <if test='nokontrak != null and nokontrak != "" and nokontrak != "-" '>
+            AND upper(TMKONTRAK.I_KONTR) LIKE '%'||upper(#{nokontrak,jdbcType=VARCHAR})||'%'
+        </if>
+        <if test='kodekegiatan != null and kodekegiatan != "" and kodekegiatan != "-" '>
+            AND tmdpakegiatan.C_KEGIATAN = #{kodekegiatan,jdbcType=VARCHAR}
+        </if>
+        <if test='namakegiatan != null and namakegiatan != "" and namakegiatan != "-" '>
+            AND tmdpakegiatan.N_KEGIATAN LIKE '%'||#{namakegiatan,jdbcType=VARCHAR}||'%'
+        </if>    )
+        GROUP BY   I_ID,
+        C_ANGG_TAHUN,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        N_KEGIATAN,
+        I_KONTR,
+        --I_IDSPD,
+        I_IDSKPD,
+        N_SKPD) a) WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <select id="getBanyakAllKontrak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT ( * ) AS banyak FROM (
+        SELECT   I_ID,
+        C_ANGG_TAHUN,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        N_KEGIATAN,
+        I_KONTR,
+        --I_IDSPD,
+        I_IDSKPD,
+        N_SKPD,
+        SUM (V_KONTR) AS V_KONTR,
+        SUM (v_bast) AS v_bast
+        FROM   (
+
+        SELECT   TMKONTRAK.I_ID,
+        TMKONTRAK.C_ANGG_TAHUN,
+        TMKONTRAK.I_IDKEGIATAN,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        TMKONTRAK.I_KONTR,
+        --TMKONTRAK.I_IDSPD,
+        TMKONTRAK.I_IDSKPD,
+        trskpd.N_SKPD,
+        V_KONTR,
+        0 v_bast
+        FROM   TMKONTRAK,
+        --tmspd,
+        trskpd,
+        tmdpakegiatan
+        WHERE TMKONTRAK.I_IDSKPD = trskpd.I_ID
+        --AND TMKONTRAK.I_IDSPD = tmspd.i_id
+        AND TMKONTRAK.I_IDKEGIATAN = tmdpakegiatan.I_ID
+        and exists (select 1 from tmkontrakrinci where  tmkontrakrinci.i_idkontrak = TMKONTRAK.i_id) <!-- jika belum ada kontrak rinci-->
+        and v_kontr = (select sum(v_kontrak) from tmkontrakrinci where i_idkontrak = tmkontrak.i_id) <!-- jika total kontrak != total kontrak rinci-->
+        AND TMDPAKEGIATAN.C_ANGG_TAHUN = #{tahun}
+        AND TMKONTRAK.C_ANGG_TAHUN = #{tahun}
+        AND TMKONTRAK.I_IDSKPD = #{idskpd}
+        AND TMKONTRAK.I_IDSKPD =
+        tmdpakegiatan.I_IDSKPD
+        <if test='nokontrak != null and nokontrak != "" and nokontrak != "-" '>
+            AND upper(TMKONTRAK.I_KONTR) LIKE '%'||upper(#{nokontrak,jdbcType=VARCHAR})||'%'
+        </if>
+        <if test='kodekegiatan != null and kodekegiatan != "" and kodekegiatan != "-" '>
+            AND tmdpakegiatan.C_KEGIATAN = #{kodekegiatan,jdbcType=VARCHAR}
+        </if>
+        <if test='namakegiatan != null and namakegiatan != "" and namakegiatan != "-" '>
+            AND upper(tmdpakegiatan.N_KEGIATAN) LIKE '%'||upper(#{namakegiatan,jdbcType=VARCHAR})||'%'
+        </if>
+
+        UNION ALL
+        SELECT   TMKONTRAK.I_ID,
+        TMKONTRAK.C_ANGG_TAHUN,
+        TMKONTRAK.I_IDKEGIATAN,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        TMKONTRAK.I_KONTR,
+        --TMKONTRAK.I_IDSPD,
+        TMKONTRAK.I_IDSKPD,
+        trskpd.N_SKPD,
+        0 V_KONTR,
+        v_bast
+        FROM   TMKONTRAK,
+        TMBAST,
+        TMDPAKEGIATAN,
+        TRSKPD
+        WHERE   TMKONTRAK.I_ID = TMBAST.I_IDKONTRAK
+        AND TMKONTRAK.I_IDKEGIATAN =
+        TMDPAKEGIATAN.I_ID
+        AND TMKONTRAK.I_IDSKPD = trskpd.I_ID
+        AND TMDPAKEGIATAN.C_ANGG_TAHUN = #{tahun}
+        AND TMKONTRAK.C_ANGG_TAHUN = #{tahun}
+        AND TMKONTRAK.I_IDSKPD = #{idskpd}
+        AND TMKONTRAK.I_IDSKPD =
+        tmdpakegiatan.I_IDSKPD
+        <if test='nokontrak != null and nokontrak != "" and nokontrak != "-" '>
+            AND upper(TMKONTRAK.I_KONTR) LIKE '%'||upper(#{nokontrak,jdbcType=VARCHAR})||'%'
+        </if>
+        <if test='kodekegiatan != null and kodekegiatan != "" and kodekegiatan != "-" '>
+            AND tmdpakegiatan.C_KEGIATAN = #{kodekegiatan,jdbcType=VARCHAR}
+        </if>
+        <if test='namakegiatan != null and namakegiatan != "" and namakegiatan != "-" '>
+            AND tmdpakegiatan.N_KEGIATAN LIKE '%'||#{namakegiatan,jdbcType=VARCHAR}||'%'
+        </if>    )
+        GROUP BY   I_ID,
+        C_ANGG_TAHUN,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        N_KEGIATAN,
+        I_KONTR,
+        --I_IDSPD,
+        I_IDSKPD,
+        N_SKPD)
+    </select>
+
+    <select id="getAkun" parameterType="java.util.Map"  resultType="spp.model.Bast">
+
+        select i_idbas as "akun.idAkun",sum(idBast) as idBast ,sum(idBl) as idBl,
+        i_idkegiatan as idkegiatan, sum(p_prestasi)  as nilaiPrestasi ,
+        c_akun || '/' || n_akun as  "akun.namaAkun",
+        sum(v_spd) as nilaiSpd , sum(v_spd + sisaTU - V_BAST -  v_spp_tu- v_spj + v_setoran) as sisaSpd ,
+        sum(v_bast_entry) as nilaiBast,sum(nvl(v_bast_entry,0)) as nilaiBastEntry
+        FROM (SELECT ROWNUM AS rn, a.*
+        from(
+
+        select tmspdrincibl.i_idbas, nvl((tmspdrincibl.v_spd),0) v_spd , 0 as V_BAST ,
+        0  as v_spp_tu, 0 as v_spj , 0 as v_setoran, 0 as v_bast_entry,
+        i_idkegiatan, 0 as p_prestasi, 0 as idBast, TMSPDRINCIBL.I_IDBL as idBl , 0 AS sisaTU
+	    from tmspd, tmspdsah, tmspdrincibl
+        where tmspd.I_id= tmspdsah.i_id
+        and tmspd.I_id = tmspdrincibl.i_idspd
+        and tmspd.c_angg_tahun = #{tahun}
+        and tmspd.i_idskpd = #{idskpd}
+        and tmspd.I_Id = #{idspd}
+        and tmspdrincibl.I_IDKEGIATAN = #{idkegiatan}
+        AND TMSPDRINCIBL.C_SPD_STATUS != 'P'
+        union all
+
+        select i_idbas , 0 v_spd , nvl((tmbast.V_BAST ),0) as V_BAST ,
+        0  as v_spp_tu, 0 as v_spj , 0 as v_setoran,  0 as v_bast_entry ,
+        tmbast.i_idkegiatan as i_idkegiatan , 0 as p_prestasi , 0 as idBast,
+        0 as idBl , 0 AS sisaTU from tmbast
+        where tmbast.c_angg_tahun = #{tahun}
+        and tmbast.i_idskpd = #{idskpd}
+        and tmbast.I_IDKEGIATAN = #{idkegiatan}
+        AND tmbast.I_BASTNO !=  #{nobast}
+        and tmbast.c_uangmuka = '0'
+        union all
+
+        SELECT i_idbas,
+        0 v_spd,
+        0 AS V_BAST,
+        0 AS v_spp_tu,
+        0 AS v_spj,
+        0 AS v_setoran,
+        NVL (tmbast.V_BAST,0) AS v_bast_entry,
+        tmbast.i_idkegiatan AS i_idkegiatan,
+        p_prestasi,
+        tmbast.i_id AS idBast,
+        0 AS idBl, 0 AS sisaTU
+        FROM tmbast, tmkontrak
+        where tmbast.I_IDKONTRAK = tmkontrak.I_ID
+        and tmbast.c_angg_tahun = #{tahun}
+        and tmbast.i_idskpd = #{idskpd}
+        and tmbast.I_IDKEGIATAN = #{idkegiatan}
+        and tmkontrak.I_ID = #{idkontrak}
+
+        AND tmbast.I_BASTNO = #{nobast}
+        union all
+        select i_idbas , 0 v_spd , 0 as V_BAST , nvl((v_spp),0)  as v_spp_tu, 0 as v_spj , 0 as v_setoran ,0 as v_bast_entry ,
+	i_idkegiatan , 0 as p_prestasi , 0 as idBast ,0 as idBl , 0 AS sisaTU
+	from tmspp, tmspprincibl
+        where  tmspp.I_id = tmspprincibl.i_idspp
+        and tmspp.C_BEBAN &lt;&gt; 'LS'
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd = #{idskpd}
+        and tmspprincibl.i_idspd = #{idspd}
+        and tmspprincibl.I_IDKEGIATAN = #{idkegiatan}
+
+	UNION ALL  <!-- DITAMBAH DENGAN SETORAN TU -->
+        SELECT A.i_idbas, 0 v_spd , 0 as V_BAST , 0 as v_spp_tu, 0 as v_spj , 0 as v_setoran ,0 as v_bast_entry, A.i_idkegiatan,
+	0 as p_prestasi , 0 as idBast, 0 as idBl, (v_kas_keluar-v_kas_terima) AS sisaTU
+        FROM  tmbkuskpdpengeluaran A where
+        A.C_BEBAN = 'TU'
+        and A.c_trx = 'ST'
+        and A.c_jenis = 3
+        and A.c_angg_tahun = #{tahun}
+        and A.i_idskpd = #{idskpd}
+        and A.i_idspd = #{idspd}
+        and A.i_idkegiatan = #{idkegiatan}
+        and A.i_jour is not null
+
+        <!-- SPJ tidak dihitung karena tidak diketahui SPD nya, jika SPJ dihitung sisa BAST bisa minus karena berdasarkan SPD
+        union all
+        select i_idbas ,0 v_spd , 0 as V_BAST, 0  as v_spp_tu,  nvl((v_spj),0) as v_spj , 0 as v_setoran,  0 as v_bast_entry , i_idkegiatan , 0 as p_prestasi , 0 as idBast, 0 as idBl from tmspj, tmspjrincibl
+        where  tmspj.I_id = tmspjrincibl.i_idspj
+        and tmspjrincibl.C_BEBAN in ('UP','GU')
+        and tmspj.c_angg_tahun = #{tahun}
+        and tmspj.i_idskpd = #{idskpd}
+        and tmspjrincibl.I_IDKEGIATAN = #{idkegiatan}
+        union all
+        select i_idbas ,0 v_spd , 0 as V_BAST, 0  as v_spp_tu, 0 as v_spj ,  nvl((tmsetorrinci.V_SETOR),0) as v_setoran,  0 as v_bast_entry ,0 as i_idkegiatan , 0 as p_prestasi , 0 as idBast, 0 as idBl from tmsetor, tmsetorrinci
+        where  tmsetor.I_id = tmsetorrinci.i_idsetor
+        and tmsetor.c_angg_tahun = #{tahun}
+        and tmsetor.i_idskpd = #{idskpd}
+        and tmsetorrinci.I_IDKEGIATAN = #{idkegiatan}
+        -->
+        )a) aaa, trbas
+        where aaa.i_idbas = trbas.i_id and ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        group by i_idbas, i_idkegiatan, c_akun || '/' || n_akun
+
+
+
+
+    </select>
+
+    <select id="getBanyakAkun" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak FROM (
+        SELECT i_idbas AS "akun.idAkun"
+        ,sum(idBast) AS idBast
+        ,sum(idBl) AS idBl
+        ,i_idkegiatan AS idkegiatan
+        ,sum(p_prestasi) AS nilaiPrestasi
+        ,c_akun || '/' || n_akun AS "akun.namaAkun"
+        ,sum(v_spd) AS nilaiSpd,
+        sum(V_BAST), sum(v_spp_tu)
+        , sum(v_spd - V_BAST - v_spp_tu) AS sisaSpd
+        ,sum(v_bast_entry) AS nilaiBast
+        FROM (
+        SELECT ROWNUM AS rn
+        ,a.*
+        FROM (
+        SELECT tmspdrincibl.i_idbas
+        ,nvl((tmspdrincibl.v_spd), 0) v_spd
+        ,0 AS V_BAST
+        ,0 AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,0 AS v_bast_entry
+        ,i_idkegiatan
+        ,0 AS p_prestasi
+        ,0 AS idBast
+        ,TMSPDRINCIBL.I_IDBL AS idBl
+        FROM tmspd
+        ,tmspdsah
+        ,tmspdrincibl
+        WHERE tmspd.I_id = tmspdsah.i_id
+        AND tmspd.I_id = tmspdrincibl.i_idspd
+        AND tmspd.c_angg_tahun =#{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspd.I_Id = #{idspd}
+        AND tmspdrincibl.I_IDKEGIATAN = #{idkegiatan}
+        AND TMSPDRINCIBL.C_SPD_STATUS != 'P'
+
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,nvl((tmbast.V_BAST), 0) AS V_BAST
+        ,0 AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,0 AS v_bast_entry
+        ,tmbast.i_idkegiatan AS i_idkegiatan
+        ,0 AS p_prestasi
+        ,0 AS idBast
+        ,0 AS idBl
+        FROM tmbast
+        ,tmkontrak
+        WHERE tmbast.I_IDKONTRAK = tmkontrak.I_ID
+        AND tmbast.c_angg_tahun =#{tahun}
+        AND tmbast.i_idskpd = #{idskpd}
+        AND tmbast.I_IDKEGIATAN = #{idkegiatan}
+        AND tmkontrak.I_Idspd = #{idspd}
+        <if test='nobast != null and nobast > 0 '>
+            AND tmbast.I_BASTNO &lt;&gt; #{nobast}
+        </if>
+
+        and  TMKONTRAK.I_IDSKPD =tmbast.i_idskpd
+        and  TMKONTRAK.I_IDKEGIATAN =TMBAST.I_IDKEGIATAN
+        and tmbast.c_uangmuka = '0'
+
+
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,0 AS V_BAST
+        ,0 AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,nvl(tmbast.V_BAST, 0) AS v_bast_entry
+        ,tmbast.i_idkegiatan AS i_idkegiatan
+        ,p_prestasi
+        ,tmbast.i_id AS idBast
+        ,0 AS idBl
+        FROM tmbast
+        ,tmkontrak
+        WHERE tmbast.I_IDKONTRAK = tmkontrak.I_ID
+        AND tmbast.c_angg_tahun =#{tahun}
+        AND tmbast.i_idskpd = #{idskpd}
+        AND tmbast.I_IDKEGIATAN = #{idkegiatan}
+        AND tmkontrak.I_ID = #{idkontrak}
+        <if test='nobast != null and nobast > 0 '>
+            AND tmbast.I_BASTNO =#{nobast}
+        </if>
+
+        AND tmkontrak.I_Idspd = #{idspd}
+
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,0 AS V_BAST
+        ,nvl((v_spp), 0) AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,0 AS v_bast_entry
+        ,i_idkegiatan
+        ,0 AS p_prestasi
+        ,0 AS idBast
+        ,0 AS idBl
+        FROM tmspp
+        ,tmspprincibl
+        WHERE tmspp.I_id = tmspprincibl.i_idspp
+        AND tmspp.C_BEBAN = 'TU'
+        AND tmspp.c_angg_tahun =#{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idspd = #{idspd}
+        AND tmspprincibl.I_IDKEGIATAN = #{idkegiatan}
+
+        ) a
+        ) aaa
+        ,trbas
+        WHERE aaa.i_idbas = trbas.i_id
+        GROUP BY i_idbas
+        ,i_idkegiatan
+        ,c_akun || '/' || n_akun
+        )
+        <!--
+        select i_idbas as "akun.idAkun",sum(idBast) as idBast ,sum(idBl) as idBl, i_idkegiatan as idkegiatan, sum(p_prestasi)  as nilaiPrestasi ,c_akun || '/' || n_akun as  "akun.namaAkun",
+        sum(v_spd) as nilaiSpd , sum(v_spd - V_BAST -  v_spp_tu- v_spj + v_setoran) as sisaSpd , sum(v_bast_entry) as nilaiBast
+        FROM (SELECT ROWNUM AS rn, a.*
+        from(
+
+        select tmspdrincibl.i_idbas, nvl((tmspdrincibl.v_spd),0) v_spd , 0 as V_BAST ,0  as v_spp_tu, 0 as v_spj , 0 as v_setoran, 0 as v_bast_entry, i_idkegiatan, 0 as p_prestasi, 0 as idBast, TMSPDRINCIBL.I_IDBL as idBl  from tmspd, tmspdsah, tmspdrincibl
+        where tmspd.I_id= tmspdsah.i_id
+        and tmspd.I_id = tmspdrincibl.i_idspd
+        and tmspd.c_angg_tahun = #{tahun}
+        and tmspd.i_idskpd = #{idskpd}
+        and tmspd.I_Id = #{idspd}
+        and tmspdrincibl.I_IDKEGIATAN = #{idkegiatan}
+        AND TMSPDRINCIBL.C_SPD_STATUS != 'P'
+        union all
+
+        select i_idbas , 0 v_spd , nvl((tmbast.V_BAST ),0) as V_BAST , 0  as v_spp_tu, 0 as v_spj , 0 as v_setoran,  0 as v_bast_entry , tmbast.i_idkegiatan as i_idkegiatan , 0 as p_prestasi , 0 as idBast, 0 as idBl from tmbast
+        where tmbast.c_angg_tahun = #{tahun}
+        and tmbast.i_idskpd = #{idskpd}
+        and tmbast.I_IDKEGIATAN = #{idkegiatan}
+        and tmbast.I_id &lt;&gt; #{idbast}
+
+        <if test='nobast != null and nobast > 0 '>
+            AND tmbast.I_BASTNO &lt;&gt; #{nobast}
+        </if>
+        union all
+
+        select i_idbas , 0 v_spd , 0 as V_BAST , 0  as v_spp_tu, 0 as v_spj , 0 as v_setoran,  nvl(tmbast.V_BAST,0 ) as v_bast_entry, tmbast.i_idkegiatan as i_idkegiatan , p_prestasi,  tmbast.i_id as idBast, 0 as idBl from tmbast, tmkontrak
+        where tmbast.I_IDKONTRAK = tmkontrak.I_ID
+        and tmbast.c_angg_tahun = #{tahun}
+        and tmbast.i_idskpd = #{idskpd}
+        and tmbast.I_IDKEGIATAN = #{idkegiatan}
+        and tmkontrak.I_ID = #{idkontrak}
+        and tmbast.I_id = #{idbast}
+
+        <if test='nobast != null and nobast > 0 '>
+            AND tmbast.I_BASTNO = #{nobast}
+        </if>
+        union all
+        select i_idbas , 0 v_spd , 0 as V_BAST , nvl((v_spp),0)  as v_spp_tu, 0 as v_spj , 0 as v_setoran ,0 as v_bast_entry , i_idkegiatan , 0 as p_prestasi , 0 as idBast ,0 as idBl from tmspp, tmspprincibl
+        where  tmspp.I_id = tmspprincibl.i_idspp
+        and tmspp.C_BEBAN &lt;&gt; 'LS'
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd = #{idskpd}
+        and tmspprincibl.i_idspd = #{idspd}
+        and tmspprincibl.I_IDKEGIATAN = #{idkegiatan}
+        union all
+        select i_idbas ,0 v_spd , 0 as V_BAST, 0  as v_spp_tu,  nvl((v_spj),0) as v_spj , 0 as v_setoran,  0 as v_bast_entry , i_idkegiatan , 0 as p_prestasi , 0 as idBast, 0 as idBl from tmspj, tmspjrincibl
+        where  tmspj.I_id = tmspjrincibl.i_idspj
+        and tmspjrincibl.C_BEBAN in ('UP','GU')
+        and tmspj.c_angg_tahun = #{tahun}
+        and tmspj.i_idskpd = #{idskpd}
+        and tmspjrincibl.I_IDKEGIATAN = #{idkegiatan}
+        union all
+        select i_idbas ,0 v_spd , 0 as V_BAST, 0  as v_spp_tu, 0 as v_spj ,  nvl((tmsetorrinci.V_SETOR),0) as v_setoran,  0 as v_bast_entry ,0 as i_idkegiatan , 0 as p_prestasi , 0 as idBast, 0 as idBl from tmsetor, tmsetorrinci
+        where  tmsetor.I_id = tmsetorrinci.i_idsetor
+        and tmsetor.c_angg_tahun = #{tahun}
+        and tmsetor.i_idskpd = #{idskpd}
+        and tmsetorrinci.I_IDKEGIATAN = #{idkegiatan}
+        )a) aaa, trbas
+        where aaa.i_idbas = trbas.i_id
+        group by i_idbas, i_idkegiatan, c_akun || '/' || n_akun
+        -->
+    </select>
+
+    <select id="getAkunUpdate" parameterType="java.util.Map"  resultType="spp.model.Bast">
+        SELECT i_idbas AS "akun.idAkun"
+        ,sum(idBast) AS idBast
+        ,sum(idBl) AS idBl
+        ,i_idkegiatan AS idkegiatan
+        ,sum(p_prestasi) AS nilaiPrestasi
+        ,c_akun || '/' || n_akun AS "akun.namaAkun"
+        ,sum(v_spd) AS nilaiSpd
+        , sum(v_spd - V_BAST - v_spp_tu) AS sisaSpd
+        ,sum(v_bast_entry) AS nilaiBast
+        FROM (
+        SELECT ROWNUM AS rn
+        ,a.*
+        FROM (
+        SELECT tmspdrincibl.i_idbas
+        ,nvl((tmspdrincibl.v_spd), 0) v_spd
+        ,0 AS V_BAST
+        ,0 AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,0 AS v_bast_entry
+        ,i_idkegiatan
+        ,0 AS p_prestasi
+        ,0 AS idBast
+        ,TMSPDRINCIBL.I_IDBL AS idBl
+        FROM tmspd
+        ,tmspdsah
+        ,tmspdrincibl
+        WHERE tmspd.I_id = tmspdsah.i_id
+        AND tmspd.I_id = tmspdrincibl.i_idspd
+        AND tmspd.c_angg_tahun =#{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspd.I_Id = #{idspd}
+        AND tmspdrincibl.I_IDKEGIATAN = #{idkegiatan}
+        AND TMSPDRINCIBL.C_SPD_STATUS != 'P'
+
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,nvl((tmbast.V_BAST), 0) AS V_BAST
+        ,0 AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,0 AS v_bast_entry
+        ,tmbast.i_idkegiatan AS i_idkegiatan
+        ,0 AS p_prestasi
+        ,0 AS idBast
+        ,0 AS idBl
+        FROM tmbast
+        ,tmkontrak
+        WHERE tmbast.I_IDKONTRAK = tmkontrak.I_ID
+        AND tmbast.c_angg_tahun =#{tahun}
+        AND tmbast.i_idskpd = #{idskpd}
+        AND tmbast.I_IDKEGIATAN = #{idkegiatan}
+        AND tmkontrak.I_Idspd = #{idspd}
+        <if test='nobast != null and nobast > 0 '>
+            AND tmbast.I_BASTNO &lt;&gt; #{nobast}
+        </if>
+
+        and  TMKONTRAK.I_IDSKPD =tmbast.i_idskpd
+        and  TMKONTRAK.I_IDKEGIATAN =TMBAST.I_IDKEGIATAN
+        and tmbast.c_uangmuka = '0'
+
+
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,0 AS V_BAST
+        ,0 AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,nvl(tmbast.V_BAST, 0) AS v_bast_entry
+        ,tmbast.i_idkegiatan AS i_idkegiatan
+        ,p_prestasi
+        ,tmbast.i_id AS idBast
+        ,0 AS idBl
+        FROM tmbast
+        ,tmkontrak
+        WHERE tmbast.I_IDKONTRAK = tmkontrak.I_ID
+        AND tmbast.c_angg_tahun =#{tahun}
+        AND tmbast.i_idskpd = #{idskpd}
+        AND tmbast.I_IDKEGIATAN = #{idkegiatan}
+        AND tmkontrak.I_ID = #{idkontrak}
+        <if test='nobast != null and nobast > 0 '>
+            AND tmbast.I_BASTNO =#{nobast}
+        </if>
+
+        AND tmkontrak.I_Idspd = #{idspd}
+
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,0 AS V_BAST
+        ,nvl((v_spp), 0) AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,0 AS v_bast_entry
+        ,i_idkegiatan
+        ,0 AS p_prestasi
+        ,0 AS idBast
+        ,0 AS idBl
+        FROM tmspp
+        ,tmspprincibl
+        WHERE tmspp.I_id = tmspprincibl.i_idspp
+        AND tmspp.C_BEBAN = 'TU'
+        AND tmspp.c_angg_tahun =#{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idspd = #{idspd}
+        AND tmspprincibl.I_IDKEGIATAN = #{idkegiatan}
+
+        ) a
+        ) aaa
+        ,trbas
+        WHERE aaa.i_idbas = trbas.i_id
+        GROUP BY i_idbas
+        ,i_idkegiatan
+        ,c_akun || '/' || n_akun
+
+        <!--
+        SELECT distinct i_idbas AS "akun.idAkun"
+        ,sum(idBast) AS idBast
+        ,sum(idBl) AS idBl
+        ,i_idkegiatan AS idkegiatan
+        ,sum(p_prestasi) AS nilaiPrestasi
+        ,c_akun || '/' || n_akun AS "akun.namaAkun"
+        ,sum(v_spd) AS nilaiSpd
+        ,sum(v_spd - V_BAST_OLD - v_spp_tu - v_spj + v_setoran) AS sisaSpd
+        ,sum(v_bast_entry) AS nilaiBast
+        FROM (
+        SELECT ROWNUM AS rn
+        ,a.*
+        FROM (
+        SELECT tmspdrincibl.i_idbas
+        ,nvl((tmspdrincibl.v_spd), 0) v_spd
+        ,0 AS V_BAST_OLD
+        ,0 AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,0 AS v_bast_entry
+        ,i_idkegiatan
+        ,0 AS p_prestasi
+        ,0 AS idBast
+        ,TMSPDRINCIBL.I_IDBL AS idBl
+        FROM tmspd
+        ,tmspdsah
+        ,tmspdrincibl
+        WHERE tmspd.I_id = tmspdsah.i_id
+        AND tmspd.I_id = tmspdrincibl.i_idspd
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspd.I_Id = #{idspd}
+        AND tmspdrincibl.I_IDKEGIATAN = #{idkegiatan}
+        AND TMSPDRINCIBL.C_SPD_STATUS != 'P'
+
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,0 AS V_BAST_OLD
+        ,0 AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,NVL(tmbast.V_BAST, 0) AS v_bast_entry
+        ,tmbast.i_idkegiatan AS i_idkegiatan
+        ,p_prestasi
+        ,tmbast.i_id AS idBast
+        ,0 AS idBl
+        FROM tmbast
+        ,tmkontrak
+        WHERE tmbast.I_IDKONTRAK = tmkontrak.I_ID
+        AND tmbast.c_angg_tahun = #{tahun}
+        AND tmbast.i_idskpd =#{idskpd}
+        AND tmbast.I_IDKEGIATAN = #{idkegiatan}
+        AND tmkontrak.I_ID =#{idkontrak}
+        AND tmbast.I_BASTNO = #{nobast}
+        and tmbast.c_uangmuka = '0'
+
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,0 AS V_BAST_OLD
+        ,nvl((v_spp), 0) AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,0 AS v_bast_entry
+        ,i_idkegiatan
+        ,0 AS p_prestasi
+        ,0 AS idBast
+        ,0 AS idBl
+        FROM tmspp
+        ,tmspprincibl
+        WHERE tmspp.I_id = tmspprincibl.i_idspp
+        AND tmspp.C_BEBAN != 'LS'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idspd = #{idspd}
+        AND tmspprincibl.I_IDKEGIATAN = #{idkegiatan}
+
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,0 AS V_BAST_OLD
+        ,0 AS v_spp_tu
+        ,nvl((v_spj), 0) AS v_spj
+        ,0 AS v_setoran
+        ,0 AS v_bast_entry
+        ,i_idkegiatan
+        ,0 AS p_prestasi
+        ,0 AS idBast
+        ,0 AS idBl
+        FROM tmspj
+        ,tmspjrincibl
+        WHERE tmspj.I_id = tmspjrincibl.i_idspj
+        AND tmspjrincibl.C_BEBAN IN (
+        'UP'
+        ,'GU'
+        )
+        AND tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmspjrincibl.I_IDKEGIATAN = #{idkegiatan}
+
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,0 AS V_BAST_OLD
+        ,0 AS v_spp_tu
+        ,0 AS v_spj
+        ,nvl((tmsetorrinci.V_SETOR), 0) AS v_setoran
+        ,0 AS v_bast_entry
+        ,0 AS i_idkegiatan
+        ,0 AS p_prestasi
+        ,0 AS idBast
+        ,0 AS idBl
+        FROM tmsetor
+        ,tmsetorrinci
+        WHERE tmsetor.I_id = tmsetorrinci.i_idsetor
+        AND tmsetor.c_angg_tahun = #{tahun}
+        AND tmsetor.i_idskpd =#{idskpd}
+        AND tmsetorrinci.I_IDKEGIATAN = #{idkegiatan}
+        UNION ALL
+
+        SELECT i_idbas
+        ,0 v_spd
+        ,nvl((tmbast.V_BAST), 0) AS V_BAST_OLD
+        ,0 AS v_spp_tu
+        ,0 AS v_spj
+        ,0 AS v_setoran
+        ,0 AS v_bast_entry
+        ,tmbast.i_idkegiatan AS i_idkegiatan
+        ,0 AS p_prestasi
+        ,tmbast.i_id AS idBast
+        ,0 AS idBl
+        FROM tmbast
+        WHERE tmbast.c_angg_tahun = #{tahun}
+        AND tmbast.i_idskpd =#{idskpd}
+        AND tmbast.I_IDKEGIATAN = #{idkegiatan}
+        AND tmbast.I_BASTNO != #{nobast}
+        and tmbast.c_uangmuka = 0
+        ) a
+        ) aaa
+        ,trbas
+        WHERE aaa.i_idbas = trbas.i_id
+        and ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        GROUP BY  i_idbas,i_idkegiatan
+        ,c_akun || '/' || n_akun -->
+    </select>
+    <select id="getKegiatanById" parameterType="java.lang.Integer"
+            resultType="spp.model.Bast">
+
+        SELECT   I_ID AS "kontrak.idKontrak",
+        C_ANGG_TAHUN AS tahunAnggaran,
+        I_IDKEGIATAN AS idkegiatan,
+        N_KEGIATAN AS "kegiatan.namaKegiatan",
+        I_KONTR AS "kontrak.noKontrak",
+        I_IDSPD AS "kontrak.idSpd",
+        I_IDSKPD AS "kontrak.idSkpd",
+        N_SKPD AS "skpd.namaSkpd",
+        SUM (V_KONTR) AS nilaiKontrak,
+        SUM (v_bast) AS nilaiBast
+
+        FROM   (SELECT   TMKONTRAK.I_ID,
+        TMKONTRAK.C_ANGG_TAHUN,
+        TMKONTRAK.I_IDKEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        TMKONTRAK.I_KONTR,
+        TMKONTRAK.I_IDSPD,
+        TMKONTRAK.I_IDSKPD,
+        trskpd.N_SKPD,
+        V_KONTR,
+        0 v_bast
+        FROM   TMKONTRAK,
+        tmspd,
+        trskpd,
+        tmdpakegiatan
+        WHERE TMKONTRAK.I_IDKEGIATAN = #{value}
+        AND       TMKONTRAK.I_IDSPD = tmspd.i_id
+        AND TMKONTRAK.I_IDSKPD = trskpd.I_ID
+        AND TMKONTRAK.I_IDKEGIATAN = tmdpakegiatan.I_ID
+        and TMKONTRAK.C_ANGG_TAHUN = #{tahun}
+
+
+        UNION ALL
+        SELECT   TMKONTRAK.I_ID,
+        TMKONTRAK.C_ANGG_TAHUN,
+        TMKONTRAK.I_IDKEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        TMKONTRAK.I_KONTR,
+        TMKONTRAK.I_IDSPD,
+        TMKONTRAK.I_IDSKPD,
+        trskpd.N_SKPD,
+        0 V_KONTR,
+        v_bast
+        FROM   TMKONTRAK,
+        TMBAST,
+        TMDPAKEGIATAN,
+        TRSKPD
+        WHERE TMKONTRAK.I_IDKEGIATAN = #{value}
+        AND       TMKONTRAK.I_ID = TMBAST.I_IDKONTRAK
+        AND TMKONTRAK.I_IDKEGIATAN = TMDPAKEGIATAN.I_ID
+        AND TMKONTRAK.I_IDSKPD = trskpd.I_ID
+        AND TMKONTRAK.C_ANGG_TAHUN = #{tahun})
+
+        GROUP BY   I_ID,
+        C_ANGG_TAHUN,
+        I_IDKEGIATAN,
+        N_KEGIATAN,
+        I_KONTR,
+        I_IDSPD,
+        I_IDSKPD,
+        N_SKPD
+
+
+    </select>
+    <select id="getBastByNoBastSkpdAndTahun" parameterType="java.util.Map"  resultType="spp.model.Bast">
+        select I_IDKEGIATAN as idkegiatan, C_KEGIATAN || '/' || N_KEGIATAN AS "kegiatan.namaKegiatan",
+        I_BASTNO as noBast, D_BASTNO as tglBast, N_PPTK as namaPptk,
+        I_PPTK_NIP AS nipPptk, N_PB as namaPemeriksaBarang, I_PB_NIP as nipPemeriksaBarang,
+        tmbast.C_UANGMUKA as statusUangMuka, E_BAST as ketBast,
+        i_idkontrak AS "kontrak.idKontrak"
+        from tmbast, tmdpakegiatan
+        where tmbast.i_idkegiatan = tmdpakegiatan.i_id
+        and tmbast.c_angg_tahun = #{tahun}
+        and i_bastno = #{nobast}
+        and tmbast.i_idskpd = #{idskpd}
+        <!--
+        SELECT DISTINCT (a.I_ID) AS idBast,
+        a.C_ANGG_TAHUN AS tahunAnggaran,
+        a.I_BASTNO AS noBast,
+        a.D_BASTNO AS tglBast,
+        a.I_IDKONTRAK AS "kontrak.idKontrak",
+        a.I_IDSKPD AS "skpd.idSkpd",
+        E.C_KEGIATAN || '/' || E.N_KEGIATAN AS "kegiatan.namaKegiatan",
+        a.I_IDBAS AS "akun.idAkun",
+        a.V_BAST AS nilaiBast,
+        a.P_PRESTASI AS nilaiPrestasi,
+        a.N_PPTK AS namaPptk,
+        a.I_PPTK_NIP AS nipPptk,
+        a.E_BAST AS ketBast,
+        a.I_IDKEGIATAN AS idkegiatan,
+        B.C_AKUN || '/' || B.N_AKUN AS "akun.namaAkun",
+        L.V_SPD as nilaiSpd,
+        BL.V_ANGG_TAPD as nilaiAnggaran,
+        N_PB AS namaPemeriksaBarang ,
+        I_PB_NIP  as nipPemeriksaBarang ,a.i_idspd as idSpd
+        ,A.C_UANGMUKA as statusUangMuka
+        FROM    TMBAST a
+        LEFT JOIN
+        trbas b
+        ON B.I_ID = A.I_IDBAS,
+        TRSKPD S,
+        TMKONTRAK K,
+        TMDPAKEGIATAN E,
+        tmdpabl bl,
+        tmspdrincibl L
+        WHERE     a.I_IDKONTRAK = K.I_ID
+        AND K.I_IDKEGIATAN = E.I_ID
+        AND K.I_IDSKPD = S.I_ID
+        AND a.I_IDBAS = B.I_ID
+        AND a.I_BASTNO = #{nobast}
+        AND a.C_ANGG_TAHUN = #{tahun}
+        AND a.I_IDSKPD = #{idskpd}
+        AND a.i_idbas = L.I_IDBAS
+        AND a.I_IDKEGIATAN = L.I_IDKEGIATAN
+        AND BL.I_IDKEGIATAN = L.I_IDKEGIATAN
+        AND BL.I_ID = L.I_IDBL
+        and not exists(select 1 from tmspp where tmspp.i_bastno = a.i_bastno
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd = #{idskpd} )
+        order by a.I_ID
+        -->
+    </select>
+
+    <delete id="deleteBastByNoBastSkpdAndTahun" parameterType="java.util.Map"  >
+        DELETE TMBAST
+        WHERE   I_BASTNO = #{nobast}
+        AND  C_ANGG_TAHUN =  #{tahun}
+        AND  I_IDSKPD = #{idskpd}
+    </delete>
+
+    <insert id="insertBastUpdate" parameterType="spp.model.Bast">
+        INSERT INTO TMBAST(
+        I_ID,
+        C_ANGG_TAHUN,
+        I_BASTNO,
+        D_BASTNO,
+        I_IDKONTRAK,
+        I_IDKEGIATAN,
+        I_IDSKPD,
+        I_IDBAS,
+        V_BAST,
+        P_PRESTASI,
+        N_PPTK,
+        I_PPTK_NIP,
+        E_BAST,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM ,
+        N_PB  ,
+        I_PB_NIP ,
+        C_UANGMUKA,
+        I_IDSPD
+        )
+        VALUES
+        (
+        <choose>
+            <when test="idBast != 0">
+                #{idBast}
+            </when>
+            <otherwise>
+                SEQ_TMBAST.nextval
+            </otherwise>
+        </choose>,
+        <!-- #{idBast}, -->
+        #{tahunAnggaran},
+        #{noBast},
+        #{tglBast},
+        #{kontrak.idKontrak},
+        #{idkegiatan},
+        #{skpd.idSkpd},
+        #{akun.idAkun},
+        #{nilaiBast},
+        #{nilaiPrestasi},
+        #{namaPptk},
+        #{nipPptk},
+        #{ketBast},
+        #{idEntry},
+        #{tglEntry} ,
+        #{namaPemeriksaBarang},
+        #{nipPemeriksaBarang} ,
+        <choose>
+            <when test="statusUangMuka != null">
+                #{statusUangMuka}
+            </when>
+            <otherwise>
+                0
+            </otherwise>
+        </choose>,
+        #{idSpd}
+        )
+    </insert>
+
+    <select id="getIdspd" parameterType="java.lang.String" resultType="java.lang.String">
+        select i_idspd from tmkontrak where i_id = #{idkontrak}
+
+    </select>
+
+    <select id="getSisaBast" parameterType="java.util.Map" resultType="spp.model.Bast">
+
+        select   sum(nilai_kontrak) as nilaiKontrak ,sum(nilai_bast_sebelum) as bastSebelum,
+        sum(nilai_bast_entry) as nilaiBastEntry,  sum ( nilai_kontrak - nilai_bast_sebelum) as sisaBast
+        from (
+        select  TMKONTRAK.V_KONTR nilai_kontrak , 0  nilai_bast_sebelum, 0 nilai_bast_entry from tmkontrak
+        where tmkontrak.c_angg_tahun = #{tahun}
+        and tmkontrak.i_idskpd = #{idskpd}
+        and tmkontrak.I_IDKEGIATAN = #{idkegiatan}
+        and tmkontrak.i_id  = #{idkontrak}
+
+        <if test="kodemulti == 1 ">
+            union all <!-- DITAMBAH 14 SEPT 2017 BY ZAINAB, UNTUK MENAMBAH SALDO JIKA KONTRAK ADALAH MULTIYEAR -->
+            select  v_uangmuka_saldo nilai_kontrak , 0  nilai_bast_sebelum, 0 nilai_bast_entry
+            from tmkontrakrinci
+            where c_angg_tahun = #{tahun}
+            and i_idskpd = #{idskpd}
+            and I_IDKEGIATAN = #{idkegiatan}
+            and i_idkontrak  = #{idkontrak}
+        </if>
+
+        union all
+        select 0 nilai_kontrak,  nvl(tmbast.V_BAST,0 ) as nilai_bast_sebelum, 0 as v_bast_entry from tmbast, tmkontrak
+        where tmbast.I_IDKONTRAK = tmkontrak.I_ID
+        and tmbast.c_angg_tahun = #{tahun}
+        and tmbast.i_idskpd = #{idskpd}
+        and tmbast.I_IDKEGIATAN = #{idkegiatan}
+        and tmkontrak.I_ID = #{idkontrak}
+        and tmbast.I_bastno &lt;&gt; #{nobast}
+        and tmbast.C_UANGMUKA != 1
+        union all
+        select 0 nilai_kontrak,  0  nilai_bast_sebelum, nvl(tmbast.V_BAST,0 ) as v_bast_entry from tmbast, tmkontrak
+        where tmbast.I_IDKONTRAK = tmkontrak.I_ID
+        and tmbast.c_angg_tahun = #{tahun}
+        and tmbast.i_idskpd = #{idskpd}
+        and tmbast.I_IDKEGIATAN = #{idkegiatan}
+        and tmkontrak.I_ID = #{idkontrak}
+        and tmbast.I_bastno = #{nobast}
+        )
+    </select>
+
+    <select id="getStatusUangMuka" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT DISTINCT (c_uangmuka) AS statusUangMuka
+        FROM TMBAST a
+        WHERE A.I_BASTNO = #{nobast} AND i_idskpd = #{idskpd} AND c_angg_tahun = #{tahun}
+        and A.I_IDKEGIATAN = #{idkegiatan}
+    </select>
+
+    <select id="getStatusKontrakRinci" parameterType="java.util.Map" resultType="spp.model.Bast">
+
+        select nvl(count(*),0) as banyakKontrakRinci, nvl(sum(v_kontrak),0) as nilaiKontrak,
+        nvl(sum(v_uangmuka_saldo),0) as saldoUMK
+        from tmkontrakrinci
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak = #{idkontrak}
+
+    </select>
+
+    <select id="getAkunKontrakRinci" parameterType="java.util.Map"  resultType="spp.model.Bast">
+
+        select i_idbas as "akun.idAkun",sum(idBast) as idBast ,sum(idBl) as idBl,
+        i_idkegiatan as idkegiatan, sum(p_prestasi)  as nilaiPrestasi ,
+        c_akun || '/' || n_akun as  "akun.namaAkun",
+        sum(v_kontrak) as nilaiKontrak , sum(v_kontrak - V_BAST) as sisaKontrak ,
+        sum (nvl(v_bast,0)) as nilaiBast,sum(nvl(v_bast_entry,0)) as nilaiBastEntry,
+        sum (nvl(v_umk,0)) as saldoUMK, sum (v_umk - bast_umk) as sisaUMK
+        FROM (SELECT ROWNUM AS rn, a.*
+        from(
+        select k.i_idbas, nvl((v_kontrak),0) v_kontrak , 0 as V_BAST , 0 as v_bast_entry,
+        k.i_idkegiatan, 0 as p_prestasi, 0 as idBast, d.i_id as idBl  , 0 as v_umk, 0 as bast_umk
+        from tmkontrakrinci k, tmdpabl d
+        where k.c_angg_tahun = d.c_angg_tahun
+        and k.i_idskpd = d.i_idskpd
+        and k.i_idkegiatan = d.i_idkegiatan
+        and k.i_idbas = d.i_idbas
+        and k.c_angg_tahun = #{tahun}
+        and k.i_idskpd = #{idskpd}
+        and i_idkontrak =  #{idkontrak}
+        and k.i_idkegiatan = #{idkegiatan}
+
+        <if test="kodemulti == 1 ">
+            union all <!-- DITAMBAH 14 SEPT 2017 BY ZAINAB, UNTUK MENAMBAH SALDO JIKA KONTRAK ADALAH MULTIYEAR -->
+            select k.i_idbas, nvl((k.v_uangmuka_saldo),0) v_kontrak , 0 as V_BAST , 0 as v_bast_entry,
+            k.i_idkegiatan, 0 as p_prestasi, 0 as idBast, d.i_id as idBl  , 0 as v_umk, 0 as bast_umk
+            from tmkontrakrinci k, tmdpabl d
+            where k.c_angg_tahun = d.c_angg_tahun
+            and k.i_idskpd = d.i_idskpd
+            and k.i_idkegiatan = d.i_idkegiatan
+            and k.i_idbas = d.i_idbas
+            and k.c_angg_tahun = #{tahun}
+            and k.i_idskpd = #{idskpd}
+            and i_idkontrak =  #{idkontrak}
+            and k.i_idkegiatan = #{idkegiatan}
+        </if>
+
+        union all
+        select i_idbas , 0 v_kontrak , nvl((V_BAST ),0) as V_BAST ,   0 as v_bast_entry ,
+        i_idkegiatan  , 0 as p_prestasi , 0 as idBast,  0 as idBl , 0 as v_umk, 0 as bast_umk
+        from tmbast
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_idkontrak =  #{idkontrak}
+        AND I_BASTNO !=  #{nobast}
+        and c_uangmuka = '0'
+
+        union all
+        select i_idbas , 0 v_kontrak , 0 as V_BAST ,   nvl((V_BAST ),0) as v_bast_entry ,
+        i_idkegiatan  , p_prestasi  , i_id as idBast,  0 as idBl , 0 as v_umk, 0 as bast_umk
+        from tmbast
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_idkontrak =  #{idkontrak}
+        AND I_BASTNO =  #{nobast}
+        <!-- and c_uangmuka = '0' -->
+
+        union all <!-- LANGSUNG BACA KE KONTRAK RINCIN UNTUK PAGU UMK-->
+        select i_idbas , 0 v_kontrak , 0 as V_BAST ,   0 as v_bast_entry ,
+        i_idkegiatan  , 0 as p_prestasi  , 0 as idBast,  0 as idBl , nvl((V_UANGMUKA_SALDO ),0) as v_umk, 0 as bast_umk
+        from tmkontrakrinci where
+        c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_idkontrak =  #{idkontrak}
+        <!--
+        select i_idbas , 0 v_kontrak , 0 as V_BAST ,   0 as v_bast_entry ,
+        i_idkegiatan  , 0 as p_prestasi  , 0 as idBast,  0 as idBl , nvl((V_UANGMUKA_SALDO ),0) as v_umk, 0 as bast_umk
+        from tmdpabl
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and exists(select 1 from tmkontrakrinci where i_idkontrak = #{idkontrak} and i_idbas = tmdpabl.i_idbas)
+        -->
+        union all
+        select i_idbas , 0 v_kontrak , 0 as V_BAST ,   0 as v_bast_entry ,
+        i_idkegiatan  , 0 p_prestasi  , 0 as idBast,  0 as idBl , 0 as v_umk, nvl((V_BAST ),0) as bast_umk
+        from tmbast
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_idkontrak =  #{idkontrak}
+        AND I_BASTNO !=  #{nobast}
+        and c_uangmuka = '1'
+
+        )a) aaa, trbas
+        where aaa.i_idbas = trbas.i_id  and ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        group by i_idbas, i_idkegiatan, c_akun || '/' || n_akun
+
+
+    </select>
+
+    <select id="getBanyakAkunKontrakRinci" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak FROM (
+        select i_idbas as "akun.idAkun",sum(idBast) as idBast ,sum(idBl) as idBl,
+        i_idkegiatan as idkegiatan, sum(p_prestasi)  as nilaiPrestasi ,
+        c_akun || '/' || n_akun as  "akun.namaAkun",
+        sum(v_kontrak) as nilaiKontrak , sum(v_kontrak - V_BAST) as sisaKontrak ,
+        sum (nvl(v_bast,0)) as nilaiBast,sum(nvl(v_bast_entry,0)) as nilaiBastEntry
+        FROM (SELECT ROWNUM AS rn, a.*
+        from(
+        select k.i_idbas, nvl((v_kontrak),0) v_kontrak , 0 as V_BAST , 0 as v_bast_entry,
+        k.i_idkegiatan, 0 as p_prestasi, 0 as idBast, d.i_id as idBl
+        from tmkontrakrinci k, tmdpabl d
+        where k.c_angg_tahun = d.c_angg_tahun
+        and k.i_idskpd = d.i_idskpd
+        and k.i_idkegiatan = d.i_idkegiatan
+        and k.i_idbas = d.i_idbas
+        and k.c_angg_tahun = #{tahun}
+        and k.i_idskpd = #{idskpd}
+        and i_idkontrak =  #{idkontrak}
+        and k.i_idkegiatan = #{idkegiatan}
+
+        union all
+        select i_idbas , 0 v_kontrak , nvl((V_BAST ),0) as V_BAST ,   0 as v_bast_entry ,
+        i_idkegiatan  , 0 as p_prestasi , 0 as idBast,  0 as idBl
+        from tmbast
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_idkontrak =  #{idkontrak}
+        AND I_BASTNO !=  #{nobast}
+        and c_uangmuka = '0'
+
+        union all
+        select i_idbas , 0 v_kontrak , 0 as V_BAST ,   nvl((V_BAST ),0) as v_bast_entry ,
+        i_idkegiatan  , p_prestasi  , i_id as idBast,  0 as idBl
+        from tmbast
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_idkontrak =  #{idkontrak}
+        AND I_BASTNO =  #{nobast}
+        and c_uangmuka = '0'
+
+        )a) aaa, trbas
+        where aaa.i_idbas = trbas.i_id
+        group by i_idbas, i_idkegiatan, c_akun || '/' || n_akun
+        )
+
+    </select>
+
+    <select id="getKodeUMK" parameterType="java.util.Map" resultType="spp.model.Bast">
+
+        select C_UANGMUKA_POT as kodePotUMK, C_UANGMUKA as kodeUMK
+        from tmdpakegiatan
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id = #{idkegiatan}
+
+    </select>
+
+    <select id="getAkunSpd" parameterType="java.util.Map"  resultType="spp.model.Bast">
+        select idSpd, noSpd, idbas as "akun.idAkun", c_akun ||'/'|| n_akun as "akun.namaAkun",
+        idBl, idBast, nilaiPrestasi, nilaiBast, nilaiSpd, sisaSpd
+        FROM (SELECT ROWNUM AS rn, a.*
+        from(
+        select a.i_idspd as idSpd, i_spdno as noSpd, a.i_idbas as idbas, c_akun, n_akun, i_idbl as idBl,
+        sum(a.v_spd) as nilaiSpd, sum(a.v_spd-v_bast_sebelum-v_spp_tu+v_setoran) as sisaSpd,
+        sum(v_bast) as nilaiBast, sum(nilaiPrestasi) as nilaiPrestasi, sum(idbast) as idBast
+        from (
+        select tmspd.i_id as i_idspd, i_idbas, nvl((tmspdrincibl.v_spd),0) v_spd , 0 as v_bast , 0 as v_bast_sebelum,
+        0  as v_spp_tu, 0 as v_setoran, 0 as nilaiPrestasi, 0 as idbast
+        from tmspd, tmspdsah, tmspdrincibl
+        where tmspd.I_id= tmspdsah.i_id
+        and tmspd.I_id = tmspdrincibl.i_idspd
+        and tmspd.c_angg_tahun = #{tahun}
+        and tmspdrincibl.I_IDKEGIATAN = #{idkegiatan}
+        and i_idskpd = #{idskpd}
+        AND TMSPDRINCIBL.C_SPD_STATUS != 'P'
+
+        union all
+        select i_idspd, i_idbas, 0 as  v_spd , nvl(v_bast,0) as v_bast , 0 as v_bast_sebelum,
+        0  as v_spp_tu, 0 as v_setoran, P_PRESTASI as nilaiPrestasi, i_id as idbast
+        from tmbast
+        where tmbast.c_angg_tahun = #{tahun}
+        and tmbast.i_idskpd = #{idskpd}
+        and tmbast.I_IDKEGIATAN = #{idkegiatan}
+        and tmbast.I_bastno = #{nobast}
+
+        union all
+        select i_idspd, i_idbas, 0 as  v_spd , 0 as v_bast ,  nvl(v_bast,0) as v_bast_sebelum,
+        0  as v_spp_tu,  0 as v_setoran, 0 as nilaiPrestasi, 0 as idbast
+        from tmbast
+        where tmbast.c_angg_tahun = #{tahun}
+        and tmbast.i_idskpd = #{idskpd}
+        and tmbast.I_IDKEGIATAN = #{idkegiatan}
+        and tmbast.I_bastno != #{nobast}
+
+        union all
+        select  i_idspd, i_idbas, 0 as  v_spd , 0 as v_bast ,  0 as v_bast_sebelum,
+        nvl((v_spp),0)  as v_spp_tu,  0 as v_setoran , 0 as nilaiPrestasi, 0 as idbast
+        from tmspp, tmspprincibl
+        where  tmspp.I_id = tmspprincibl.i_idspp
+        and tmspp.C_BEBAN = 'TU'
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd = #{idskpd}
+        and tmspprincibl.I_IDKEGIATAN = #{idkegiatan}
+
+        union all
+        select i_idspd, i_idbas, 0 as  v_spd , 0 as v_bast ,  0 as v_bast_sebelum,
+        0  as v_spp_tu,  nvl((v_kas_keluar-v_kas_terima),0)  as v_setoran , 0 as nilaiPrestasi, 0 as idbast
+        from tmbkuskpdpengeluaran
+        where C_BEBAN = 'TU'
+        and c_trx = 'ST'
+        and c_jenis = 3
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_jour is not null
+        ) a, tmspd, tmspdrincibl, trbas
+        where a.i_idspd = tmspd.i_id
+        and tmspd.i_id =  tmspdrincibl.i_idspd
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and tmspdrincibl.i_idbas = a.i_idbas
+        and a.i_idbas = trbas.i_id
+        and exists (select 1 from tmkontrakrinci where i_idkontrak = #{idkontrak}
+        and i_idbas = a.i_idbas)
+        group by a.i_idspd, a.i_idbas, i_spdno, i_idbl, c_akun, n_akun
+        order by c_akun, i_spdno
+        )a) where sisaSpd !=0 and ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakAkunSpd" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak FROM (
+        select idSpd, noSpd, idbas as "akun.idAkun", c_akun ||'/'|| n_akun as "akun.namaAkun",
+        idBl, idBast, nilaiPrestasi, nilaiBast, nilaiSpd, sisaSpd
+        FROM (SELECT ROWNUM AS rn, a.*
+        from(
+        select a.i_idspd as idSpd, i_spdno as noSpd, a.i_idbas as idbas, c_akun, n_akun, i_idbl as idBl,
+        sum(a.v_spd) as nilaiSpd, sum(a.v_spd-v_bast_sebelum-v_spp_tu+v_setoran) as sisaSpd,
+        sum(v_bast) as nilaiBast, sum(nilaiPrestasi) as nilaiPrestasi, sum(idbast) as idBast
+        from (
+        select tmspd.i_id as i_idspd, i_idbas, nvl((tmspdrincibl.v_spd),0) v_spd , 0 as v_bast , 0 as v_bast_sebelum,
+        0  as v_spp_tu, 0 as v_setoran, 0 as nilaiPrestasi, 0 as idbast
+        from tmspd, tmspdsah, tmspdrincibl
+        where tmspd.I_id= tmspdsah.i_id
+        and tmspd.I_id = tmspdrincibl.i_idspd
+        and tmspd.c_angg_tahun = #{tahun}
+        and tmspdrincibl.I_IDKEGIATAN = #{idkegiatan}
+        and i_idskpd = #{idskpd}
+        AND TMSPDRINCIBL.C_SPD_STATUS != 'P'
+
+        union all
+        select i_idspd, i_idbas, 0 as  v_spd , nvl(v_bast,0) as v_bast , 0 as v_bast_sebelum,
+        0  as v_spp_tu, 0 as v_setoran, P_PRESTASI as nilaiPrestasi, i_id as idbast
+        from tmbast
+        where tmbast.c_angg_tahun = #{tahun}
+        and tmbast.i_idskpd = #{idskpd}
+        and tmbast.I_IDKEGIATAN = #{idkegiatan}
+        and tmbast.I_bastno = #{nobast}
+
+        union all
+        select i_idspd, i_idbas, 0 as  v_spd , 0 as v_bast ,  nvl(v_bast,0) as v_bast_sebelum,
+        0  as v_spp_tu,  0 as v_setoran, 0 as nilaiPrestasi, 0 as idbast
+        from tmbast
+        where tmbast.c_angg_tahun = #{tahun}
+        and tmbast.i_idskpd = #{idskpd}
+        and tmbast.I_IDKEGIATAN = #{idkegiatan}
+        and tmbast.I_bastno != #{nobast}
+
+        union all
+        select  i_idspd, i_idbas, 0 as  v_spd , 0 as v_bast ,  0 as v_bast_sebelum,
+        nvl((v_spp),0)  as v_spp_tu,  0 as v_setoran , 0 as nilaiPrestasi, 0 as idbast
+        from tmspp, tmspprincibl
+        where  tmspp.I_id = tmspprincibl.i_idspp
+        and tmspp.C_BEBAN = 'TU'
+        and tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_idskpd = #{idskpd}
+        and tmspprincibl.I_IDKEGIATAN = #{idkegiatan}
+
+        union all
+        select i_idspd, i_idbas, 0 as  v_spd , 0 as v_bast ,  0 as v_bast_sebelum,
+        0  as v_spp_tu,  nvl((v_kas_keluar-v_kas_terima),0)  as v_setoran , 0 as nilaiPrestasi, 0 as idbast
+        from tmbkuskpdpengeluaran
+        where C_BEBAN = 'TU'
+        and c_trx = 'ST'
+        and c_jenis = 3
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_jour is not null
+        ) a, tmspd, tmspdrincibl, trbas
+        where a.i_idspd = tmspd.i_id
+        and tmspd.i_id =  tmspdrincibl.i_idspd
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and tmspdrincibl.i_idbas = a.i_idbas
+        and a.i_idbas = trbas.i_id
+        and exists (select 1 from tmkontrakrinci where i_idkontrak = #{idkontrak}
+        and i_idbas = a.i_idbas)
+        group by a.i_idspd, a.i_idbas, i_spdno, i_idbl, c_akun, n_akun
+        order by c_akun, i_spdno
+        )a) where sisaSpd !=0
+        )
+    </select>
+
+    <select id="getAkunKontrak" parameterType="java.util.Map"  resultType="spp.model.Bast">
+        select i_idbas as "akun.idAkun", c_akun ||'/'|| n_akun as "akun.namaAkun",
+        nilaiAnggaran, saldoUMK, sisaKontrak, sisaUMK
+        FROM (SELECT ROWNUM AS rn, a.*
+        from(
+        select i_idbas, c_akun, n_akun, sum(v_kontrak) as  nilaiAnggaran, sum(v_uangmuka_saldo) as saldoUMK,
+        sum(v_kontrak-v_bast) as sisaKontrak, sum(v_uangmuka_saldo-bast_umk) as sisaUMK from (
+        select i_idbas, v_kontrak, v_uangmuka_saldo, 0 as v_bast, 0 as bast_umk
+        from tmkontrakrinci
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak = #{idkontrak}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select i_idbas, 0 as v_kontrak, 0 as v_uangmuka_saldo , v_bast, 0 as bast_umk
+        from tmbast
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak = #{idkontrak}
+        and i_bastno != #{nobast}
+        and C_UANGMUKA = 0
+
+        union all
+        select i_idbas, 0 as v_kontrak, 0 as v_uangmuka_saldo , 0 as v_bast, v_bast as bast_umk
+        from tmbast
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak = #{idkontrak}
+        and i_bastno != #{nobast}
+        and C_UANGMUKA = 1
+        ) list, trbas
+        where list.i_idbas = trbas.i_id
+        group by i_idbas, c_akun, n_akun
+        order by c_akun
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakAkunKontrak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak FROM (
+        select i_idbas, c_akun, n_akun, sum(v_kontrak) as  nilaiAnggaran, sum(v_uangmuka_saldo) as saldoUMK,
+        sum(v_kontrak-v_bast) as sisaKontrak, sum(v_uangmuka_saldo-bast_umk) as sisaUMK from (
+        select i_idbas, v_kontrak, v_uangmuka_saldo, 0 as v_bast, 0 as bast_umk
+        from tmkontrakrinci
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak = #{idkontrak}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select i_idbas, 0 as v_kontrak, 0 as v_uangmuka_saldo , v_bast, 0 as bast_umk
+        from tmbast
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak = #{idkontrak}
+        and i_bastno != #{nobast}
+        and C_UANGMUKA = 0
+
+        union all
+        select i_idbas, 0 as v_kontrak, 0 as v_uangmuka_saldo , 0 as v_bast, v_bast as bast_umk
+        from tmbast
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkontrak = #{idkontrak}
+        and i_bastno != #{nobast}
+        and C_UANGMUKA = 1
+        ) list, trbas
+        where list.i_idbas = trbas.i_id
+        group by i_idbas, c_akun, n_akun
+        )
+
+    </select>
+
+    <update id="updateUmkBast" parameterType="spp.model.Bast"   >
+        UPDATE TMBAST
+        SET
+        C_UANGMUKA = #{statusUangMuka}
+        WHERE  I_BASTNO = #{noBast}
+        AND C_ANGG_TAHUN = #{tahunAnggaran}
+        AND I_IDSKPD = #{skpd.idSkpd}
+    </update>
+
+</mapper>

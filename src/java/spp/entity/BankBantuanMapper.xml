@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spp.entity.BankBantuanMapper">
+    
+    <select id="getListBantuan" parameterType="java.util.Map" resultType="spp.model.BankBantuan">
+        SELECT idSpp, noSpp, idskpdKoord, ketSkpd, ketBendahara, noRek, namaPenerima, alamatPenerima,
+        namaOrg, uraian, nilaiSpp
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        select tmspp.i_id as idSpp, i_sppno as noSpp, i_idskpdkoord as idskpdKoord, c_skpd || ' / ' || n_skpd as ketSkpd, 
+        i_pptk_nip || ' / ' || n_pptk as ketBendahara, i_rek_bank  as noRek, n_wp as namaPenerima,
+        a_objekpajak as alamatPenerima, n_objekpajak as namaOrg,  e_spp as uraian, sum(v_spp) as nilaiSpp
+        from tmspp, tmspprincibtlbantuan, trskpd
+        where tmspp.i_id =  tmspprincibtlbantuan.i_idspp
+        and tmspprincibtlbantuan.i_idskpdkoord = trskpd.i_id
+        and c_angg_tahun = #{tahun}
+        and c_jenis = 2
+        and not exists(select 1 from tmsppcetak where i_id = tmspp.i_id)
+        group by tmspp.i_id, i_sppno, i_idskpdkoord, i_pptk_nip, n_pptk, i_rek_bank, n_wp, 
+        a_objekpajak, n_objekpajak,  e_spp, c_skpd, n_skpd
+        order by i_sppno
+        
+        ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        order by noSpp
+    
+      
+    </select>
+    
+    
+    <select id="getBanyakListBantuan" parameterType="java.util.Map"  resultType="java.lang.Integer">
+      SELECT COUNT (*) as banyak from (
+      select tmspp.i_id as idSpp, i_sppno as noSpp, i_idskpdkoord as idskpdKoord, c_skpd || ' / ' || n_skpd as ketSkpd, 
+        i_pptk_nip || ' / ' || n_pptk as ketBendahara, i_rek_bank  as noRek, n_wp as namaPenerima,
+        a_objekpajak as alamatPenerima, n_objekpajak as namaOrg,  e_spp as uraian, sum(v_spp) as nilaiSpp
+        from tmspp, tmspprincibtlbantuan, trskpd
+        where tmspp.i_id =  tmspprincibtlbantuan.i_idspp
+        and tmspprincibtlbantuan.i_idskpdkoord = trskpd.i_id
+        and c_angg_tahun = #{tahun}
+        and c_jenis = 2
+        and not exists(select 1 from tmsppcetak where i_id = tmspp.i_id)
+        group by tmspp.i_id, i_sppno, i_idskpdkoord, i_pptk_nip, n_pptk, i_rek_bank, n_wp, 
+        a_objekpajak, n_objekpajak,  e_spp, c_skpd, n_skpd
+        order by i_sppno
+        
+      )
+        
+    </select> 
+    
+    <update id="updateKodeBank" parameterType="spp.model.BankBantuan"   >
+        UPDATE TMSPP
+        SET  
+        C_BANK = #{kodeBank},
+        C_BANK_TRANSFER = #{kodeBank},
+        N_BANK = #{namaBank},
+        I_REK_BANK = regexp_replace(#{noRek},'[-. /]','')
+        WHERE  I_ID  =  #{idSpp}
+    </update>
+    
+</mapper>

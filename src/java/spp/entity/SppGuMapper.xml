@@ -1,0 +1,614 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spp.entity.SppGuMapper">
+    <select id="getAllSppGu" parameterType="java.util.Map"  resultType="spp.model.SppGu">
+   
+        SELECT   C_ANGG_TAHUN AS tahun,
+        I_ID AS id,
+        C_BULAN AS bulan,
+        I_SPPNO AS noSpp,
+        D_SPPNO AS tglSpp,
+        V_SPP AS nilaiSpp,
+        N_SKPD as "skpd.namaSkpd"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   T.c_angg_tahun,
+        T.I_id,
+        T.c_bulan,
+        T.i_sppno,
+        T.d_sppno,
+        SUM (B.V_SPP) AS V_SPP,
+        S.N_SKPD
+        FROM   TMSPP T left join  TMSPPRINCIBL B on  (T.I_id = B.I_IDSPP)
+        inner join TRSKPD S on S.I_ID = T.I_IDSKPD
+        WHERE T.C_JENIS = '3'
+        AND T.C_BEBAN = 'GU'
+        AND T.C_ANGG_TAHUN = #{tahun}
+        AND T.I_IDSKPD = #{idskpd}
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSPPCETAK C
+        WHERE   T.I_ID = C.I_ID)
+        GROUP BY   T.C_ANGG_TAHUN,
+        T.I_ID,
+        T.C_BULAN,
+        T.I_SPPNO,
+        T.D_SPPNO,
+        S.N_SKPD
+        ) a)	WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakSppGu" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (T.I_ID) AS banyak
+        FROM   TMSPP T  WHERE T.I_IDSKPD = #{idskpd}   and   T.C_ANGG_TAHUN = #{tahun} 
+        AND T.C_BEBAN = 'GU'
+        AND  NOT exists (SELECT   1
+        FROM   TMSPM z where T.I_ID = z.I_IDSPP)
+    </select>  
+    
+    <select id="getAllSpdBL" parameterType="java.util.Map"  resultType="spp.model.SppGuRinci">      
+        <!--
+        SELECT             
+        c_angg_tahun as tahun,
+        i_idskpd as idSkpd,
+        i_idspd as idSpd,
+        i_spdno as noSpd,
+        d_spdno as tglSpd,
+        V_SPD as nilaiSpd,   
+        v_sppsebelum as nilaiSppSebelum, 
+        sisa_spd as nilaiSpdSisa,
+        V_SPP as nilaiSpp        
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   xxx.c_angg_tahun, xxx. i_idskpd AS i_idskpd, i_idspd, i_spdno,
+        d_spdno AS d_spdno, SUM (xxx.v_spd) v_spd, 
+        SUM (v_sppsebelum) v_sppsebelum, SUM (xxx.v_spd - v_sppsebelum) AS sisa_spd,
+        SUM (v_spp) AS v_spp
+        FROM (
+    
+        SELECT c_angg_tahun, i_idskpd,i_idspd, tmspdrincibl.v_spd, 0 v_sppsebelum, 0 AS v_spp
+        FROM tmspd INNER JOIN tmspdrincibl
+        ON tmspd.i_id = tmspdrincibl.i_idspd
+        INNER JOIN tmspdsah
+        ON tmspd.i_id = tmspdsah.i_id AND tmspd.c_jenis = '3'
+        WHERE c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+          
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idspd, 0 AS v_spd, v_kontr AS v_sppsebelum, 0 AS v_spp
+        FROM tmkontrak
+        WHERE c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+          
+        UNION ALL
+        SELECT tmspp.c_angg_tahun, i_idskpd,i_idspd, 0 AS v_spd, v_spp AS v_sppsebelum, 0 AS v_spp
+        FROM tmspp, tmspprincibl
+        WHERE tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.c_jenis = '3'
+        AND c_beban &lt;&gt; 'LS'
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND i_idskpd = #{idskpd}
+        AND tmspp.i_id &lt;&gt; #{idspp}
+          
+        UNION ALL
+        SELECT tmspp.c_angg_tahun, i_idskpd, i_idspd, 0 AS v_spd, 0 AS v_sppsebelum, v_spp AS v_spp
+        FROM tmspp, tmspprincibl
+        WHERE tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.c_jenis = '3'
+        AND c_beban = 'GU'
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND i_idskpd = #{idskpd}
+        AND tmspp.i_id = #{idspp}) xxx,
+        tmspd ,tmspdsah  // YG DITAMBAHKAN : 22FEB16 
+        WHERE xxx.i_idspd = tmspd.i_id
+        and xxx.i_idspd = tmspdsah.i_id
+        and tmspd.i_id =tmspdsah.I_id // YG DITAMBAHKAN : 22FEB16  
+        GROUP BY  xxx.c_angg_tahun,xxx. i_idskpd,i_idspd, i_spdno, d_spdno)
+        a)
+        
+        WHERE sisa_spd &lt;&gt; 0
+        and ROWNUM &lt;= #{limit} AND rn &gt; #{offset}  
+        
+        -->
+        
+        SELECT             
+        c_angg_tahun as tahun,
+        i_idskpd as idSkpd,
+        i_idspd as idSpd,
+        i_spdno as noSpd,
+        d_spdno as tglSpd,
+        V_SPD+setoran_tu as nilaiSpd,   
+        v_sppsebelum as nilaiSppSebelum, 
+        v_kontrak as nilaiKontrak,
+        sisa_spd as nilaiSpdSisa,
+        V_SPP as nilaiSpp
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT   xxx.c_angg_tahun, xxx. i_idskpd AS i_idskpd, i_idspd, i_spdno,
+        d_spdno AS d_spdno, SUM (xxx.v_spd) v_spd, SUM (xxx.v_kontrak) v_kontrak,
+        SUM (v_sppsebelum) v_sppsebelum, SUM (xxx.v_spd + setoran_tu - v_sppsebelum- v_kontrak) AS sisa_spd,
+        SUM (v_spp) AS v_spp, SUM(setoran_tu) AS setoran_tu
+        FROM (
+    
+        SELECT c_angg_tahun, i_idskpd,i_idspd, tmspdrincibl.v_spd, 0 as v_kontrak, 0 v_sppsebelum, 0 AS v_spp, 0 AS setoran_tu
+        FROM tmspd INNER JOIN tmspdrincibl
+        ON tmspd.i_id = tmspdrincibl.i_idspd
+        INNER JOIN tmspdsah
+        ON tmspd.i_id = tmspdsah.i_id AND tmspd.c_jenis = '3'
+        WHERE c_angg_tahun =  #{tahun} 
+        AND i_idskpd =  #{idskpd}
+        and tmspdrincibl.c_spd_status != 'P'
+          
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idspd, 0 AS v_spd, v_kontr AS v_kontrak, 0 as v_sppsebelum,0 AS v_spp, 0 AS setoran_tu
+        FROM tmkontrak
+        WHERE c_angg_tahun =  #{tahun} AND i_idskpd =  #{idskpd}
+          
+        UNION ALL
+        SELECT tmspp.c_angg_tahun, i_idskpd,i_idspd, 0 AS v_spd, 0 as v_kontrak,  v_spp AS v_sppsebelum, 0 AS v_spp, 0 AS setoran_tu
+        FROM tmspp, tmspprincibl
+        WHERE tmspp.c_angg_tahun =  #{tahun}
+        AND tmspp.c_jenis = '3'
+        AND c_beban  &lt;&gt; 'LS'
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND i_idskpd =  #{idskpd}
+        AND tmspp.i_id  &lt;&gt; #{idspp}
+          
+        UNION ALL
+        SELECT tmspp.c_angg_tahun, i_idskpd, i_idspd, 0 AS v_spd, 0 as v_kontrak, 0 AS v_sppsebelum, v_spp AS v_spp, 0 AS setoran_tu
+        FROM tmspp, tmspprincibl
+        WHERE tmspp.c_angg_tahun =  #{tahun}
+        AND tmspp.c_jenis = '3'
+        AND c_beban = 'GU'
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND i_idskpd =  #{idskpd}
+        AND tmspp.i_id = #{idspp}
+        
+        UNION ALL
+        SELECT A.c_angg_tahun, A.i_idskpd, A.i_idspd, 0 AS v_spd, 0 as v_kontrak, 0 AS v_sppsebelum, 0 AS v_spp, (v_kas_keluar-v_kas_terima) AS setoran_tu
+        FROM  tmbkuskpdpengeluaran A, tmspd  B 
+        where A.i_idspd = B.i_id
+        AND A.C_BEBAN = 'TU'   
+        and A.c_trx = 'ST'
+        and A.c_jenis = 3
+        and A.c_angg_tahun = #{tahun}
+        and A.i_idskpd = #{idskpd}
+        and A.i_jour is not null 
+        and A.c_angg_tahun = B.c_angg_tahun
+        and A.i_idskpd = B.i_idskpd
+       
+        ) xxx,
+        tmspd ,tmspdsah  
+        WHERE xxx.i_idspd = tmspd.i_id
+        and xxx.i_idspd = tmspdsah.i_id
+        and tmspd.i_id =tmspdsah.I_id 
+        GROUP BY  xxx.c_angg_tahun,xxx. i_idskpd,i_idspd, i_spdno, d_spdno)
+        a)
+        
+        WHERE sisa_spd  &lt;&gt; 0
+        and ROWNUM &lt;= #{limit} AND rn &gt; #{offset}  
+                
+    </select>
+    
+    <select id="getBanyakSpdBL" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT (*) as banyak FROM (select c_angg_tahun,i_idskpd,i_idspd, i_spdno,d_spdno,v_spd,v_sppsebelum,sisa_spd,v_spp from(
+        SELECT   #{tahun} c_angg_tahun, #{idskpd} AS i_idskpd, i_idspd, i_spdno,
+        d_spdno AS d_spdno, SUM (xxx.v_spd) v_spd,
+        SUM (v_sppsebelum) v_sppsebelum, SUM (xxx.v_spd - v_sppsebelum) AS sisa_spd,
+        SUM (v_spp) AS v_spp FROM (
+		
+        SELECT i_idspd, tmspdrincibl.v_spd, 0 v_sppsebelum, 0 AS v_spp
+        FROM tmspd INNER JOIN tmspdrincibl
+        ON tmspd.i_id = tmspdrincibl.i_idspd
+        INNER JOIN tmspdsah
+        ON tmspd.i_id = tmspdsah.i_id AND tmspd.c_jenis = '3'
+        WHERE c_angg_tahun = #{tahun} 
+        AND i_idskpd = #{idskpd}
+        and tmspdrincibl.c_spd_status != 'P'
+        
+        UNION ALL
+        SELECT i_idspd, 0 AS v_spd, v_kontr AS v_sppsebelum, 0 AS v_spp
+        FROM tmkontrak
+        WHERE c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT i_idspd, 0 AS v_spd, v_spp AS v_sppsebelum, 0 AS v_spp
+        FROM tmspp, tmspprincibl
+        WHERE tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.c_jenis = '3'
+        AND c_beban &lt;&gt; 'LS'
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND i_idskpd = #{idskpd}
+        AND tmspp.i_id &lt;&gt; #{idspp}
+        UNION ALL
+        SELECT i_idspd, 0 AS v_spd, 0 AS v_sppsebelum, v_spp AS v_spp
+        FROM tmspp, tmspprincibl
+        WHERE tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.c_jenis = '3'
+        AND c_beban = 'GU'
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND i_idskpd = #{idskpd}
+        AND tmspp.i_id = #{idspp}) xxx,
+        tmspd, tmspdsah  <!-- YG DITAMBAHKAN : 22FEB16  -->
+        WHERE xxx.i_idspd = tmspd.i_id
+        and xxx.i_idspd = tmspdsah.i_id
+        and tmspd.i_id =tmspdsah.I_id <!-- YG DITAMBAHKAN : 22FEB16  -->
+        GROUP BY i_idspd, i_spdno, d_spdno
+        ) where sisa_spd &lt;&gt; 0  )
+        
+    </select>  
+    
+    <select id="getBankRekByIdSkpd" parameterType="java.util.Map"  resultType="java.util.Map">
+        <!--SELECT   MAX (T.C_BANK) AS C_BANK,
+        T.N_BANK,
+        T.I_REK_BANKSTS,
+        T.I_REK_BANKSPM
+        FROM    TRSKPDBANKREK T
+        WHERE   T.I_IDSKPD = #{idskpd} AND T.C_AKTIF = 1 AND #{tahun}  between  T.C_TAHUN_BERLAKU and   T.C_TAHUN_BERAKHIR
+        GROUP BY   T.C_BANK,
+        T.N_BANK,
+        T.I_REK_BANKSTS,
+        T.I_REK_BANKSPM -->
+        
+        SELECT   MAX (T.C_BANK) AS C_BANK, C_BANK_TRANSFER, to_char(i_idbankpfk) as I_IDBANKPFK,
+        T.N_BANK,
+        T.I_REK_BANKSTS,
+        T.I_REK_BANKSPM
+        FROM    TRSKPDBANKREK T
+        WHERE   T.I_IDSKPD = #{idskpd} AND T.C_AKTIF = 1 AND #{tahun}  between  T.C_TAHUN_BERLAKU and   T.C_TAHUN_BERAKHIR
+        GROUP BY   T.C_BANK,
+        T.N_BANK,
+        T.I_REK_BANKSTS,
+        T.I_REK_BANKSPM,
+        T.C_BANK_TRANSFER,
+        T.i_idbankpfk
+        
+    </select>   
+    
+    <select id="getBankDki" parameterType="java.util.Map"  resultType="java.util.Map">
+        select C_BANK_TRANSFER, N_BANK_TRANSFER, C_BANK, N_BANK, to_char(I_ID) as I_ID 
+        from trbankpfk where  i_idinduk = 0 
+        and n_bank_transfer = 'BANK DKI'
+    </select>   
+    
+    <select id="getBendaharaByIdSkpd" parameterType="java.util.Map"  resultType="java.util.Map">
+        SELECT  
+        T.I_NIP_PKBLJ,
+        T.N_PKBLJ
+         
+        FROM   TMDPA T, TRSKPD S
+  
+        WHERE T.I_IDSKPD = S.I_ID
+        AND T.C_ANGG_TAHUN = #{tahun}
+        AND T.I_IDSKPD = #{idskpd}
+        AND S.C_AKTIF = '1'
+    </select>
+    
+    
+    <select id="getDataPagu" parameterType="java.util.Map"  resultType="java.util.Map">
+        SELECT   I_IdSKPD,
+        SUM (V_PAGUUP) AS PAGU_UP,
+        SUM (V_SPP) AS TOTAL_SPP,
+        SUM (V_SPJ) AS TOTAL_SPJ,
+        SUM (V_PAGUUP - V_SPP + V_SPJ) AS PAGU_SPP,
+        SUM(V_SPP-V_SPJ) AS SISA_UANG,
+        ROUND (SUM (V_SPP-V_SPJ) / SUM (V_PAGUUP), 4) * 100 AS PERSEN
+        FROM   (
+        SELECT   I_IdSKPD,
+        V_SPP AS V_PAGUUP,
+        0 V_SPP,
+        0 V_SPJ
+        FROM   TRSPPPAGUUP
+        WHERE (  TRSPPPAGUUP.C_ANGG_TAHUN &lt;= #{tahun} and TRSPPPAGUUP.C_TAHUN_BERAKHIR &lt;= #{tahun})  
+        AND TRSPPPAGUUP.I_IDSKPD = #{idskpd} and c_aktif = 1
+        
+        UNION ALL
+           
+        SELECT   I_IdSKPD,
+        0 AS V_PAGUUP,
+        V_SPP AS V_SPP,
+        0 V_SPJ
+        FROM   TMSPP, TMSPPRINCIBL
+        WHERE       TMSPP.I_ID = TMSPPRINCIBL.I_IDSPP
+        AND TMSPP.C_ANGG_TAHUN = #{tahun}
+        AND TMSPP.I_IDSKPD = #{idskpd}
+        AND TMSPP.C_BEBAN IN ('UP', 'GU')
+        and TMSPP.I_ID &lt;&gt; #{idspp}
+        UNION ALL
+           
+        SELECT   I_IdSKPD,
+        0 AS V_PAGUUP,
+        V_SPP AS V_SPP,
+        0 V_SPJ
+        FROM   TMSPP, TMSPPRINCIBTL
+        WHERE       TMSPP.I_ID = TMSPPRINCIBTL.I_IDSPP
+        AND TMSPP.C_ANGG_TAHUN = #{tahun}
+        AND TMSPP.I_IDSKPD = #{idskpd}
+        AND TMSPP.C_BEBAN IN ('UP', 'GU')
+        and TMSPP.I_ID &lt;&gt; #{idspp}
+        UNION ALL
+           
+        SELECT   I_IdSKPD,
+        0 AS V_PAGUUP,
+        0 AS V_SPP,
+        V_SPJ
+        FROM   TMSPJ, TMSPJRINCIBL
+        WHERE       TMSPJ.I_ID = TMSPJRINCIBL.I_IDSPJ
+        AND EXISTS (SELECT   1
+        FROM   TMSPJSAH
+        WHERE   TMSPJ.I_ID = TMSPJSAH.I_ID)
+        AND TMSPJ.C_ANGG_TAHUN = #{tahun}
+        AND TMSPJ.I_IDSKPD = #{idskpd}
+        AND TMSPJRINCIBL.C_BEBAN = 'UP') XXXX
+        GROUP BY   I_IdSKPD		
+    </select>   
+    
+    <select id="getDataPaguBKU" parameterType="java.util.Map"  resultType="java.util.Map">
+        SELECT   I_IdSKPD,
+        SUM (V_PAGUUP) AS PAGU_UP,
+        SUM (V_SPP) AS TOTAL_SPP,
+        SUM (V_SPJ) AS TOTAL_SPJ,
+        SUM (V_PAGUUP - V_SPP + V_SPJ) AS PAGU_SPP,
+        SUM(V_SPP-V_SPJ) AS SISA_UANG,
+        ROUND (SUM (V_SPP-V_SPJ) / SUM (V_PAGUUP), 4) * 100 AS PERSEN
+        FROM   (
+        SELECT   I_IdSKPD,
+        V_SPP AS V_PAGUUP,
+        0 V_SPP,
+        0 V_SPJ
+        FROM   TRSPPPAGUUP
+        WHERE (  #{tahun} between c_angg_tahun and TRSPPPAGUUP.C_TAHUN_BERAKHIR )  
+        AND TRSPPPAGUUP.I_IDSKPD = #{idskpd} and c_aktif = 1
+        
+        UNION ALL  
+        SELECT   I_IdSKPD,
+        0 AS V_PAGUUP,
+        V_SPP AS V_SPP,
+        0 V_SPJ
+        FROM   TMSPP, TMSPPRINCIBL
+        WHERE TMSPP.I_ID = TMSPPRINCIBL.I_IDSPP
+        AND TMSPP.C_ANGG_TAHUN = #{tahun}
+        AND TMSPP.I_IDSKPD = #{idskpd}
+        AND TMSPP.C_BEBAN IN ('UP', 'GU')
+        and TMSPP.I_ID &lt;&gt; #{idspp}
+        
+        UNION ALL 
+        SELECT   I_IdSKPD,
+        0 AS V_PAGUUP,
+        V_SPP AS V_SPP,
+        0 V_SPJ
+        FROM   TMSPP, TMSPPRINCIBTL
+        WHERE  TMSPP.I_ID = TMSPPRINCIBTL.I_IDSPP
+        AND TMSPP.C_ANGG_TAHUN = #{tahun}
+        AND TMSPP.I_IDSKPD = #{idskpd}
+        AND TMSPP.C_BEBAN IN ('UP', 'GU')
+        and TMSPP.I_ID &lt;&gt; #{idspp}
+        
+        UNION ALL 
+        SELECT i_idskpd, 0 AS V_PAGUUP,  0 AS V_SPP, 
+        nvl((v_kas_keluar - v_kas_terima),0) as V_SPJ  
+        FROM tmbkuskpdpengeluaran
+        where c_trx = 'JJ' 
+        and c_beban in ('UP', 'GU')
+        and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and i_jour is not null 
+        ) XXXX
+        GROUP BY   I_IdSKPD		
+    </select>   
+    
+    <insert id="insertSppGuMaster" parameterType="spp.model.SppGu" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="id" >         
+        INSERT INTO  TMSPP (I_ID,
+        C_ANGG_TAHUN,
+        C_BULAN,
+        I_SPPNO,
+        D_SPPNO,
+        C_JENIS,
+        C_BEBAN,
+        I_IDSKPD,
+        C_UANGMUKA,
+        E_SPP, 
+        I_PPTK_NIP,
+        N_PPTK,
+        N_WP, 
+        C_BANK,
+        N_BANK,
+        C_BANK_TRANSFER,
+        N_BANK_TRANSFER,
+        I_IDBANKPFK,
+        I_REK_BANK,
+        N_TUJUAN
+        )
+        VALUES   (  SEQ_TMSPP.NEXTVAL,
+        #{tahun},
+        #{bulan},
+        #{noSpp},
+        #{tglSpp},
+        '3',
+        'GU',
+        #{skpd.idSkpd},
+        #{kodeUangMuka},
+        UPPER(REPLACE ( REPLACE (REPLACE (#{keterangan} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )),
+        #{nipPptk},
+        UPPER(#{namaPptk}),
+        UPPER(#{namaPptk}),
+        #{kodeBank},
+        #{namaBankTransfer},
+        #{kodeBankTransfer},
+        #{namaBankTransfer},
+        #{idBank},
+        regexp_replace(#{nomorRekBank},'[-. /]',''),
+        <!--(SELECT N_REK_BANKSPM FROM TRSKPDBANKREK WHERE TRSKPDBANKREK.I_IDSKPD = #{skpd.idSkpd})-->
+        #{namaTujuan} 
+        )     
+    </insert>
+
+    <insert id="insertSppGuRinci" parameterType="spp.model.SppGuRinci"   >  
+        INSERT  INTO TMSPPRINCIBL (I_ID,
+        I_IDSPP,
+        I_IDSPD,                               
+        V_SPP,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM ) VALUES     
+        (  SEQ_TMSPPRINCIBL.nextval , #{idspp},
+        #{idSpd},              
+        #{nilaiSpp},
+        #{idEntry},
+        #{tglEntry})
+    </insert>
+    
+    
+    <select id="getSppGuById" parameterType="java.lang.Integer"  resultType="spp.model.SppGu">
+        SELECT distinct  T.I_ID AS id,
+        T.C_ANGG_TAHUN AS tahun,
+        T.I_SPPNO AS noSpp,
+        T.D_SPPNO AS tglSpp,
+        T.C_JENIS AS kodeJenis,
+        T.C_BEBAN AS kodeBeban,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        P.N_SKPD AS "skpd.namaSkpd",
+        T.N_PPTK AS namaPptk,
+        T.I_PPTK_NIP AS nipPptk,
+        T.C_UANGMUKA AS kodeUangMuka,
+        T.C_BULAN || '/' || T.C_ANGG_TAHUN AS bulan,
+        T.E_SPP AS keterangan,
+        COALESCE (T.C_BANK, BR.C_BANK) AS kodeBank,
+        COALESCE (T.N_BANK, BR.N_BANK) AS namaBank,
+        T.C_BANK_TRANSFER AS kodeBankTransfer,
+        T.N_BANK_TRANSFER AS namaBankTransfer,
+        T.I_IDBANKPFK AS idBank,
+        COALESCE (T.I_REK_BANK, I_REK_BANKSTS) AS nomorRekBank
+        FROM         TMSPP T
+        LEFT JOIN
+        trskpd p
+        ON P.I_ID = T.I_IDSKPD
+        LEFT JOIN
+        TRSKPDBANKREK BR
+        ON BR.I_IDSKPD = T.I_IDSKPD
+        AND T.C_ANGG_TAHUN  between   BR.C_TAHUN_BERLAKU and   BR.C_TAHUN_BERAKHIR
+        AND br.C_AKTIF = 1
+        WHERE   T.I_ID = #{value}
+    </select>
+    <select id="getSppGuRinciByIdSpp" parameterType="java.lang.Integer"  resultType="spp.model.SppGuRinci">
+        SELECT   T.I_ID AS idSppRinci,
+        T.I_IDSPP AS idspp,
+        T.I_IDSPD AS idSpd,
+        T.I_IDBL AS idBl,
+        T.I_IDKEGIATAN AS "kegiatan.idKegiatan",
+        T.I_IDBAS AS "akun.idAkun",
+        T.V_SPP AS nilaiSpp
+        FROM    TMSPPRINCIBL T
+        WHERE   I_IDSPP = #{value}
+    </select>
+    <update id="updateSppGuMaster" parameterType="spp.model.SppGu"  >
+        UPDATE  TMSPP
+        SET <!--C_ANGG_TAHUN    = #{tahun},
+       I_SPPNO         = #{noSpp},  
+       I_IDSKPD        = #{skpd.idSkpd},-->
+        C_BULAN         = #{bulan},
+        E_SPP           = UPPER(REPLACE ( REPLACE (REPLACE (#{keterangan} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )),
+        N_PPTK   = UPPER(#{namaPptk}) ,  
+        N_WP   = UPPER(#{namaPptk}) ,     
+        I_PPTK_NIP = #{nipPptk},
+        <!--C_BANK = #{kodeBank},
+        N_BANK = #{namaBank},-->
+        I_REK_BANK = regexp_replace(#{nomorRekBank},'[-. /]','')   
+        WHERE  I_ID            = #{id}
+    </update>
+    
+    <delete id="deleteSppGuMaster" parameterType="spp.model.SppGuRinci" >
+        delete TMSPPRINCIBL where I_IDSPP = #{idspp}   
+    </delete>  
+    
+    
+    <select id="getTotalSPDDanSPP" parameterType="java.util.Map"  resultType="java.util.Map">         
+        SELECT   SUM (V_SPD) AS V_SPD, SUM (V_SPP) AS V_SPP
+        FROM   (SELECT   tmspd.c_angg_tahun,
+        tmspd.I_IDSKPD AS I_IDSKPD,
+        TMSPDRINCIBL.I_IDKEGIATAN AS I_IDKEGIATAN,
+        TMSPDRINCIBL.I_IDBAS AS I_IDBAS,
+        TMSPDRINCIBL.v_spd V_SPD,
+        0 AS V_SPPSEBELUM,
+        0 AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPDRINCIBL.I_IDBL
+        FROM   tmspd, TMSPDRINCIBL, TMSPDSAH
+        WHERE       (tmspd.I_id = TMSPDRINCIBL.I_IDSPD)
+        AND tmspd.I_ID = tmspdSAH.I_ID
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.c_jenis = '3'
+        AND tmspd.i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT   TMSPP.c_angg_tahun,
+        TMSPP.I_IDSKPD,
+        TMSPPRINCIBL.I_IDKEGIATAN,
+        TMSPPRINCIBL.I_IDBAS,
+        0 V_SPD,
+        V_SPP AS V_SPPSEBELUM,
+        0 AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPPRINCIBL.I_IDBL
+        FROM   TMSPP,
+        TMSPPRINCIBL,
+        TMSPM,
+        TMSP2D,
+        tmspd
+        WHERE       (TMSPP.I_id = TMSPPRINCIBL.I_IDSPP)
+        AND TMSPM.I_IDSPP = TMSPP.I_id
+        AND TMSPM.I_ID = TMSP2D.I_idSPM
+        AND TMSPP.c_angg_tahun = #{tahun}
+        AND TMSPP.c_jenis = '3'
+        AND TMSPP.i_idskpd = #{idskpd}
+        AND TMSPD.I_ID = TMSPPRINCIBL.I_IDSPD
+        UNION ALL
+        SELECT   TMSPP.c_angg_tahun,
+        TMSPP.I_IDSKPD,
+        TMSPPRINCIBL.I_IDKEGIATAN,
+        TMSPPRINCIBL.I_IDBAS,
+        0 V_SPD,
+        0 AS V_SPPSEBELUM,
+        V_SPP AS V_SPP,
+        TMSPD.I_ID AS I_IDSPD,
+        I_SPDNO,
+        TMSPPRINCIBL.I_IDBL
+        FROM   TMSPP, TMSPPRINCIBL, tmspd
+        WHERE       (TMSPP.I_id = TMSPPRINCIBL.I_IDSPP)
+        AND TMSPP.c_angg_tahun = #{tahun}
+        AND TMSPP.c_jenis = '3'
+        AND TMSPP.C_BEBAN = 'GU'
+        AND TMSPD.I_ID = TMSPPRINCIBL.I_idSPD
+        AND TMSPP.i_idskpd = #{idskpd}
+        AND TMSPP.I_ID = #{idspp}) XXXX,
+        TMDPAKEGIATAN,
+        TRSKPD,
+        TRBAS
+        WHERE       XXXX.I_IDSKPD = TRSKPD.I_ID
+        AND XXXX.I_IDBAS = TRBAS.I_ID
+        AND XXXX.I_IDKEGIATAN = TMDPAKEGIATAN.I_ID
+        AND TMDPAKEGIATAN.c_angg_tahun = #{tahun}
+        <if test="kodekegiatan != null and kodekegiatan != '' and kodekegiatan != '-'  ">
+            AND  TMDPAKEGIATAN.C_KEGIATAN LIKE  #{kodekegiatan}||'%'
+        </if> 
+        <if test="spdno != null and idspp != '' and spdno != '-' ">
+            AND  I_SPDNO = #{spdno}
+        </if> 
+    </select> 
+    
+    <select id="getStatusGU" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(c_beban) as banyak from tmspp 
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun} 
+        and c_beban = 'UP'
+        and exists (select 1 from tmsp2d where i_idspp = tmspp.i_id and c_sp2d_sah = 1)
+        
+    </select>
+    
+    <select id="getBanyakGU" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select to_char(count(*)+1) as banyak 
+        from tmsp2d, tmspp where tmsp2d.i_idspp= tmspp.i_id
+        and tmsp2d.c_angg_tahun = #{tahun} 
+        and tmsp2d.i_idskpd = #{idskpd}
+        and c_beban = 'GU'
+        and c_sp2d_sah = 1
+    </select>   
+    
+    
+</mapper>

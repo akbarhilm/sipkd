@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spp.entity.SpdMapper">
+    <select id="getSpd" parameterType="java.util.Map"  resultType="spp.model.Spd">
+        
+SELECT   c_angg_tahun AS tahun,
+         i_idskpd AS idSkpd,
+         I_id AS idSpd,
+         i_spdno AS noSpd,
+         d_spdno AS tanggalSpd,
+         v_spd AS nilaiSpd
+  FROM   (SELECT   ROWNUM AS rn, a.*
+            FROM   (  SELECT   T.c_angg_tahun,
+                               T.i_idskpd,
+                               T.I_id,
+                               T.i_spdno,
+                               T.d_spdno,
+                               SUM (B.v_spd) AS v_spd
+                        FROM   tmspd T, TMSPDRINCIBL B, TMSPDSAH S
+                       WHERE       (T.I_id = B.I_IDSPD)
+                               AND (T.I_id = S.I_ID)
+                               AND T.c_jenis = '3'
+                               AND T.C_ANGG_TAHUN = #{tahun}
+                               AND T.i_idskpd = #{idskpd}
+                    GROUP BY   T.c_angg_tahun,
+                               T.i_idskpd,
+                               T.I_id,
+                               T.i_spdno,
+                               T.d_spdno,
+                               B.v_spd
+          ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    
+    
+    </select>
+    
+     <select id="getBanyakSpd" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT   COUNT (T.I_ID) AS banyak
+        FROM   TMSPD T  WHERE T.I_IDSKPD = #{idskpd}   and   T.C_ANGG_TAHUN = #{tahun} 
+       
+    </select>
+</mapper>

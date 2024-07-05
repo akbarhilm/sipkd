@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spp.entity.BankMapper">
+    <select id="getBank" parameterType="java.util.Map"
+            resultType="spp.model.Bank">
+        SELECT   I_ID AS idBank,
+        N_BANK AS namaBank,
+        I_REK_BANK AS rekeningBank,
+        C_AKTIF AS isAktif
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   I_ID,
+        N_BANK,
+        I_REK_BANK,
+        C_AKTIF 
+        FROM   TRBANK T
+        
+         <if test="namabank != null and namabank != '' ">
+            where upper( T.N_BANK) like '%'||upper(#{namabank})||'%'
+        </if>
+      
+        )a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+             
+    </select>
+    
+    <select id="getCountBank" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        
+        select count(*) as banyak from (
+         SELECT   I_ID AS idBank,
+        N_BANK AS namaBank,
+        I_REK_BANK AS rekeningBank,
+        C_AKTIF AS isAktif
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   I_ID,
+        N_BANK,
+        I_REK_BANK,
+        C_AKTIF 
+        FROM   TRBANK T
+        
+          <if test="namabank != null and namabank != '' ">
+            where upper( T.N_BANK) like '%'||upper(#{namabank})||'%'
+        </if>
+      
+        )a)    )
+    </select>
+    
+    <insert id="insertBank" parameterType="spp.model.Bank"   >
+        INSERT INTO TRBANK (I_ID,N_BANK,I_REK_BANK,C_AKTIF)
+        VALUES ((select max(i_id)+2 from trbank) ,#{namaBank},#{rekeningBank},#{isAktif} )
+    </insert>
+    
+    <delete id="deleteBank" parameterType="java.lang.Integer"   >
+        delete TRBANK     WHERE I_ID      = #{idBank}
+    </delete>
+    
+    <select id="getBankById" parameterType="java.lang.Integer"
+            resultType="spp.model.Bank">
+        select I_ID as idBank, N_BANK as namaBank,I_REK_BANK as rekeningBank,C_AKTIF as isAktif from TRBANK
+        WHERE   I_ID =  #{value}
+    </select>
+    
+    <update id="updateBank" parameterType="spp.model.Bank"   >
+        UPDATE TRBANK
+        SET    
+        I_ID = #{idBank},
+        N_BANK    = #{namaBank},
+      
+        I_REK_BANK      = #{rekeningBank},
+        C_AKTIF         =#{isAktif}
+        WHERE  I_ID         = #{idBank}
+    </update>
+    
+</mapper>
