@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.ProsesBkuMapper">
+    
+    <insert id="insertProsesBku" statementType="CALLABLE" parameterType="spp.model.BukuKasUmum"> 
+        {CALL proc_j_bku_perskpd (#{tahun},#{idskpd},#{tglAwal},#{tglAkhir},#{idEntry})}
+    </insert>
+    
+    <insert id="insertProsesBkuPPKD" statementType="CALLABLE" parameterType="spp.model.BukuKasUmum"> 
+        {CALL proc_j_bku_ppkd (#{tahun},#{idskpd},#{kodeWilayah},#{tglAwal},#{tglAkhir},#{idEntry})}
+    </insert>
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF  where i_id = '1'
+    </select>
+    
+    <select id="getListJurnal" parameterType="java.util.Map"  resultType="spp.model.ProsesBku">
+        
+        SELECT  tahun,  kodeSkpd, namaSkpd, bulan, tglPosting, noUrut, kodeTransaksi, noBukti, tglBukti, keterangan, 
+        kodeKeg, namaKeg, kodeAkun, namaAkun, nilaiMasuk, nilaiKeluar, jenis, beban, kodeUangPersediaan
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT 
+        XXX.C_ANGG_TAHUN AS tahun,  
+        C_SKPD AS kodeSkpd, 
+        N_SKPD AS namaSkpd, 
+        BLN_POSTING AS bulan, 
+        D_POSTING AS tglPosting, 
+        i_bkuno AS noUrut, 
+        (CASE C_TRX
+        WHEN 'JO' THEN 'SP2D'
+        WHEN 'JJ' THEN 'SPJ'
+        WHEN 'P1' THEN 'PPH PS 21'
+        WHEN 'P2' THEN 'PPH  PS 22 1.5%'
+        WHEN 'P3' THEN 'PPH PS 23 JASA I'
+        WHEN 'P4' THEN 'PPH PS 4 AYAT 2'
+        WHEN 'P5' THEN 'PPN 10%'
+        WHEN 'P6' THEN 'PPH Pasal 26 (Hadiah Undian)'
+        WHEN 'C1' THEN 'Pencairan Cek dari Rekening Bendahara Pengeluaran SKPD'
+        WHEN 'C2' THEN 'Setor ke Rekening Bendahara Pengeluaran SKPD'
+        WHEN 'ST' THEN 'SETORAN'
+        WHEN 'NP' THEN 'PANJAR : NPD KE PPTK/dll (KELUAR)'
+        WHEN 'NM' THEN 'PANJAR : LAPORAN NPD (MASUK)'
+        WHEN 'LL' THEN 'LAIN-LAIN'
+        ELSE 'SALDO AWAL'  
+        END )   AS kodeTransaksi, 
+        I_DOC_BUKTI AS noBukti, 
+        D_DOC_BUKTI AS tglBukti, 
+        E_DOC_BUKTI AS keterangan, 
+        NVL(XXX.C_KEGIATAN,'-') AS kodeKeg, 
+        NVL(N_KEGIATAN,'-') AS namaKeg, 
+        xxx.C_AKUN AS kodeAkun,  
+        N_AKUN  AS namaAkun, 
+        V_KAS_TERIMA AS nilaiMasuk,  
+        V_KAS_KELUAR AS nilaiKeluar, 
+  
+        (CASE C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'PEMBIAYAAN'
+        WHEN '5' THEN 'RESTITUSI'  
+        END ) AS jenis, 
+        C_BEBAN AS beban, 
+        (CASE C_UANGPERSEDIAAN
+        WHEN '1' THEN 'TUNAI'
+        WHEN '2' THEN 'BANK'
+        WHEN '3' THEN 'PANJAR'  
+        END ) AS kodeUangPersediaan
+        FROM (
+        SELECT #{tahun} C_ANGG_TAHUN ,I_IDSKPD , 
+        BLN_POSTING , 
+        <!--DECODE(ROWNUM,1,NULL, SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4)) D_POSTING, -->
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) as D_POSTING,
+        I_bkuno, C_TRX, I_IDTRX, I_DOC_BUKTI, D_DOC_BUKTI, E_DOC_BUKTI, I_IDKEGIATAN, C_KEGIATAN,  I_IDBAS, C_AKUN, V_KAS_TERIMA, V_KAS_KELUAR,
+        (V_KAS_TERIMA - V_KAS_KELUAR) , C_JENIS, C_BEBAN,C_UANGPERSEDIAAN
+        FROM(
+        SELECT A.C_ANGG_TAHUN, A.I_IDSKPD, SUBSTR (A.D_POSTING, 5,2) AS BLN_POSTING, A.D_POSTING,i_bkuno,  C_JENIS, C_BEBAN,C_UANGPERSEDIAAN,A.C_TRX, A.I_IDTRX, A.I_DOC_BUKTI, A.D_DOC_BUKTI, 
+        REPLACE(REPLACE(REPLACE(TRIM(E_DOC_BUKTI),'  ',' '),'  ',' '),'  ',' ') E_DOC_BUKTI, 
+        A.I_IDKEGIATAN, A.C_KEGIATAN, A.I_IDBAS, A.C_AKUN, A.V_KAS_TERIMA, A.V_KAS_KELUAR
+        FROM TMBKUSKPDPENGELUARAN A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND  A.D_POSTING BETWEEN #{tgl1} AND #{tgl2}
+        and i_jour is null
+        ORDER BY A.D_POSTING, A.I_ID 
+        )) XXX
+        INNER JOIN TRSKPD ON  XXX.i_IDSKPD =TRSKPD.I_ID
+        LEFT JOIN TRBAS ON XXX.i_IDBAS = TRBAS.i_ID
+        LEFT JOIN TMDPAKEGIATAN ON XXX.I_IDKEGIATAN = TMDPAKEGIATAN.I_ID
+        ) a) 
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakListJournal" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT 
+        XXX.C_ANGG_TAHUN AS tahun,  
+        C_SKPD AS kodeSkpd, 
+        N_SKPD AS namaSkpd, 
+        BLN_POSTING AS bulan, 
+        D_POSTING AS tglPosting, 
+        i_bkuno AS noUrut, 
+        (CASE C_TRX
+        WHEN 'JO' THEN 'SP2D'
+        WHEN 'JJ' THEN 'SPJ'
+        WHEN 'P1' THEN 'PPH PS 21'
+        WHEN 'P2' THEN 'PPH  PS 22 1.5%'
+        WHEN 'P3' THEN 'PPH PS 23 JASA I'
+        WHEN 'P4' THEN 'PPH PS 4 AYAT 2'
+        WHEN 'P5' THEN 'PPN 10%'
+        WHEN 'P6' THEN 'PPH Pasal 26 (Hadiah Undian)'
+        WHEN 'C1' THEN 'Pencairan Cek dari Rekening Bendahara Pengeluaran SKPD'
+        WHEN 'C2' THEN 'Setor ke Rekening Bendahara Pengeluaran SKPD'
+        WHEN 'ST' THEN 'SETORAN'
+        WHEN 'NP' THEN 'PANJAR : NPD KE PPTK/dll (KELUAR)'
+        WHEN 'NM' THEN 'PANJAR : LAPORAN NPD (MASUK)'
+        WHEN 'LL' THEN 'LAIN-LAIN'
+        ELSE 'SALDO AWAL'  
+        END )   AS kodeTransaksi, 
+        I_DOC_BUKTI AS noBukti, 
+        D_DOC_BUKTI AS tglBukti, 
+        E_DOC_BUKTI AS keterangan, 
+        NVL(XXX.C_KEGIATAN,'-') AS kodeKeg, 
+        NVL(N_KEGIATAN,'-') AS namaKeg, 
+        xxx.C_AKUN AS kodeAkun,  
+        N_AKUN  AS namaAkun, 
+        V_KAS_TERIMA AS nilaiMasuk,  
+        V_KAS_KELUAR AS nilaiKeluar, 
+  
+        (CASE C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'PEMBIAYAAN'
+        WHEN '5' THEN 'RESTITUSI'  
+        END ) AS jenis, 
+        C_BEBAN AS beban, 
+        (CASE C_UANGPERSEDIAAN
+        WHEN '1' THEN 'TUNAI'
+        WHEN '2' THEN 'BANK'
+        WHEN '3' THEN 'PANJAR'  
+        END ) AS kodeUangPersediaan
+        FROM (
+        SELECT #{tahun} C_ANGG_TAHUN ,I_IDSKPD , 
+        BLN_POSTING , DECODE(ROWNUM,1,NULL, SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4)) D_POSTING, 
+        I_bkuno, C_TRX, I_IDTRX, I_DOC_BUKTI, D_DOC_BUKTI, E_DOC_BUKTI, I_IDKEGIATAN, C_KEGIATAN,  I_IDBAS, C_AKUN, V_KAS_TERIMA, V_KAS_KELUAR,
+        (V_KAS_TERIMA - V_KAS_KELUAR) , C_JENIS, C_BEBAN,C_UANGPERSEDIAAN
+        FROM(
+        SELECT A.C_ANGG_TAHUN, A.I_IDSKPD, SUBSTR (A.D_POSTING, 5,2) AS BLN_POSTING, A.D_POSTING,i_bkuno,  C_JENIS, C_BEBAN,C_UANGPERSEDIAAN,A.C_TRX, A.I_IDTRX, A.I_DOC_BUKTI, A.D_DOC_BUKTI, 
+        REPLACE(REPLACE(REPLACE(TRIM(E_DOC_BUKTI),'  ',' '),'  ',' '),'  ',' ') E_DOC_BUKTI, 
+        A.I_IDKEGIATAN, A.C_KEGIATAN, A.I_IDBAS, A.C_AKUN, A.V_KAS_TERIMA, A.V_KAS_KELUAR
+        FROM TMBKUSKPDPENGELUARAN A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND  A.D_POSTING BETWEEN #{tgl1} AND #{tgl2}
+        and i_jour is null
+        ORDER BY A.D_POSTING, A.I_ID 
+        )) XXX
+        INNER JOIN TRSKPD ON  XXX.i_IDSKPD =TRSKPD.I_ID
+        LEFT JOIN TRBAS ON XXX.i_IDBAS = TRBAS.i_ID
+        LEFT JOIN TMDPAKEGIATAN ON XXX.I_IDKEGIATAN = TMDPAKEGIATAN.I_ID
+        )
+        
+    </select>
+    
+    <select id="getListJurnalXls" parameterType="java.util.Map"  resultType="spp.model.ProsesBku">
+        
+        SELECT  tahun,  kodeSkpd, namaSkpd, bulan, tglPosting, noUrut, kodeTransaksi, noBku, noJurnal, noBukti, tglBukti, 
+        keterangan, kodeKeg, namaKeg, kodeAkun, namaAkun, nilaiMasuk, nilaiKeluar, saldoKas, jenis, beban, kodeUangPersediaan
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT 
+        XXX.C_ANGG_TAHUN AS tahun,
+        C_SKPD AS kodeSkpd,
+        N_SKPD AS namaSkpd,
+        BLN_POSTING AS bulan,
+        D_POSTING AS tglPosting,
+        I_NOURUT AS noUrut,
+        (CASE C_TRX
+        WHEN 'JO' THEN 'SP2D'
+        WHEN 'JJ' THEN 'SPJ'
+        WHEN 'P1' THEN 'PPH PS 21'
+        WHEN 'P2' THEN 'PPH  PS 22 1.5%'
+        WHEN 'P3' THEN 'PPH PS 23 JASA I'
+        WHEN 'P4' THEN 'PPH PS 4 AYAT 2'
+        WHEN 'P5' THEN 'PPN 10%'
+        WHEN 'P6' THEN 'PPH Pasal 26 (Hadiah Undian)'
+        WHEN 'C1' THEN 'Pencairan Cek dari Rekening Bendahara Pengeluaran SKPD'
+        WHEN 'C2' THEN 'Setor ke Rekening Bendahara Pengeluaran SKPD'
+        WHEN 'ST' THEN 'SETORAN'
+        WHEN 'NP' THEN 'PANJAR : NPD KE PPTK/dll (KELUAR)'
+        WHEN 'NM' THEN 'PANJAR : LAPORAN NPD (MASUK)'
+        WHEN 'LL' THEN 'LAIN-LAIN'
+        ELSE 'SALDO AWAL'  
+        END )   AS kodeTransaksi, 
+        i_bkuno as noBku,  i_jour as noJurnal, 
+        I_DOC_BUKTI AS noBukti, 
+        D_DOC_BUKTI AS tglBukti, 
+        E_DOC_BUKTI AS keterangan, 
+        NVL(XXX.C_KEGIATAN,'-') AS kodeKeg, 
+        NVL(N_KEGIATAN,'-') AS namaKeg, 
+        xxx.C_AKUN AS kodeAkun, 
+        N_AKUN  AS namaAkun, 
+        V_KAS_TERIMA AS nilaiMasuk, 
+        V_KAS_KELUAR AS nilaiKeluar, 
+        SALDO AS saldoKas, 
+        (CASE C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'PEMBIAYAAN'
+        WHEN '5' THEN 'RESTITUSI'  
+        END ) AS jenis, 
+        C_BEBAN AS beban, 
+        (CASE C_UANGPERSEDIAAN
+        WHEN '1' THEN 'TUNAI'
+        WHEN '2' THEN 'BANK'
+        WHEN '3' THEN 'PANJAR'  
+        END ) AS kodeUangPersediaan
+        FROM (
+        SELECT #{tahun} C_ANGG_TAHUN ,I_IDSKPD , 
+        BLN_POSTING , DECODE(ROWNUM,1,NULL, SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4)) D_POSTING, 
+        ROWNUM AS I_NOURUT, C_TRX, I_IDTRX, I_DOC_BUKTI, D_DOC_BUKTI, E_DOC_BUKTI, I_IDKEGIATAN, C_KEGIATAN,  I_IDBAS, C_AKUN, V_KAS_TERIMA, V_KAS_KELUAR,
+        SUM(V_KAS_TERIMA - V_KAS_KELUAR) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS SALDO,i_bkuno,i_jour,  C_JENIS, C_BEBAN,C_UANGPERSEDIAAN
+        FROM(
+        SELECT #{tahun} AS C_ANGG_TAHUN, to_number(#{idskpd}) AS I_IDSKPD, SUBSTR(#{tgl1},5,2) AS BLN_POSTING,
+        #{tahun}||SUBSTR(#{tgl1},5,2)||'01' AS D_POSTING, null as i_bkuno,null as i_jour,  NULL C_JENIS,NULL C_BEBAN,NULL C_UANGPERSEDIAAN,
+        null AS C_TRX, null AS I_IDTRX, null AS I_DOC_BUKTI, null AS D_DOC_BUKTI,
+        'SALDO KAS AWAL S.D TANGGAL ' || (TO_DATE( SUBSTR(#{tgl1},7,2)||'/'||SUBSTR(#{tgl1},5,2)||'/'||SUBSTR(#{tgl1},1,4),'DD-MM-YYYY')-1)
+        AS E_DOC_BUKTI, null AS I_IDKEGIATAN, null AS C_KEGIATAN, null AS I_IDBAS, null AS C_AKUN, SUM(V_KAS_TERIMA) AS V_KAS_TERIMA, 0 AS V_KAS_KELUAR
+        FROM (
+        SELECT (V_SALDOAWAL_DEBET - V_SALDOAWAL_KREDIT) AS V_KAS_TERIMA 
+        FROM TMJOURSALDOAWAL A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND I_IDBAS = 38
+        UNION ALL 
+        SELECT SUM(A.V_KAS_TERIMA - A.V_KAS_KELUAR) AS V_KAS_TERIMA 
+        FROM TMBKUSKPDPENGELUARAN A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND A.D_POSTING &lt; #{tgl1} )
+        UNION ALL 
+        SELECT * FROM ( 
+        SELECT A.C_ANGG_TAHUN, A.I_IDSKPD, SUBSTR (A.D_POSTING, 5,2) AS BLN_POSTING, A.D_POSTING, i_bkuno,i_jour,  C_JENIS, C_BEBAN,C_UANGPERSEDIAAN,A.C_TRX, A.I_IDTRX, A.I_DOC_BUKTI, A.D_DOC_BUKTI, 
+        REPLACE(REPLACE(REPLACE(TRIM(E_DOC_BUKTI),'  ',' '),'  ',' '),'  ',' '), 
+        A.I_IDKEGIATAN, A.C_KEGIATAN, A.I_IDBAS, A.C_AKUN, A.V_KAS_TERIMA, A.V_KAS_KELUAR
+        FROM TMBKUSKPDPENGELUARAN A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND  A.D_POSTING BETWEEN #{tgl1} AND #{tgl2}
+        ORDER BY A.D_POSTING, A.I_ID) )) XXX
+        INNER JOIN TRSKPD ON  XXX.i_IDSKPD =TRSKPD.I_ID
+        LEFT JOIN TRBAS ON XXX.i_IDBAS = TRBAS.i_ID
+        LEFT JOIN TMDPAKEGIATAN ON XXX.I_IDKEGIATAN = TMDPAKEGIATAN.I_ID 
+        ORDER BY I_NOURUT
+        ) a) 
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    
+    <select id="getBanyakListJournalXls" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT 
+        XXX.C_ANGG_TAHUN AS tahun,
+        C_SKPD AS kodeSkpd,
+        N_SKPD AS namaSkpd,
+        BLN_POSTING AS bulan,
+        D_POSTING AS tglPosting,
+        I_NOURUT AS noUrut,
+        (CASE C_TRX
+        WHEN 'JO' THEN 'SP2D'
+        WHEN 'JJ' THEN 'SPJ'
+        WHEN 'P1' THEN 'PPH PS 21'
+        WHEN 'P2' THEN 'PPH  PS 22 1.5%'
+        WHEN 'P3' THEN 'PPH PS 23 JASA I'
+        WHEN 'P4' THEN 'PPH PS 4 AYAT 2'
+        WHEN 'P5' THEN 'PPN 10%'
+        WHEN 'P6' THEN 'PPH Pasal 26 (Hadiah Undian)'
+        WHEN 'C1' THEN 'Pencairan Cek dari Rekening Bendahara Pengeluaran SKPD'
+        WHEN 'C2' THEN 'Setor ke Rekening Bendahara Pengeluaran SKPD'
+        WHEN 'ST' THEN 'SETORAN'
+        WHEN 'NP' THEN 'PANJAR : NPD KE PPTK/dll (KELUAR)'
+        WHEN 'NM' THEN 'PANJAR : LAPORAN NPD (MASUK)'
+        WHEN 'LL' THEN 'LAIN-LAIN'
+        ELSE 'SALDO AWAL'  
+        END )   AS kodeTransaksi, 
+        i_bkuno as noBku,  i_jour as noJurnal, 
+        I_DOC_BUKTI AS noBukti, 
+        D_DOC_BUKTI AS tglBukti, 
+        E_DOC_BUKTI AS keterangan, 
+        NVL(XXX.C_KEGIATAN,'-') AS kodeKeg, 
+        NVL(N_KEGIATAN,'-') AS namaKeg, 
+        xxx.C_AKUN AS kodeAkun, 
+        N_AKUN  AS namaAkun, 
+        V_KAS_TERIMA AS nilaiMasuk, 
+        V_KAS_KELUAR AS nilaiKeluar, 
+        SALDO AS saldoKas, 
+        (CASE C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'PEMBIAYAAN'
+        WHEN '5' THEN 'RESTITUSI'  
+        END ) AS jenis, 
+        C_BEBAN AS beban, 
+        (CASE C_UANGPERSEDIAAN
+        WHEN '1' THEN 'TUNAI'
+        WHEN '2' THEN 'BANK'
+        WHEN '3' THEN 'PANJAR'  
+        END ) AS kodeUangPersediaan
+        FROM (
+        SELECT #{tahun} C_ANGG_TAHUN ,I_IDSKPD , 
+        BLN_POSTING , DECODE(ROWNUM,1,NULL, SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4)) D_POSTING, 
+        ROWNUM AS I_NOURUT, C_TRX, I_IDTRX, I_DOC_BUKTI, D_DOC_BUKTI, E_DOC_BUKTI, I_IDKEGIATAN, C_KEGIATAN,  I_IDBAS, C_AKUN, V_KAS_TERIMA, V_KAS_KELUAR,
+        SUM(V_KAS_TERIMA - V_KAS_KELUAR) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS SALDO,i_bkuno,i_jour,  C_JENIS, C_BEBAN,C_UANGPERSEDIAAN
+        FROM(
+        SELECT #{tahun} AS C_ANGG_TAHUN, to_number(#{idskpd}) AS I_IDSKPD, SUBSTR(#{tgl1},5,2) AS BLN_POSTING,
+        #{tahun}||SUBSTR(#{tgl1},5,2)||'01' AS D_POSTING, null as i_bkuno,null as i_jour,  NULL C_JENIS,NULL C_BEBAN,NULL C_UANGPERSEDIAAN,
+        null AS C_TRX, null AS I_IDTRX, null AS I_DOC_BUKTI, null AS D_DOC_BUKTI,
+        'SALDO KAS AWAL S.D TANGGAL ' <!--|| (TO_DATE( SUBSTR(#{tgl1},7,2)||'/'||SUBSTR(#{tgl1},5,2)||'/'||SUBSTR(#{tgl1},1,4),'DD-MM-YYYY')-1) -->
+        AS E_DOC_BUKTI, null AS I_IDKEGIATAN, null AS C_KEGIATAN, null AS I_IDBAS, null AS C_AKUN, SUM(V_KAS_TERIMA) AS V_KAS_TERIMA, 0 AS V_KAS_KELUAR
+        FROM (
+        SELECT (V_SALDOAWAL_DEBET - V_SALDOAWAL_KREDIT) AS V_KAS_TERIMA 
+        FROM TMJOURSALDOAWAL A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND I_IDBAS = 38
+        UNION ALL 
+        SELECT SUM(A.V_KAS_TERIMA - A.V_KAS_KELUAR) AS V_KAS_TERIMA 
+        FROM TMBKUSKPDPENGELUARAN A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND A.D_POSTING &lt; #{tgl1} )
+        UNION ALL 
+        SELECT * FROM ( 
+        SELECT A.C_ANGG_TAHUN, A.I_IDSKPD, SUBSTR (A.D_POSTING, 5,2) AS BLN_POSTING, A.D_POSTING, i_bkuno,i_jour,  C_JENIS, C_BEBAN,C_UANGPERSEDIAAN,A.C_TRX, A.I_IDTRX, A.I_DOC_BUKTI, A.D_DOC_BUKTI, 
+        REPLACE(REPLACE(REPLACE(TRIM(E_DOC_BUKTI),'  ',' '),'  ',' '),'  ',' '), 
+        A.I_IDKEGIATAN, A.C_KEGIATAN, A.I_IDBAS, A.C_AKUN, A.V_KAS_TERIMA, A.V_KAS_KELUAR
+        FROM TMBKUSKPDPENGELUARAN A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND  A.D_POSTING BETWEEN #{tgl1} AND #{tgl2}
+        ORDER BY A.D_POSTING, A.I_ID) )) XXX
+        INNER JOIN TRSKPD ON  XXX.i_IDSKPD =TRSKPD.I_ID
+        LEFT JOIN TRBAS ON XXX.i_IDBAS = TRBAS.i_ID
+        LEFT JOIN TMDPAKEGIATAN ON XXX.I_IDKEGIATAN = TMDPAKEGIATAN.I_ID 
+        ORDER BY I_NOURUT
+        )
+        
+    </select>
+    
+</mapper>

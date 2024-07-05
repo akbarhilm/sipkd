@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.CetakSkpdByNojurMapper">
+    
+    <select id="getNoJurnal"  resultType="spp.model.CetakSkpd">
+        SELECT  distinct i_journo_doc as valnojur  from tmjourumumskpd order by i_journo_doc
+    </select>
+    
+    <select id="getNoJurnalBySkpd" parameterType="java.util.Map" resultType="spp.model.CetakSkpd">
+        SELECT  distinct i_journo_doc as valnojur  from tmjourumumskpd 
+        where i_idskpd= #{idskpd}  order by i_journo_doc
+    </select>
+    
+   
+    <select id="getBanyakAllAkun" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(c_akun) as banyak
+        FROM   trbas
+        WHERE c_aktif = '1' 
+        
+        <if test="kodeAkunref != null and kodeAkunref != '' ">
+            and c_akun like ''||#{kodeAkunref}||'%'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(trbas.n_akun) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        <if test="kode != null and kode != '' ">
+            and upper(trbas.c_akun) like '%'||upper(#{kode})||'%'
+        </if>   
+         
+    </select>
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF  where i_id = '1'
+    </select>
+    
+    
+</mapper>

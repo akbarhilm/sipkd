@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.UrusanMapper">
+    <select id="getUrusan" parameterType="java.util.Map"
+            resultType="spp.model.Urusan">
+        SELECT   
+        I_ID AS idUrusan,
+        C_URUSAN AS kodeUrusan,
+        N_URUSAN AS namaUrusan,
+        C_AKTIF AS isAktif,
+        N_FUNGSI AS "fungsi.namaFungsi"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   
+        T.I_ID,
+        T.C_URUSAN,
+        T.N_URUSAN,
+        T.C_AKTIF,
+        F.N_FUNGSI
+        FROM   TRURUSAN T,
+        TRFUNGSI F 
+        WHERE F.I_ID = T.I_IDFUNGSI
+        <if test="namaurusan != null and namaurusan != '' ">
+            AND upper( T.N_URUSAN) like '%'||upper(#{namaurusan})||'%'
+        </if> ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakAllUrusan" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        select count(i_id) from TRURUSAN T
+        <if test="namaurusan != null and namaurusan != '' ">
+            where upper( T.N_URUSAN) like '%'||upper(#{namaurusan})||'%'
+        </if>          
+    </select>    
+    <select id="getAllFungsi" parameterType="java.util.Map"
+            resultType="spp.model.Fungsi">
+        SELECT   I_ID as idFungsi,
+        C_FUNGSI as kodeFungsi,
+        N_FUNGSI as namaFungsi,
+        C_AKTIF as isAktif,
+        I_PGUN_REKAM as idEntry,
+        D_PGUN_REKAM as tglEntry,
+        I_PGUN_UBAH as idEdit,
+        D_REKAM_UBAH as tglEdit
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   T.I_ID,
+        T.C_FUNGSI,
+        T.N_FUNGSI,
+        T.C_AKTIF,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.I_PGUN_UBAH,
+        T.D_REKAM_UBAH
+        FROM   TRFUNGSI T  
+        WHERE 1=1
+        <if test="fungsi != null and fungsi != '' ">
+            and upper( T.N_FUNGSI) like '%'||upper(#{fungsi})||'%'
+        </if> 
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakAllFungsi" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        SELECT   COUNT (DISTINCT T.I_ID)
+        FROM   TRFUNGSI T  WHERE 1=1
+        <if test="fungsi != null and fungsi != '' ">
+            and upper( T.N_FUNGSI) like '%'||upper(#{fungsi})||'%'
+        </if> 
+    </select>
+    <insert id="insertUrusan" parameterType="spp.model.Urusan">
+        INSERT INTO  TRURUSAN 
+        (I_ID,
+        I_IDFUNGSI,
+        C_WAJIB,
+        I_URUSAN,
+        C_URUSAN,
+        N_URUSAN,
+        C_AKTIF
+        , I_PGUN_REKAM,
+        D_PGUN_REKAM)
+        VALUES ( 
+         SEQ_TRURUSAN.nextval,
+        #{fungsi.idFungsi},
+        #{kodeWajib},
+        #{noUrusan},
+        #{kodeUrusan},
+        #{namaUrusan},
+        #{isAktif},
+        #{idEntry},
+        #{tglEntry})
+    </insert>
+    <select id="getUrusanById" parameterType="java.lang.Integer"
+                resultType="spp.model.Urusan">
+        SELECT
+        U.I_ID AS idUrusan,
+        U.I_IDFUNGSI AS "fungsi.idFungsi",
+        F.N_FUNGSI AS "fungsi.namaFungsi",
+        U.C_WAJIB AS kodeWajib,
+        U.I_URUSAN AS noUrusan,
+        U.C_URUSAN AS kodeUrusan,
+        U.N_URUSAN AS namaUrusan,
+        U.C_AKTIF AS isAktif
+        FROM TRURUSAN U,
+        TRFUNGSI F
+        WHERE F.I_ID = U.I_IDFUNGSI
+        AND U.I_ID =  #{value}
+    </select>
+    <update id="updateUrusan" parameterType="spp.model.Urusan"   >
+        UPDATE TRURUSAN
+        SET          
+        I_ID = #{idUrusan},
+        I_IDFUNGSI = #{fungsi.idFungsi},
+        C_WAJIB = #{kodeWajib},
+        I_URUSAN = #{noUrusan},
+        C_URUSAN = #{kodeUrusan},
+        N_URUSAN = #{namaUrusan},
+        C_AKTIF = #{isAktif},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_REKAM = #{tglEdit}
+        WHERE  I_ID  = #{idUrusan}
+    </update>
+    <delete id="deleteUrusan" parameterType="java.lang.Integer"   >
+        delete TRURUSAN     WHERE I_ID      = #{idUrusan}
+    </delete>
+</mapper>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.NeracaSkpdMapper">
+    
+    <select id="getTanggalPosting" parameterType="java.util.Map" resultType="java.lang.String">
+        select max(d_posting) as tanggal
+        from TIBUKUBESARSKPD
+        where i_idbas = #{kodeAkun}
+        and i_idskpd = #{idskpd}
+         
+    </select>
+    
+    <select id="getTanggalPostingMap" parameterType="java.util.Map" resultType="java.util.Map">
+        select max(d_posting) as tglPosting
+        from TIBUKUBESARSKPD
+        where i_idbas = #{kodeAkun}
+        and i_idskpd = #{idskpd}
+         
+    </select>
+    
+    <insert id="insertNeracaSkpd" statementType="CALLABLE" parameterType="spp.model.Neraca"> 
+        {CALL proc_tiskpdneraca_perskpd (#{tahun},#{bulan},#{idskpd},#{kodeskpd},#{namaskpd},#{idEntry})}
+    </insert>
+    
+    <insert id="insertNeracaPkpd" statementType="CALLABLE" parameterType="spp.model.Neraca"> 
+        {CALL PROC_TIPPKDNERACA (#{tahun},#{bulan},#{idskpd},#{kodeskpd},#{namaskpd},#{idEntry})}
+    </insert>
+    
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF  where i_id = '1'
+    </select>
+    
+    <select id="getBulan" parameterType="java.util.Map" resultType="spp.model.Neraca">  
+        select distinct substr(d_posting,5,2) as kodeBulan, bulan_lpj(substr(d_posting,5,2))  || '   ( ' || to_char( max(d_PGUN_REKAM) ,'DD - MON - YYYY hh:mm:ss PM' ) || ' )' as ketBulan 
+        from TISKPDNERACA where c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd}
+        group by substr(d_posting,5,2)
+        order by 1
+        
+    </select> 
+    
+    <select id="getKodeStatus" parameterType="java.util.Map" resultType="java.lang.String">
+        select distinct c_status as kodestatus
+        from tiskpdneraca where i_idskpd = #{idskpd}
+        and d_posting = #{tanggal}
+    </select>
+    
+    <select id="getKodeStatusProvinsi" parameterType="java.util.Map" resultType="java.lang.String">
+        select distinct c_status as kodestatus
+        from tiskpdneraca where d_posting = #{tanggal}
+    </select>
+    
+</mapper>

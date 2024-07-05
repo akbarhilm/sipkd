@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.SaldoAwalBkuMapper">
+    
+    <select id="getAkun" parameterType="java.util.Map"  resultType="spp.model.SaldoAwalBku">
+        select i_idbas as idBas ,  c_akun as  kodeAkun, 
+        case when (c_akun = '1.1.01.03.01.001.01' or c_akun = '1.1.01.03.01.001.02' or c_akun = '1.1.01.03.01.001.03') then
+        n_akun || ' (UP/GU)'
+        when  (c_akun = '1.1.01.03.01.003.01' or c_akun = '1.1.01.03.01.003.02' or c_akun = '1.1.01.03.01.003.03') then
+        n_akun || ' (TU)'
+        else
+        n_akun
+        end   AS namaAkun,
+        <!-- n_akun as  namaAkun, -->
+        sum(v_saldo) as nilaiSaldo , sum(status) as kodeStatus
+        FROM (SELECT ROWNUM AS rn, a.* 
+        from(
+     
+        select i_id as  i_idbas , 0 v_saldo , '0' as status
+        from trbas
+        where  (c_akun like '1.1.1.03%' or (c_akun between '1.1.01.03' and '1.1.01.03.99' ))
+        and c_detail = 1
+       
+        union all  
+        select  i_idbas , v_saldoawal as  v_saldo , c_status as status
+        from tmjoursaldoawal
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        
+        )a) aaa, trbas 
+        where aaa.i_idbas = trbas.i_id 
+        and ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        group by i_idbas , c_akun , n_akun
+        order by c_akun
+        
+    </select>
+    
+    <select id="getBanyakAkun" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select i_idbas as idBas ,  c_akun as  kodeAkun, n_akun as  namaAkun,
+        sum(v_saldo) as nilaiSaldo , sum(status) as kodeStatus
+        FROM (SELECT ROWNUM AS rn, a.* 
+        from(
+     
+        select i_id as  i_idbas , 0 v_saldo , '0' as status
+        from trbas
+        where  (c_akun like '1.1.1.03%' or (c_akun between '1.1.01.03' and '1.1.01.03.99' ))
+        and c_detail = 1
+       
+        union all  
+        select  i_idbas , v_saldoawal as  v_saldo , c_status as status
+        from tmjoursaldoawal
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        
+        )a) aaa, trbas 
+        where aaa.i_idbas = trbas.i_id 
+        group by i_idbas , c_akun , n_akun
+        order by c_akun
+        )
+        
+    </select>
+    
+    <insert id="insertSaldoAwal" parameterType="spp.model.SaldoAwalBku">
+        INSERT INTO TMJOURSALDOAWAL(
+        C_ANGG_TAHUN, 
+        I_IDSKPD, 
+        I_IDBAS, 
+        C_AKUN,
+        V_SALDOAWAL, 
+        V_SALDOAWAL_DEBET, 
+        I_PGUN_REKAM, 
+        D_PGUN_REKAM
+        )
+        VALUES 
+        (
+        #{tahun}, 
+        #{idskpd}, 
+        #{idBas},
+        #{kodeAkun},
+        #{nilaiSaldo},
+        #{nilaiSaldo},
+        #{idEntry},
+        sysdate
+        )
+        
+    </insert>
+    
+    <delete id="deleteSaldoAwal" parameterType="spp.model.SaldoAwalBku"   >
+        delete TMJOURSALDOAWAL     
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        
+    </delete>
+    
+    <update id="updateSaldoAwal" parameterType="spp.model.SaldoAwalBku"   >
+        UPDATE TMJOURSALDOAWAL
+        SET
+        V_SALDOAWAL = #{nilaiSaldo}, 
+        V_SALDOAWAL_DEBET = #{nilaiSaldo},
+        I_PGUN_UBAH = #{idEntry},
+        D_REKAM_UBAH = sysdate
+        WHERE  
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND I_IDBAS = #{idBas}
+        
+    </update>
+    
+    <select id="getStatusSaldo" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select nvl(sum(c_status),0) as kodeStatus from (
+        select  to_number(c_status) as c_status from tmjoursaldoawal 
+        where c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd}
+        union all
+        select case when c_tgl_tutup is null then  0  else 1   end   AS c_status
+        from tmbkuskpdpengeluaran 
+        where c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd}
+        and  SUBSTR (tmbkuskpdpengeluaran.d_posting, 5, 2) = '01'
+        )
+    </select>
+    
+</mapper>

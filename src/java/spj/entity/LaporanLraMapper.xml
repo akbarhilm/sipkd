@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.LaporanLraMapper">
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF  where i_id = '1'
+    </select>
+    
+    <select id="getSkpdCombo"   parameterType="java.lang.Integer" resultType="spp.model.LaporanLra">
+        select i_id as kodeSkpd, c_skpd  || '/' ||  n_skpd as ketSkpd from trskpd where i_id = #{idskpd} and c_aktif =1
+        union all
+        select i_id as kodeSkpd, c_skpd  || '/' ||  n_skpd as ketSkpd from trskpd where i_idinduk = #{idskpd}  and c_aktif =1
+        order by kodeSkpd
+    </select>
+    
+    <select id="getIdInduk"   parameterType="java.lang.Integer" resultType="java.lang.Integer">
+        select i_idinduk from trskpd where i_id = #{idskpd} and c_aktif =1
+    </select>
+    
+    <select id="getBulan" parameterType="java.util.Map" resultType="spp.model.LaporanLra">  
+        select distinct substr(d_posting,5,2) as kodeBulan, bulan_lpj(substr(d_posting,5,2))  || '   ( ' || to_char( max(d_PGUN_REKAM) ,'DD - MON - YYYY hh:mm:ss PM' ) || ' )' as ketBulan 
+        from  
+        <if test="laporan == 'LRA' or laporan == 'SAL' ">
+            TISKPDLRA
+        </if>
+        
+        <if test="laporan == 'LO' ">
+            TISKPDLO
+        </if>
+        
+        <if test="laporan == 'NERACA' ">
+            TISKPDNERACA
+        </if>
+        
+        <if test="laporan == 'EKUITAS' ">
+            TISKPDNERACA
+        </if>
+        where c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd}
+        group by substr(d_posting,5,2)
+        order by 1
+    </select>
+    
+</mapper>

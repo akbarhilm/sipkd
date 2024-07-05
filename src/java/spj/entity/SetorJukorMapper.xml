@@ -1,0 +1,785 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.SetorJukorMapper">
+    
+    <select id="getSetor" parameterType="java.util.Map" resultType="spp.model.Setor">
+        SELECT DISTINCT idSetor,
+        kodeSetor,
+        tglSetor,
+        tahunAngg,
+        kodeJenis,
+        beban,
+        decode(temuan,1,'YA',2,'YA',0,'TIDAK') AS temuan,
+        nilaiSetor,
+        kegiatan
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   tmsetor.I_ID as idSetor,
+        tmsetor.i_setor as kodeSetor,
+        <!--to_char(tmsetor.d_setor,'dd-MM-yyyy') as tglSetor,-->
+        tmsetor.d_setor as tglSetor,
+        tmsetor.C_TAHUN_ANGGARAN as tahunAngg,
+        c_beban as beban,
+        c_jenis as kodeJenis,
+        c_temuan as temuan,  
+        (SELECT   SUM (v_setor)
+        FROM   tmsetorrinci
+        WHERE   tmsetor.I_ID = tmsetorrinci.i_idsetor)
+        AS nilaiSetor,
+        tmdpakegiatan.c_kegiatan||' / '||tmdpakegiatan.n_kegiatan as kegiatan
+        FROM      tmsetor
+        LEFT JOIN
+        tmsetorrinci
+        ON tmsetor.I_ID = tmsetorrinci.i_idsetor
+        LEFT JOIN
+        tmdpakegiatan
+        ON tmsetorrinci.i_idkegiatan = tmdpakegiatan.i_id
+        
+        WHERE tmsetor.C_ANGG_TAHUN = #{tahun}
+        AND tmsetor.I_IDSKPD = #{idskpd}
+        and c_setor_jukor = 1
+        AND NOT EXISTS (SELECT   1
+        FROM   TMSETORCETAK
+        WHERE   tmsetor.I_ID = TMSETORCETAK.i_id)
+        AND tmsetor.C_SETOR = '0'
+        AND tmsetor.c_jenis = '3'
+        <!-- AND tmsetor.c_beban = 'LS' -->
+        )a) xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        order by kodeSetor
+    </select>
+    
+    <select id="getCountSetor" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak from(
+        SELECT   tmsetor.I_ID as idSetor,
+        tmsetor.i_setor as kodeSetor,
+        tmsetor.D_setor as tglSetor,
+        tmsetor.C_TAHUN_ANGGARAN as tahunAngg,
+        c_beban as kodeBeban,
+        c_jenis as kodeJenis,
+        e_setor as dokSetor,
+        (SELECT   SUM (v_setor)
+        FROM   tmsetorrinci
+        WHERE   tmsetor.I_ID = tmsetorrinci.i_idsetor)
+        AS v_setor
+        FROM tmsetor
+        LEFT JOIN
+        tmsetorrinci
+        ON tmsetor.I_ID = tmsetorrinci.i_idsetor
+        WHERE  tmsetor.C_ANGG_TAHUN = #{tahun}
+        AND tmsetor.I_IDSKPD = #{idskpd}
+        and c_setor_jukor = 1
+        AND NOT EXISTS (SELECT   1
+        FROM TMSETORCETAK
+        WHERE tmsetor.I_ID = TMSETORCETAK.i_id)
+        AND tmsetor.C_SETOR = '0'
+        AND tmsetor.c_jenis = '3'
+        )
+    </select>
+    
+    <select id="getKegiatan" parameterType="java.util.Map"  resultType="spp.model.SetorRinci">
+        SELECT   I_ID AS idKegiatan,
+        I_IDSKPD as "skpd.idSkpd",
+        C_KEGIATAN as "kegiatan.kodeKegiatan",
+        N_KEGIATAN AS namaKeg,
+        tmdpakegiatan.V_ANGG_TAPD AS pagu
+        FROM   tmdpakegiatan
+        WHERE   C_ANGG_TAHUN = #{tahun} 
+        AND I_IDSKPD = #{idskpd}
+        AND c_kegiatan = #{kegiatan}
+         
+    </select>
+    
+    <select id="getForAddRinci" parameterType="java.util.Map"  resultType="spp.model.SetorRinci">
+        SELECT   idBl,
+        idKegiatan,
+        idSetorrinci,
+        idAkun,
+        akun,
+        namaAkun,
+        nilaiAnggaran,
+        nilaiSetor
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   
+        TMDPABL.I_ID AS idBl,
+        TMDPABL.I_IDKEGIATAN AS idKegiatan,
+        0 AS idSetorrinci,
+        TMDPABL.I_IDBAS AS idAkun,
+        C_AKUN AS akun,
+        N_AKUN AS namaAkun,
+        V_ANGG_TAPD AS nilaiAnggaran,
+        '0' AS nilaiSetor 
+        FROM         TMDPABL
+        INNER JOIN
+        TRBAS
+        ON TRBAS.I_ID = TMDPABL.I_IDBAS
+        WHERE       TMDPABL.C_ANGG_TAHUN = #{tahun}
+        AND TMDPABL.I_IDSKPD = #{idskpd}
+        AND TMDPABL.I_IDKEGIATAN = #{idkegiatan}
+        )a) xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}   
+
+    </select>
+    
+    <select id="getCountForRinci" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT   
+        TMDPABL.I_ID AS idBl,
+        TMDPABL.I_IDKEGIATAN AS idKegiatan,
+        0 AS idSetorrinci,
+        TMDPABL.I_IDBAS AS idAkun,
+        C_AKUN AS akun,
+        N_AKUN AS namaAkun,
+        V_ANGG_TAPD AS nilaiAnggaran,
+        '0' AS nilaiSetor 
+        FROM         TMDPABL
+        INNER JOIN
+        TRBAS
+        ON TRBAS.I_ID = TMDPABL.I_IDBAS
+        WHERE       TMDPABL.C_ANGG_TAHUN = #{tahun}
+        AND TMDPABL.I_IDSKPD = #{idskpd}
+        AND TMDPABL.I_IDKEGIATAN = #{idkegiatan}
+        )
+        
+    </select>
+    
+    <insert id="insertSetor" parameterType="spp.model.Setor" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="id">  
+        INSERT INTO TMSETOR(
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_SETOR,
+        D_SETOR,
+        C_SETOR,
+        C_TAHUN_ANGGARAN,
+        C_BEBAN,
+        C_JENIS,
+        C_TEMUAN,
+        E_SETOR,
+        C_SETOR_JUKOR,
+        I_JOURNO_DOC,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )
+        VALUES 
+        (
+        (seq_tmsetor.nextval),
+        #{tahun},
+        #{skpd.idSkpd},
+        #{noSetor},
+        #{tglSetor},
+        0,
+        #{tahunAngg},
+        #{beban},
+        #{jenis},
+        #{temuan},
+        #{keterangan},
+        1,
+        #{noJurnal},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    
+    <insert id="insertSetorRinci" parameterType="spp.model.SetorRinci"   >
+        INSERT INTO TMSETORRINCI(
+        I_ID,
+        I_IDSETOR,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        V_SETOR,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )
+        VALUES 
+        (
+        (seq_tmsetorrinci.nextval),
+        #{idsetor},
+        #{idkegiatan},
+        #{idAkun},
+        #{nilaiSetor},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    
+    <select id="getSetorBtl" parameterType="java.util.Map" resultType="spp.model.Setor">
+        SELECT  DISTINCT idSetor,
+        kodeSetor,
+        tglSetor,
+        tahunAngg,
+        kodeJenis,
+        nilaiSetor
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   tmsetor.I_ID as idSetor,
+        tmsetor.i_setor as kodeSetor,
+        tmsetor.D_setor as tglSetor,
+        tmsetor.C_TAHUN_ANGGARAN as tahunAngg,
+        c_beban as kodeBeban,
+        c_jenis as kodeJenis,
+        e_setor as dokSetor,
+        (SELECT   SUM (v_setor)
+        FROM   tmsetorrinci
+        WHERE   tmsetor.I_ID = tmsetorrinci.i_idsetor)
+        AS nilaiSetor
+        FROM tmsetor
+        LEFT JOIN
+        tmsetorrinci
+        ON tmsetor.I_ID = tmsetorrinci.i_idsetor
+        WHERE  tmsetor.C_ANGG_TAHUN = #{tahun}
+        AND tmsetor.I_IDSKPD = #{idskpd}
+        and c_setor_jukor = 1
+        AND NOT EXISTS (SELECT   1
+        FROM TMSETORCETAK
+        WHERE tmsetor.I_ID = TMSETORCETAK.i_id)
+        AND tmsetor.C_SETOR = '0'
+        AND tmsetor.c_beban = 'LS'
+        AND tmsetor.c_jenis = '1'
+        )a) xxxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        order by kodeSetor
+    </select>
+    
+    <select id="getCountSetorBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak from(
+        SELECT   tmsetor.I_ID as idSetor,
+        tmsetor.i_setor as kodeSetor,
+        tmsetor.D_setor as tglSetor,
+        tmsetor.C_TAHUN_ANGGARAN as tahunAngg,
+        c_beban as kodeBeban,
+        c_jenis as kodeJenis,
+        e_setor as dokSetor,
+        (SELECT   SUM (v_setor)
+        FROM   tmsetorrinci
+        WHERE   tmsetor.I_ID = tmsetorrinci.i_idsetor)
+        AS v_setor
+        FROM tmsetor
+        LEFT JOIN
+        tmsetorrinci
+        ON tmsetor.I_ID = tmsetorrinci.i_idsetor
+        WHERE  tmsetor.C_ANGG_TAHUN = #{tahun}
+        AND tmsetor.I_IDSKPD = #{idskpd}
+        and c_setor_jukor = 1
+        AND NOT EXISTS (SELECT   1
+        FROM TMSETORCETAK
+        WHERE tmsetor.I_ID = TMSETORCETAK.i_id)
+        AND tmsetor.C_SETOR = '0'
+        AND tmsetor.c_beban = 'LS'
+        AND tmsetor.c_jenis = '1'
+        )
+    </select>
+    
+    <select id="getForAddRinciBtl" parameterType="java.util.Map"  resultType="spp.model.SetorRinci">
+        SELECT tmdpabtl.i_id AS idBl,
+        tmdpabtl.i_idbas AS idAkun,
+        trbas.c_akun AS akun, 
+        trbas.n_akun AS namaAkun,
+        <!--min(tmdpabtl.v_angg_tapd) AS nilaiAnggaran,-->
+        sum(tmspprincibtl.v_spp)  as nilaiAnggaran ,
+        0 AS nilaiSetor
+        FROM tmdpabtl INNER JOIN trbas
+        ON tmdpabtl.i_idbas = trbas.i_id AND tmdpabtl.i_idskpd = #{idskpd}
+        left join tmspprincibtl on  tmdpabtl.I_ID = tmspprincibtl.I_IDBTL
+        inner join tmsp2d on  tmsp2d.I_IDspp = tmspprincibtl.I_IDspp and c_sp2d_sah ='1'
+        LEFT JOIN tmsetorrinci
+        ON tmdpabtl.i_idbas = tmsetorrinci.i_idbas 
+       
+        WHERE tmdpabtl.c_angg_tahun = #{tahun}
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.1', '5.1.2', '5.1.8')
+        group by tmdpabtl.i_id ,
+        tmdpabtl.i_idbas ,
+        trbas.c_akun , 
+        trbas.n_akun 
+        order by 3
+
+    </select>
+    
+    <select id="getCountForAddRinciBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak from(
+        SELECT tmdpabtl.i_id AS idBl,
+        tmdpabtl.i_idbas AS idAkun,
+        trbas.c_akun AS akun, 
+        trbas.n_akun AS namaAkun,
+        0 as nilaiAnggaran ,
+        min(NVL (tmsetorrinci.v_setor, 0)) AS nilaiSetor
+        FROM tmdpabtl INNER JOIN trbas
+        ON tmdpabtl.i_idbas = trbas.i_id AND tmdpabtl.i_idskpd = #{idskpd}
+        left join tmspprincibtl on  tmdpabtl.I_ID = tmspprincibtl.I_IDBTL
+        inner join tmsp2d on  tmsp2d.I_IDspp = tmspprincibtl.I_IDspp and c_sp2d_sah ='1'
+        LEFT JOIN tmsetorrinci
+        ON tmdpabtl.i_idbas = tmsetorrinci.i_idbas 
+       
+        WHERE tmdpabtl.c_angg_tahun = #{tahun}
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.1', '5.1.2', '5.1.8')
+        group by tmdpabtl.i_id ,
+        tmdpabtl.i_idbas ,
+        trbas.c_akun , 
+        trbas.n_akun 
+        order by 3
+        )
+    </select>
+    
+    <insert id="insertSetorBtl" parameterType="spp.model.Setor" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="id">  
+        INSERT INTO TMSETOR(
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_SETOR,
+        D_SETOR,
+        C_SETOR,
+        C_TAHUN_ANGGARAN,
+        C_BEBAN,
+        C_JENIS,
+        E_SETOR,
+        C_SETOR_JUKOR,
+        I_JOURNO_DOC,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )
+        VALUES 
+        (
+        (seq_tmsetor.nextval),
+        #{tahun},
+        #{skpd.idSkpd},
+        #{noSetor},
+        #{tglSetor},
+        0,
+        #{tahunAngg},
+        #{beban},
+        #{jenis},
+        #{keterangan},
+        1,
+        #{noJurnal},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    
+    <insert id="insertSetorRinciBtl" parameterType="spp.model.SetorRinci"   >
+        INSERT INTO TMSETORRINCI(
+        I_ID,
+        I_IDSETOR,
+        I_IDBAS,
+        V_SETOR,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )
+        VALUES 
+        (
+        (seq_tmsetorrinci.nextval),
+        #{idsetor},
+        #{idAkun},
+        #{nilaiSetor},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    
+    <select id="getEditSetor" parameterType="java.util.Map" resultType="spp.model.SetorRinci">
+        SELECT i_idskpd, idbl,  idkegiatan, sum(idsetor) AS idsetor,
+        sum(idsetorrinci) AS idsetorrinci,idakun AS idakun, c_akun AS akun,
+        n_akun AS namaakun, sum(nilaianggaran) AS nilaianggaran,
+        sum(nilaisetor) AS nilaisetor
+        FROM (
+        SELECT i_idskpd, i_id AS idbl, i_idkegiatan as idkegiatan , 0 AS idsetor,
+        0 AS idsetorrinci, i_idbas as idakun, 
+        v_angg_tapd AS nilaianggaran,
+        0 AS nilaisetor
+        FROM tmdpabl
+        WHERE tmdpabl.c_angg_tahun = #{tahun}
+        and  tmdpabl.i_idskpd = #{idskpd}
+        and tmdpabl.i_idkegiatan = #{idkegiatan}
+        UNION ALL 
+        SELECT tmsetor.I_IDSKPD, tmsetorrinci.i_idbl AS idbl, tmsetorrinci.i_idkegiatan AS idkegiatan, i_idsetor AS idsetor,
+        tmsetorrinci.i_id AS idsetorrinci, i_idbas AS idakun,  0 AS nilaianggaran,
+        v_setor AS nilaisetor
+        FROM tmsetor , tmsetorrinci
+        WHERE tmsetor.I_id = tmsetorrinci.i_idsetor
+        AND tmsetor.c_tahun_anggaran = #{tahun}
+        AND tmsetorrinci.i_idkegiatan = #{idkegiatan}
+        AND tmsetor.i_id= #{idSetor}
+        )   xxx , trbas 
+        WHERE idakun = trbas.i_id 
+        GROUP BY i_idskpd, idbl,  idkegiatan, 
+        idakun , c_akun ,  n_akun 
+    </select>
+     
+    <select id="getCountEditSetor" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT i_idskpd, idbl,  idkegiatan, sum(idsetor) AS idsetor,
+        sum(idsetorrinci) AS idsetorrinci,idakun AS idakun, c_akun AS akun,
+        n_akun AS namaakun, sum(nilaianggaran) AS nilaianggaran,
+        sum(nilaisetor) AS nilaisetor
+        FROM (
+        SELECT i_idskpd, i_id AS idbl, i_idkegiatan as idkegiatan , 0 AS idsetor,
+        0 AS idsetorrinci, i_idbas as idakun, 
+        v_angg_tapd AS nilaianggaran,
+        0 AS nilaisetor
+        FROM tmdpabl
+        WHERE tmdpabl.c_angg_tahun = #{tahun}
+        and  tmdpabl.i_idskpd = #{idskpd}
+        and tmdpabl.i_idkegiatan = #{idkegiatan}
+        UNION ALL 
+        SELECT tmsetor.I_IDSKPD, tmsetorrinci.i_idbl AS idbl, tmsetorrinci.i_idkegiatan AS idkegiatan, i_idsetor AS idsetor,
+        tmsetorrinci.i_id AS idsetorrinci, i_idbas AS idakun,  0 AS nilaianggaran,
+        v_setor AS nilaisetor
+        FROM tmsetor , tmsetorrinci
+        WHERE tmsetor.I_id = tmsetorrinci.i_idsetor
+        AND tmsetor.c_tahun_anggaran = #{tahun}
+        AND tmsetorrinci.i_idkegiatan = #{idkegiatan}
+        AND tmsetor.i_id= #{idSetor}
+        )   xxx , trbas 
+        WHERE idakun = trbas.i_id 
+        GROUP BY i_idskpd, idbl,  idkegiatan, 
+        idakun , c_akun ,  n_akun 
+        )
+    </select>
+    
+    <select id="getSetorById" parameterType="java.lang.Integer"  resultType="spp.model.Setor">
+        SELECT  
+        T.I_ID AS idSetor,
+        T.C_ANGG_TAHUN AS tahun,
+        T.I_SETOR AS NoSetor,
+        T.D_SETOR AS tglSetor,
+        T.C_SETOR AS kodeSetor,
+        T.C_TAHUN_ANGGARAN AS tahunAngg,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        P.N_SKPD AS "skpd.namaSkpd",
+        T.C_JENIS AS jenis,
+        T.C_BEBAN AS beban,
+        T.C_TEMUAN AS temuan,
+        T.E_SETOR AS keterangan,
+        T.I_BKUNO AS noBku,
+        T.I_IDSPD AS idSpd,
+        T.C_SETOR_SA AS kodeSA,
+        T.I_JOURNO_DOC as noJurnal
+        FROM TMSETOR T
+        LEFT JOIN
+        trskpd p
+        ON P.I_ID = T.I_IDSKPD
+        WHERE T.I_ID = #{value}
+        
+    </select>
+    
+    <select id="getKegiatanById" parameterType="java.util.Map"  resultType="spp.model.SetorRinci">
+        SELECT   I_ID AS idKegiatan,
+        I_IDSKPD AS "skpd.idSkpd",
+        C_KEGIATAN AS kodeKeg,
+        N_KEGIATAN AS namaKeg,
+        tmdpakegiatan.V_ANGG_TAPD AS pagu
+        FROM   tmdpakegiatan
+        WHERE   C_ANGG_TAHUN = #{tahun} 
+        and i_id = (select distinct i_idkegiatan
+        from tmsetorrinci
+        where i_idsetor = #{idSetor} )
+    </select>
+    
+    <update id="updateSetor" parameterType="spp.model.Setor"   >
+        UPDATE TMSETOR
+        SET
+        D_SETOR = #{tglSetor},
+        <!-- C_BEBAN = #{beban}, -->
+        C_TEMUAN =  #{temuan},
+        E_SETOR = #{keterangan}
+        WHERE  
+        I_ID = #{idSetor}
+    </update>
+    
+    <delete id="deleteSetorRinci" parameterType="spp.model.SetorRinci"  >
+        DELETE TMSETORRINCI WHERE i_idsetor = #{idsetor}
+    </delete>  
+    
+    <delete id="deleteSetor" parameterType="spp.model.SetorRinci"  >
+        DELETE TMSETOR WHERE i_id = #{idsetor}
+    </delete>  
+    
+    
+    <select id="getSetorByIdBtl" parameterType="java.lang.Integer"  resultType="spp.model.Setor">
+        SELECT  
+        T.I_ID AS idSetor,
+        T.C_ANGG_TAHUN AS tahun,
+        T.I_SETOR AS NoSetor,
+        T.D_SETOR AS tglSetor,
+        T.C_SETOR AS kodeSetor,
+        T.C_TAHUN_ANGGARAN AS tahunAngg,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        P.N_SKPD AS "skpd.namaSkpd",
+        T.C_JENIS AS jenis,
+        T.C_BEBAN AS beban,
+        T.E_SETOR AS keterangan,
+        T.I_BKUNO as noBku,
+        T.I_JOURNO_DOC as noJurnal
+        FROM TMSETOR T
+        LEFT JOIN
+        trskpd p
+        ON P.I_ID = T.I_IDSKPD
+        WHERE T.I_ID = #{value}
+               
+    </select>
+    
+    <select id="getForRinciBtl" parameterType="java.util.Map"  resultType="spp.model.SetorRinci">
+        
+        SELECT tmdpabtl.i_id AS idBl,
+        tmdpabtl.i_idbas AS idAkun,
+        trbas.c_akun AS akun, 
+        trbas.n_akun AS namaAkun,
+        sum(tmspprincibtl.v_spp) as nilaiAnggaran ,
+        NVL (tmsetorrinci.v_setor, 0) AS nilaiSetor
+        FROM tmdpabtl INNER JOIN trbas
+        ON tmdpabtl.i_idbas = trbas.i_id AND tmdpabtl.i_idskpd = #{idskpd}
+        left join tmspprincibtl on  tmdpabtl.I_ID = tmspprincibtl.I_IDBTL
+        inner join tmsp2d on  tmsp2d.I_IDspp = tmspprincibtl.I_IDspp and c_sp2d_sah ='1'
+        LEFT JOIN tmsetorrinci
+        ON tmdpabtl.i_idbas = tmsetorrinci.i_idbas 
+        <if test="idSetor != null and idSetor != '' and idSetor != '-' ">
+            AND i_idsetor = #{idSetor}
+        </if>
+        
+        WHERE tmdpabtl.c_angg_tahun = #{tahun}
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.1', '5.1.2', '5.1.8')
+        group by tmdpabtl.i_id ,
+        tmsetorrinci.v_setor,
+        tmdpabtl.i_idbas ,
+        trbas.c_akun , 
+        trbas.n_akun 
+        order by 3
+       
+    </select>
+    
+    <select id="getCountForRinciBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak from(
+        SELECT tmdpabtl.i_id AS idBl,
+        tmdpabtl.i_idbas AS idAkun,
+        trbas.c_akun AS akun, 
+        trbas.n_akun AS namaAkun,
+        <!--min(tmdpabtl.v_angg_tapd) AS nilaiAnggaran,-->
+        sum(tmspprincibtl.v_spp) as nilaiAnggaran ,
+        min(NVL (tmsetorrinci.v_setor, 0)) AS nilaiSetor
+        FROM tmdpabtl INNER JOIN trbas
+        ON tmdpabtl.i_idbas = trbas.i_id AND tmdpabtl.i_idskpd = #{idskpd}
+        left join tmspprincibtl on  tmdpabtl.I_ID = tmspprincibtl.I_IDBTL
+        inner join tmsp2d on  tmsp2d.I_IDspp = tmspprincibtl.I_IDspp and c_sp2d_sah ='1'
+        LEFT JOIN tmsetorrinci
+        ON tmdpabtl.i_idbas = tmsetorrinci.i_idbas 
+        <if test="idSetor != null and idSetor != '' and idSetor != '-' ">
+            AND i_idsetor = #{idSetor}
+        </if> 
+        
+        WHERE tmdpabtl.c_angg_tahun = #{tahun}
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.1', '5.1.2', '5.1.8')
+        group by tmdpabtl.i_id ,
+        tmdpabtl.i_idbas ,
+        trbas.c_akun , 
+        trbas.n_akun 
+        order by 3
+        )
+    </select>
+    
+    <update id="updateSetorBtl" parameterType="spp.model.Setor"   >
+        UPDATE TMSETOR
+        SET
+        D_SETOR = #{tglSetor},
+        E_SETOR = #{keterangan}
+        WHERE  
+        I_ID = #{idSetor}
+    </update>
+    
+    <select id="getIdskpdLama" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select I_IDSKPD_LAMA as idskpd from trskpdmapping2018
+        where I_IDSKPD_BARU = #{idskpd}
+    </select>
+    
+    <select id="getListKegJukorBlLs" parameterType="java.util.Map"  resultType="spp.model.Setor">
+        
+        SELECT tglSetor, noJurnal, idKegiatan, kegiatan, namakegiatan, nilaiSetor
+        FROM   (SELECT   ROWNUM AS rn, a.* FROM   ( 
+        select to_date(d_posting,'yyyymmdd') as tglSetor, I_JOURNO_DOC as noJurnal, 
+        i_idkegiatan as idKegiatan, c_kegiatan as kegiatan, n_kegiatan as namakegiatan, 
+        (v_kredit - v_debet) as nilaiSetor
+        from tmjourumumskpd, tmdpakegiatan
+        where tmjourumumskpd.i_idkegiatan = tmdpakegiatan.i_id
+        and tmjourumumskpd.c_angg_tahun = tmdpakegiatan.c_angg_tahun
+        and tmjourumumskpd.i_idskpd = tmdpakegiatan.i_idskpd
+        and tmjourumumskpd.c_angg_tahun = #{tahun} 
+        and tmjourumumskpd.i_idskpd = #{idskpd}
+        and c_akun like '5%'
+        and c_jenis = 3
+        and c_beban = #{beban}
+        and not exists (
+        select 1 from tmsetor where C_TAHUN_ANGGARAN = #{tahun}
+        and I_JOURNO_DOC = tmjourumumskpd.I_JOURNO_DOC
+        <if test="tahun != '2017' ">
+            and i_idskpd = #{idskpd}
+        </if>
+        
+        <if test="tahun == '2017' ">
+            and i_idskpd = #{idskpdbaru}
+        </if>
+        
+        and c_jenis = 3
+        and c_beban = #{beban}
+        and i_setor != #{nosetor})
+        <if test="nojurnal != null and nojurnal != '' ">
+            and I_JOURNO_DOC like '%'||#{nojurnal}||'%'
+        </if>              
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakKegJukorBlLs" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak from(
+        select to_date(d_posting,'yyyymmdd') as tglSetor, I_JOURNO_DOC as noJurnal, 
+        i_idkegiatan as idKegiatan, c_kegiatan as kegiatan, n_kegiatan as namakegiatan, 
+        (v_kredit - v_debet) as nilaiSetor
+        from tmjourumumskpd, tmdpakegiatan
+        where tmjourumumskpd.i_idkegiatan = tmdpakegiatan.i_id
+        and tmjourumumskpd.c_angg_tahun = tmdpakegiatan.c_angg_tahun
+        and tmjourumumskpd.i_idskpd = tmdpakegiatan.i_idskpd
+        and tmjourumumskpd.c_angg_tahun = #{tahun} 
+        and tmjourumumskpd.i_idskpd = #{idskpd}
+        and c_akun like '5%'
+        and c_jenis = 3
+        and c_beban = #{beban}
+        and not exists (
+        select 1 from tmsetor where C_TAHUN_ANGGARAN = #{tahun}
+        and I_JOURNO_DOC = tmjourumumskpd.I_JOURNO_DOC
+        <if test="tahun != '2017' ">
+            and i_idskpd = #{idskpd}
+        </if>
+        
+        <if test="tahun == '2017' ">
+            and i_idskpd = #{idskpdbaru}
+        </if>
+        
+        and c_jenis = 3
+        and c_beban = #{beban}
+        and i_setor != #{nosetor}) 
+        <if test="nojurnal != null and nojurnal != '' ">
+            and I_JOURNO_DOC like '%'||#{nojurnal}||'%'
+        </if> 
+        )
+    </select>
+        
+    <select id="getListAkunJukorBlLs" parameterType="java.util.Map"  resultType="spp.model.SetorRinci">
+        
+        SELECT idAkun, akun, namaAkun, nilaiSetor, idKegiatan
+        FROM   (SELECT   ROWNUM AS rn, a.* FROM   ( 
+        select i_idbas as idAkun, tmjourumumskpd.c_akun as akun, 
+        n_akun as namaAkun, (v_kredit - v_debet) as nilaiSetor, i_idkegiatan as idKegiatan
+        from tmjourumumskpd, trbas
+        where tmjourumumskpd.i_idbas =  trbas.i_id
+        and c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd}
+        and tmjourumumskpd.c_akun like '5%'
+        and i_journo_doc = #{nojurnal}
+        and i_idkegiatan = #{idkegiatan}         
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakAkunJukorBlLs" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak from(
+        select i_idbas as idAkun, tmjourumumskpd.c_akun as akun, 
+        n_akun as namaAkun, (v_kredit - v_debet) as nilaiSetor, i_idkegiatan as idKegiatan
+        from tmjourumumskpd, trbas
+        where tmjourumumskpd.i_idbas =  trbas.i_id
+        and c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd}
+        and tmjourumumskpd.c_akun like '5%'
+        and i_journo_doc = #{nojurnal}
+        and i_idkegiatan = #{idkegiatan} 
+        )
+    </select>
+    
+    <select id="getListJukorBtl" parameterType="java.util.Map"  resultType="spp.model.Setor">
+        
+        SELECT tglSetor, noJurnal, nilaiSetor
+        FROM   (SELECT   ROWNUM AS rn, a.* FROM   ( 
+        select to_date(d_posting,'yyyymmdd') as tglSetor, I_JOURNO_DOC as noJurnal, 
+        (v_kredit - v_debet) as nilaiSetor
+        from tmjourumumskpd
+        where c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd}
+        and c_akun like '5%'
+        and c_jenis = 1
+        and c_beban = 'LS'
+        and not exists (
+        select 1 from tmsetor where C_TAHUN_ANGGARAN = #{tahun}
+        and I_JOURNO_DOC = tmjourumumskpd.I_JOURNO_DOC
+        <if test="tahun != '2017' ">
+            and i_idskpd = #{idskpd}
+        </if>
+        
+        <if test="tahun == '2017' ">
+            and i_idskpd = #{idskpdbaru}
+        </if>
+        
+        and c_jenis = 1
+        and c_beban = 'LS'
+        and i_setor != #{nosetor})
+        <if test="nojurnal != null and nojurnal != '' ">
+            and I_JOURNO_DOC like '%'||#{nojurnal}||'%'
+        </if>              
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakJukorBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak from(
+        select to_date(d_posting,'yyyymmdd') as tglSetor, I_JOURNO_DOC as noJurnal, 
+        (v_kredit - v_debet) as nilaiSetor
+        from tmjourumumskpd
+        where c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd}
+        and c_akun like '5%'
+        and c_jenis = 1
+        and c_beban = 'LS'
+        and not exists (
+        select 1 from tmsetor where C_TAHUN_ANGGARAN = #{tahun}
+        and I_JOURNO_DOC = tmjourumumskpd.I_JOURNO_DOC
+        <if test="tahun != '2017' ">
+            and i_idskpd = #{idskpd}
+        </if>
+        
+        <if test="tahun == '2017' ">
+            and i_idskpd = #{idskpdbaru}
+        </if>
+        
+        and c_jenis = 1
+        and c_beban = 'LS'
+        and i_setor != #{nosetor})
+        <if test="nojurnal != null and nojurnal != '' ">
+            and I_JOURNO_DOC like '%'||#{nojurnal}||'%'
+        </if> 
+        )
+    </select>
+    
+    <select id="getListAkunJukorBtl" parameterType="java.util.Map"  resultType="spp.model.SetorRinci">
+        
+        SELECT idAkun, akun, namaAkun, nilaiSetor
+        FROM   (SELECT   ROWNUM AS rn, a.* FROM   ( 
+        select i_idbas as idAkun, tmjourumumskpd.c_akun as akun, 
+        n_akun as namaAkun, (v_kredit - v_debet) as nilaiSetor
+        from tmjourumumskpd, trbas
+        where tmjourumumskpd.i_idbas =  trbas.i_id
+        and c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd}
+        and tmjourumumskpd.c_akun like '5%'
+        and i_journo_doc = #{nojurnal}         
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakAkunJukorBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT count(*) as banyak from(
+        select i_idbas as idAkun, tmjourumumskpd.c_akun as akun, 
+        n_akun as namaAkun, (v_kredit - v_debet) as nilaiSetor
+        from tmjourumumskpd, trbas
+        where tmjourumumskpd.i_idbas =  trbas.i_id
+        and c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd}
+        and tmjourumumskpd.c_akun like '5%'
+        and i_journo_doc = #{nojurnal} 
+        )
+    </select>
+</mapper>

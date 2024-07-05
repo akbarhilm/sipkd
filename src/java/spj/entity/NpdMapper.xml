@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.NpdMapper">
+    <select id="getNpd" parameterType="java.util.Map"  resultType="spp.model.Npd">
+        SELECT   I_ID AS idNpd,
+        C_ANGG_TAHUN AS tahunAnggaran,
+        I_IDSKPD AS "skpd.idSkpd",
+        I_NPDNO AS noNpd,
+        D_NPDNO AS tanggalNpd,
+        I_PPTK_NIP AS nipPptk,
+        N_PPTK AS namaPptk,
+        I_IDKEGIATAN AS "kegiatan.idKegiatan",
+        namaKegiatan AS "kegiatan.namaKegiatan",
+        TOTAL_NPD as nilaiNpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT 
+        TMNPD.I_ID, TMNPD.C_ANGG_TAHUN, TMNPD.I_IDSKPD, 
+        I_NPDNO, D_NPDNO,I_PPTK_NIP, N_PPTK, 
+        I_IDKEGIATAN,C_KEGIATAN || ' / ' || N_KEGIATAN as namaKegiatan, SUM(V_NPD) TOTAL_NPD 
+        FROM TMNPD LEFT JOIN  TMNPDRINCI ON TMNPD.I_ID = TMNPDRINCI.I_IDNPD
+        INNER JOIN   TMDPAKEGIATAN ON TMDPAKEGIATAN.I_ID = TMNPD.I_IDKEGIATAN
+        WHERE TMNPD.C_ANGG_TAHUN = #{tahun}
+        AND TMNPD.I_IDSKPD = #{idskpd}
+        GROUP BY TMNPD.I_ID, TMNPD.C_ANGG_TAHUN, TMNPD.I_IDSKPD, 
+        I_NPDNO, D_NPDNO,I_PPTK_NIP, N_PPTK, 
+        I_IDKEGIATAN,C_KEGIATAN || ' / ' || N_KEGIATAN
+        )a)xxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getCountNpd" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT 
+        TMNPD.I_ID, TMNPD.C_ANGG_TAHUN, TMNPD.I_IDSKPD, 
+        I_NPDNO, D_NPDNO,I_PPTK_NIP, N_PPTK, 
+        I_IDKEGIATAN,C_KEGIATAN || ' / ' || N_KEGIATAN, SUM(V_NPD) TOTAL_NPD 
+        FROM TMNPD LEFT JOIN  TMNPDRINCI ON TMNPD.I_ID = TMNPDRINCI.I_IDNPD
+        INNER JOIN   TMDPAKEGIATAN ON TMDPAKEGIATAN.I_ID = TMNPD.I_IDKEGIATAN
+        WHERE TMNPD.C_ANGG_TAHUN = #{tahun}
+        AND TMNPD.I_IDSKPD = #{idskpd}
+        GROUP BY TMNPD.I_ID, TMNPD.C_ANGG_TAHUN, TMNPD.I_IDSKPD, 
+        I_NPDNO, D_NPDNO,I_PPTK_NIP, N_PPTK, 
+        I_IDKEGIATAN,C_KEGIATAN || ' / ' || N_KEGIATAN
+        )
+
+    </select>
+    
+    <select id="getKegiatanNpd" parameterType="java.util.Map"  resultType="spp.model.Npd">
+        SELECT program as "program.namaProgram",
+        idKegiatan as "kegiatan.idKegiatan",
+        kegiatan as "kegiatan.namaKegiatan",
+        anggaranTapd as nilaiAnggaranTapd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  
+        SELECT 
+        TRPROGRAM.C_PROGRAM || '/' || TRPROGRAM.N_PROGRAM as program, TMDPAKEGIATAN.I_ID as idKegiatan, C_KEGIATAN || ' / ' || N_KEGIATAN as kegiatan, TMDPAKEGIATAN.V_ANGG_TAPD anggaranTapd
+        FROM TMDPAKEGIATAN, TRPROGRAM
+        WHERE TMDPAKEGIATAN.C_ANGG_TAHUN = #{tahun}
+        AND TMDPAKEGIATAN.I_IDSKPD = #{idskpd}
+        <if test="program != null and program != '' ">
+            AND  upper(TRPROGRAM.N_PROGRAM) like '%'||upper(#{program})||'%'
+        </if>
+        <if test="kegiatan != null and kegiatan != '' ">
+            AND  upper(TMDPAKEGIATAN.N_KEGIATAN) like '%'||upper(#{kegiatan})||'%'
+        </if>
+        AND TRPROGRAM.C_PROGRAM = SUBSTR(TMDPAKEGIATAN.C_KEGIATAN,1,7)
+        )a)xxx
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getCountKegiatanNpd" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT 
+        TRPROGRAM.C_PROGRAM || '/' || TRPROGRAM.N_PROGRAM as program, TMDPAKEGIATAN.I_ID as idKegiatan, C_KEGIATAN || ' / ' || N_KEGIATAN as kegiatan, TMDPAKEGIATAN.V_ANGG_TAPD anggaranTapd
+        FROM TMDPAKEGIATAN, TRPROGRAM
+        WHERE TMDPAKEGIATAN.C_ANGG_TAHUN = #{tahun}
+        AND TMDPAKEGIATAN.I_IDSKPD = #{idskpd}
+        <if test="program != null and program != '' ">
+            AND  upper(TRPROGRAM.N_PROGRAM) like '%'||upper(#{program})||'%'
+        </if>
+        <if test="kegiatan != null and kegiatan != '' ">
+            AND  upper(TMDPAKEGIATAN.N_KEGIATAN) like '%'||upper(#{kegiatan})||'%'
+        </if>
+        AND TRPROGRAM.C_PROGRAM = SUBSTR(TMDPAKEGIATAN.C_KEGIATAN,1,7)
+        )
+    </select>
+    <select id="getNpdRinci" parameterType="java.util.Map"  resultType="spp.model.NpdRinci">
+        
+        SELECT I_IDSKPD as "skpd.idskpd",
+        I_IDKEGIATAN as "kegiatan.idKegiatan",
+        I_IDBAS as "akun.idAkun",  
+        C_AKUN as "akun.kodeAkun",
+        N_AKUN as "akun.namaAkun", 
+        DPA as nilaiAnggaranTapd, 
+        SPD as nilaiSpd, 
+        SP2D_LS as nilaiSpdLs,  
+        NPD_SEBELUM as nilaiNpdSebelum, 
+        SISA as sisaNpd,   
+        NPD as nilaiNpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( 
+        SELECT I_IDSKPD,I_IDKEGIATAN,
+        I_IDBAS, C_AKUN, N_AKUN, SUM(DPA) AS DPA, SUM(SPD) AS SPD,  SUM (SP2D_LS) AS SP2D_LS,  
+        SUM(NPD_SEBELUM)  AS NPD_SEBELUM ,  SUM(SPD-SP2D_LS-NPD_SEBELUM) SISA,  SUM(NPD) NPD
+        FROM (    
+        <!-- pagu dpa -->
+        SELECT TMDPAKEGIATAN.I_IDSKPD AS I_IDSKPD ,TMDPAKEGIATAN.I_ID AS I_IDKEGIATAN,
+        TMDPABL.I_IDBAS,  TMDPABL.V_ANGG_TAPD DPA, 0 SPD, 0 SP2D_LS,  0 NPD_SEBELUM , 0 SISA , 0 NPD
+        FROM TMDPAKEGIATAN, tmdpabl
+        WHERE TMDPAKEGIATAN.I_ID = tmdpabl.I_IDKEGIATAN
+        AND TMDPAKEGIATAN.C_ANGG_TAHUN = #{tahun}
+        AND TMDPAKEGIATAN.I_IDSKPD = #{idskpd} 
+        AND TMDPAKEGIATAN.I_ID = #{idkegiatan} 
+        UNION ALL
+        <!-- pagu spd --> 
+        SELECT  TMSPD.I_IDSKPD AS I_IDSKPD, TMSPDRINCIBL.I_IDKEGIATAN , TMSPDRINCIBL.I_IDBAS,  0 DPA, TMSPDRINCIBL.V_SPD SPD, 0 SP2D_LS,  0 NPD_SEBELUM , 0 SISA , 0 NPD
+        FROM TMSPD, TMSPDRINCIBL , TMSPDSAH
+        WHERE TMSPD.I_ID = TMSPDSAH.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBL.I_IDSPD
+        AND TMSPD.C_ANGG_TAHUN =#{tahun} 
+        AND TMSPD.I_IDSKPD = #{idskpd}
+        AND TMSPDRINCIBL.I_IDKEGIATAN = #{idkegiatan}
+        UNION ALL
+        <!-- pagu sp2d-LS --> 
+        SELECT  TMSPP.I_IDSKPD,TMSPPRINCIBL.I_IDKEGIATAN , TMSPPRINCIBL.I_IDBAS,  0 DPA, 0 SPD, V_SPP SP2D_LS,  0 NPD_SEBELUM , 0 SISA , 0 NPD
+        FROM TMSPP, TMSPPRINCIBL , TMSP2D
+        WHERE TMSPP.I_ID = TMSP2d.I_IDSPP
+        AND TMSPP.C_BEBAN='LS'
+        AND TMSPP.C_ANGG_TAHUN = #{tahun} 
+        AND TMSPP.I_IDSKPD = #{idskpd}
+        AND TMSPPRINCIBL.I_IDKEGIATAN =#{idkegiatan}
+        UNION ALL
+        <!-- pagu npd  yang lalu --> 
+        SELECT  TMNPD.I_IDSKPD , TMNPD.I_IDKEGIATAN , TMNPDRINCI.I_IDBAS,  0 DPA, 0 SPD, 0 SP2D_LS,  V_NPD NPD_SEBELUM , 0 SISA , 0 NPD
+        FROM TMNPD, TMNPDRINCI 
+        WHERE TMNPD.I_ID = TMNPDRINCI.I_IDNPD
+        AND TMNPD.C_ANGG_TAHUN =#{tahun} 
+        AND TMNPD.I_IDSKPD = #{idskpd}
+        AND TMNPD.I_IDKEGIATAN =#{idkegiatan} 
+        AND TMNPD.I_ID &lt; &gt; #{idnpd}
+        UNION ALL
+        <!-- pagu npd  yang saat ini --> 
+        SELECT  TMNPD.I_IDSKPD, TMNPD.I_IDKEGIATAN , TMNPDRINCI.I_IDBAS,  0 DPA, 0 SPD, 0 SP2D_LS,  0 NPD_SEBELUM , 0 SISA , V_NPD NPD
+        FROM TMNPD, TMNPDRINCI 
+        WHERE TMNPD.I_ID = TMNPDRINCI.I_IDNPD
+        AND TMNPD.C_ANGG_TAHUN =#{tahun} 
+        AND TMNPD.I_IDSKPD = #{idskpd} 
+        AND TMNPD.I_IDKEGIATAN =#{idkegiatan} 
+        AND TMNPD.I_ID = #{idnpd}
+        ) XXXX, TRBAS 
+        WHERE I_IDBAS = TRBAS.I_ID
+        GROUP BY I_IDSKPD ,I_IDKEGIATAN, I_IDBAS, C_AKUN, N_AKUN
+        ) a) xxxx
+        WHERE   ROWNUM &lt; = #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getCountNpdRinci" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT I_IDSKPD,I_IDKEGIATAN,
+        I_IDBAS, C_AKUN, N_AKUN, SUM(DPA) AS DPA, SUM(SPD) AS SPD,  SUM (SP2D_LS) AS SP2D_LS,  
+        SUM(NPD_SEBELUM)  AS NPD_SEBELUM ,  SUM(SPD-SP2D_LS-NPD_SEBELUM) SISA,  SUM(NPD) NPD
+        FROM (    
+        <!-- pagu dpa -->
+        SELECT TMDPAKEGIATAN.I_IDSKPD AS I_IDSKPD ,TMDPAKEGIATAN.I_ID AS I_IDKEGIATAN,
+        TMDPABL.I_IDBAS,  TMDPABL.V_ANGG_TAPD DPA, 0 SPD, 0 SP2D_LS,  0 NPD_SEBELUM , 0 SISA , 0 NPD
+        FROM TMDPAKEGIATAN, tmdpabl
+        WHERE TMDPAKEGIATAN.I_ID = tmdpabl.I_IDKEGIATAN
+        AND TMDPAKEGIATAN.C_ANGG_TAHUN = #{tahun}
+        AND TMDPAKEGIATAN.I_IDSKPD = #{idskpd} 
+        AND TMDPAKEGIATAN.I_ID = #{idkegiatan} 
+        UNION ALL
+        <!-- pagu spd --> 
+        SELECT  TMSPD.I_IDSKPD AS I_IDSKPD, TMSPDRINCIBL.I_IDKEGIATAN , TMSPDRINCIBL.I_IDBAS,  0 DPA, TMSPDRINCIBL.V_SPD SPD, 0 SP2D_LS,  0 NPD_SEBELUM , 0 SISA , 0 NPD
+        FROM TMSPD, TMSPDRINCIBL , TMSPDSAH
+        WHERE TMSPD.I_ID = TMSPDSAH.I_ID
+        AND TMSPD.I_ID = TMSPDRINCIBL.I_IDSPD
+        AND TMSPD.C_ANGG_TAHUN =#{tahun} 
+        AND TMSPD.I_IDSKPD = #{idskpd}
+        AND TMSPDRINCIBL.I_IDKEGIATAN = #{idkegiatan}
+        UNION ALL
+        <!-- pagu sp2d-LS --> 
+        SELECT  TMSPP.I_IDSKPD,TMSPPRINCIBL.I_IDKEGIATAN , TMSPPRINCIBL.I_IDBAS,  0 DPA, 0 SPD, V_SPP SP2D_LS,  0 NPD_SEBELUM , 0 SISA , 0 NPD
+        FROM TMSPP, TMSPPRINCIBL , TMSP2D
+        WHERE TMSPP.I_ID = TMSP2d.I_IDSPP
+        AND TMSPP.C_BEBAN='LS'
+        AND TMSPP.C_ANGG_TAHUN = #{tahun} 
+        AND TMSPP.I_IDSKPD = #{idskpd}
+        AND TMSPPRINCIBL.I_IDKEGIATAN =#{idkegiatan}
+        UNION ALL
+        <!-- pagu npd  yang lalu --> 
+        SELECT  TMNPD.I_IDSKPD , TMNPD.I_IDKEGIATAN , TMNPDRINCI.I_IDBAS,  0 DPA, 0 SPD, 0 SP2D_LS,  V_NPD NPD_SEBELUM , 0 SISA , 0 NPD
+        FROM TMNPD, TMNPDRINCI 
+        WHERE TMNPD.I_ID = TMNPDRINCI.I_IDNPD
+        AND TMNPD.C_ANGG_TAHUN =#{tahun} 
+        AND TMNPD.I_IDSKPD = #{idskpd}
+        AND TMNPD.I_IDKEGIATAN =#{idkegiatan} 
+        AND TMNPD.I_ID &lt; &gt; #{idnpd}
+        UNION ALL
+        <!-- pagu npd  yang saat ini --> 
+        SELECT  TMNPD.I_IDSKPD, TMNPD.I_IDKEGIATAN , TMNPDRINCI.I_IDBAS,  0 DPA, 0 SPD, 0 SP2D_LS,  0 NPD_SEBELUM , 0 SISA , V_NPD NPD
+        FROM TMNPD, TMNPDRINCI 
+        WHERE TMNPD.I_ID = TMNPDRINCI.I_IDNPD
+        AND TMNPD.C_ANGG_TAHUN =#{tahun} 
+        AND TMNPD.I_IDSKPD = #{idskpd} 
+        AND TMNPD.I_IDKEGIATAN =#{idkegiatan} 
+        AND TMNPD.I_ID = #{idnpd}
+        ) XXXX, TRBAS 
+        WHERE I_IDBAS = TRBAS.I_ID
+        GROUP BY I_IDSKPD ,I_IDKEGIATAN, I_IDBAS, C_AKUN, N_AKUN
+        )
+    </select>
+    <insert id="insertNpd" parameterType="spp.model.Npd" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="idNpd" >         
+        INSERT INTO SIPKD.TMNPD (
+        I_ID, 
+        C_ANGG_TAHUN, 
+        I_IDSKPD, 
+        I_NPDNO, 
+        D_NPDNO, 
+        N_PPTK, 
+        I_PPTK_NIP, 
+        I_IDKEGIATAN, 
+        E_NPD, 
+        I_PGUN_REKAM, 
+        D_PGUN_REKAM) 
+        VALUES (
+        SEQ_TMNPD.NEXTVAL,
+        #{tahun},
+        #{skpd.idSkpd},
+        #{noNpd},
+        #{tanggalNpd},
+        #{namaPptk},
+        #{nipPptk},
+        #{kegiatan.idKegiatan},
+        #{ketNpd},
+        #{idEntry},
+        #{tglEntry}
+        )
+    </insert>
+    <update id="updateNpd" parameterType="spp.model.Npd" >         
+        UPDATE  TMNPD
+        SET
+        N_PPTK = #{namaPptk}, 
+        I_PPTK_NIP = #{nipPptk}, 
+        I_IDKEGIATAN = #{kegiatan.idKegiatan}, 
+        E_NPD = #{ketNpd}, 
+        D_NPDNO =  #{tanggalNpd}
+        WHERE  I_ID   = #{idNpd}
+    </update>
+    <insert id="insertNpdRinci" parameterType="spp.model.Npd">         
+        INSERT INTO SIPKD.TMNPDRINCI (
+        I_ID, 
+        I_IDNPD, 
+        I_IDBAS, 
+        V_NPD, 
+        I_PGUN_REKAM, 
+        D_PGUN_REKAM) 
+        VALUES ( 
+        SEQ_TMNPDRINCI.NEXTVAL,
+        #{idNpd},
+        #{akun.idAkun},
+        #{nilaiNpd},
+        #{idEntry},
+        #{tglEntry}
+        )
+    </insert>
+    <select id="getNpdById" parameterType="java.lang.Integer" resultType="spp.model.Npd">
+        SELECT 
+        T.I_ID as idNpd, 
+        T.C_ANGG_TAHUN as tahun, 
+        T.I_IDSKPD as "skpd.idSkpd", 
+        T.I_NPDNO as noNpd, 
+        T.D_NPDNO as tanggalNpd, 
+        T.N_PPTK as namaPptk, 
+        T.I_PPTK_NIP as nipPptk, 
+        T.I_IDKEGIATAN as "kegiatan.idKegiatan",
+        TMDPAKEGIATAN.N_KEGIATAN as "kegiatan.namaKegiatan",
+        TRPROGRAM.N_PROGRAM as "program.namaProgram",
+        T.E_NPD as ketNpd
+        FROM SIPKD.TMNPD T, TMDPAKEGIATAN, TRPROGRAM
+        WHERE T.I_ID = #{idnpd}
+        AND TMDPAKEGIATAN.I_ID = T.I_IDKEGIATAN
+        AND TRPROGRAM.I_ID = TMDPAKEGIATAN.I_IDPROGRAM
+         
+    </select>
+    <delete id="deleteNpdRinci" parameterType="java.lang.Integer" >
+        delete TMNPDRINCI where I_IDNPD = #{value}
+    </delete>
+    <delete id="deleteNpdRinciIfNol" parameterType="java.lang.Integer" >
+        delete TMNPDRINCI where V_NPD = 0
+    </delete>
+    <delete id="deleteNpd" parameterType="java.lang.Integer" >
+        delete TMNPD where I_ID = #{value}
+    </delete>
+  
+</mapper>

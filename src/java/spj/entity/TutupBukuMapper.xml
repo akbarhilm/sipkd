@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.TutupBukuMapper">
+
+
+    <select id="getBendahara" parameterType="java.util.Map"  resultType="spp.model.TutupBuku">
+        select i_nip_pa as nipPA, i_nrk_pa as nrkPA, n_pa as namaPA, i_nip_pkblj as nipBendahara,
+        i_nrk_pkblj as nrkBendahara, n_pkblj as namaBendahara
+        from tmdpa where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+    </select>
+
+    <select id="getBendaharaPpkd" parameterType="java.util.Map"  resultType="spp.model.TutupBuku">
+        select I_NIP_KBUD as nipPA, I_NRK_KBUD as nrkPA, N_KBUD as namaPA, '-' as nipBendahara,
+        '-' as nrkBendahara, '-' as namaBendahara
+        from trdoksp2dtt where C_WIL_SP2DPROSES = #{kodewil}
+    </select>
+
+    <select id="getBulanTutup" parameterType="java.util.Map"  resultType="spp.model.TutupBuku">
+        select distinct C_BLN_TUTUP as bulanPenutupan, C_BLN_TUTUP ||' - '||bulan (C_BLN_TUTUP) as namaBulan from (
+
+        select trim(to_char(nvl(max(C_BLN_TUTUP),'0') + 1,'00')) as C_BLN_TUTUP  from TMSKPDBKUREKAP
+        where  c_angg_tahun = #{tahun}
+        and i_idskpd =  #{idskpd}
+        having  max(C_BLN_TUTUP) is null
+
+        union all
+        select trim(to_char(max(c_bln_tutup),'00')) as bulan from TMSKPDBKUREKAP
+        where  c_angg_tahun = #{tahun}
+        and i_idskpd =  #{idskpd}
+        having  max(C_BLN_TUTUP) is not null
+
+        union all
+        select trim(to_char(max(to_number(c_bln_tutup))+1,'00')) as bulan from TMSKPDBKUREKAP
+        where  c_angg_tahun = #{tahun}
+        and i_idskpd =  #{idskpd}
+        having  max(C_BLN_TUTUP) is not null
+
+        union all <!-- UNTUK BULAN YANG NYISIP / TELAT SETOR -->
+        select trim(to_char( min(substr(d_posting , 5,2)),'00'))  from TMBKUSKPDPENGELUARAN
+        where  c_angg_tahun = #{tahun}
+        and i_idskpd =  #{idskpd}
+        and C_STATUS ='0'
+
+        ) order by 1
+
+    </select>
+
+    <select id="getNilaiKas" parameterType="java.util.Map"  resultType="spp.model.TutupBuku">
+        select sum(kasTerimaLalu) as kasTerimaLalu, sum(kasKeluarLalu) as kasKeluarLalu, sum(kasTerima) as kasTerima, sum(kasKeluar) as kasKeluar, sum(kasSaatIni) as kasSaatIni from (
+
+        <if test="bulan == '01'">
+            select 0 as kasTerimaLalu , 0 as kasKeluarLalu, nvl(SUM(V_SALDOAWAL_DEBET - V_SALDOAWAL_KREDIT),0) as kasTerima, 0 as kasKeluar, nvl(SUM(V_SALDOAWAL_DEBET - V_SALDOAWAL_KREDIT),0) as kasSaatIni
+            FROM TMJOURSALDOAWAL
+            WHERE C_ANGG_TAHUN = #{tahun}
+            AND I_IDSKPD = #{idskpd}
+            <!-- AND I_IDBAS IN (SELECT I_ID FROM TRBAS WHERE I_IDINDUK IN (37,38,39,40)) diganti oleh zainab 30 nov 17 menyesuaikan akun baru-->
+            AND I_IDBAS IN (SELECT I_ID FROM TRBAS WHERE c_akun between '1.1.01.03' and '1.1.01.03.99' and c_detail = 1)
+            union all
+        </if>
+
+        <if test="bulan != '01'">
+            select nvl(SUM(V_SALDOAWAL_DEBET - V_SALDOAWAL_KREDIT),0) as kasTerimaLalu , 0 as kasKeluarLalu, 0 as kasTerima, 0 as kasKeluar, nvl(SUM(V_SALDOAWAL_DEBET - V_SALDOAWAL_KREDIT),0) as kasSaatIni
+            FROM TMJOURSALDOAWAL
+            WHERE C_ANGG_TAHUN = #{tahun}
+            AND I_IDSKPD = #{idskpd}
+            <!-- AND I_IDBAS IN (SELECT I_ID FROM TRBAS WHERE I_IDINDUK IN (37,38,39,40)) -->
+            AND I_IDBAS IN (SELECT I_ID FROM TRBAS WHERE c_akun between '1.1.01.03' and '1.1.01.03.99' and c_detail = 1)
+            union all
+        </if>
+
+        select 0 as kasTerimaLalu , 0 as kasKeluarLalu, 0 as kasTerima, 0 as kasKeluar, nvl((sum(v_kas_terima) - sum(v_kas_keluar)),0) as kasSaatIni
+        from TMBKUSKPDPENGELUARAN
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and c_trx not in ('NP','NM')
+        and SUBSTR (d_posting, 5, 2) &lt;= #{bulan}
+        <if test="idskpd=='761' or idskpd=='1234'">
+            and C_WIL_SP2DPROSES = #{kodeWilProses}
+        </if>
+
+        union all
+        select 0 as kasTerimaLalu , 0 as kasKeluarLalu, nvl(sum(v_kas_terima),0) as kasTerima, nvl(sum(v_kas_keluar),0) as kasKeluar, 0 as kasSaatIni
+        from TMBKUSKPDPENGELUARAN
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and c_trx not in ('NP','NM')
+        and SUBSTR (d_posting, 5, 2) = #{bulan}
+        <if test="idskpd=='761' or idskpd=='1234'">
+            and C_WIL_SP2DPROSES = #{kodeWilProses}
+        </if>
+
+        union all
+        select nvl(sum(v_kas_terima),0) as kasTerimaLalu , nvl(sum(v_kas_keluar),0) as kasKeluarLalu, 0 as kasTerima, 0 as kasKeluar, 0 as kasSaatIni
+        from TMBKUSKPDPENGELUARAN
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and c_trx not in ('NP','NM')
+        and SUBSTR (d_posting, 5, 2) &lt; #{bulan}
+        <if test="idskpd=='761' or idskpd=='1234'">
+            and C_WIL_SP2DPROSES = #{kodeWilProses}
+        </if>
+        )
+    </select>
+
+    <select id="getNilaiSaldo" parameterType="java.util.Map"  resultType="spp.model.TutupBuku">
+        select sum(saldoTunai) as saldoTunai, sum(saldoBank) as saldoBank, sum(saldoLain) as saldoLain from(
+        select nvl(sum(v_kas_terima - v_kas_keluar),0) as saldoTunai, 0 as saldoBank, 0 as saldoLain from TMBKUSKPDPENGELUARAN
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and substr(d_posting,5,2) between '01' and #{bulan}
+        <if test="idskpd=='761' or idskpd=='1234'">
+            and C_WIL_SP2DPROSES = #{kodeWilProses}
+        </if>
+        and c_uangpersediaan = '1'
+
+        union all
+        select  nvl(SUM(V_SALDOAWAL_DEBET - V_SALDOAWAL_KREDIT),0) as saldoTunai,0 as saldoBank, 0 as saldoLain
+        FROM TMJOURSALDOAWAL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        <!-- AND I_IDBAS = 9947  diubah 30 Nov 17 oleh zainab, menyesuaikan akun baru-->
+        AND I_IDBAS in (3894,3899)
+
+        union all
+        select 0 as saldoTunai, nvl(sum(v_kas_terima - v_kas_keluar),0) as saldoBank, 0 as saldoLain from TMBKUSKPDPENGELUARAN
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and substr(d_posting,5,2) between '01' and #{bulan}
+        <if test="idskpd=='761' or idskpd=='1234'">
+            and C_WIL_SP2DPROSES = #{kodeWilProses}
+        </if>
+        and c_uangpersediaan = '2'
+
+        union all
+        select 0 as saldoTunai, nvl(SUM(V_SALDOAWAL_DEBET - V_SALDOAWAL_KREDIT),0) as saldoBank, 0 as saldoLain
+        FROM TMJOURSALDOAWAL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        <!-- AND I_IDBAS &lt;&gt; 9947 -->
+        AND I_IDBAS not in (3894,3899)<!-- id bas untuk selain tunai-->
+
+        union all
+        select 0 as saldoTunai, 0 as saldoBank, nvl(sum(v_kas_terima - v_kas_keluar),0) as saldoLain from TMBKUSKPDPENGELUARAN
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and substr(d_posting,5,2) between '01' and #{bulan}
+        <if test="idskpd=='761' or idskpd=='1234'">
+            and C_WIL_SP2DPROSES = #{kodeWilProses}
+        </if>
+        and c_uangpersediaan = '3'
+        )
+    </select>
+
+    <insert id="insertTutupBku" parameterType="spp.model.TutupBuku" >
+        INSERT INTO TMSKPDBKUREKAP (
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        C_TGL_TUTUP,
+        C_BLN_TUTUP,
+        I_NRK_PA,
+        I_NIP_PA,
+        N_PA,
+        I_NRK_PKBLJ,
+        I_NIP_PKBLJ,
+        N_PKBLJ,
+        V_KAS_TERIMALALU,
+        V_KAS_KELUARLALU,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        V_BKU_SALDO,
+        V_BKU_SALDOTUNAI,
+        V_BKU_SALDOBANK,
+        V_BKU_SALDOLAIN,
+        D_BKU_PROSES,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        C_WIL_SP2DPROSES,
+        C_BKU_NIHIL
+        )VALUES(
+        #{tahun},
+        #{idskpd},
+        #{tglPenutupan},
+        #{bulan},
+        #{nrkPA},
+        #{nipPA},
+        #{namaPA},
+        #{nrkBendahara},
+        #{nipBendahara},
+        #{namaBendahara},
+        #{kasTerimaLalu},
+        #{kasKeluarLalu},
+        #{kasTerima},
+        #{kasKeluar},
+        #{kasSaatIni},
+        #{saldoTunai},
+        #{saldoBank},
+        #{saldoLain},
+        case
+        when #{kdTombolTutupBuku} ='0'
+        then null
+        else
+        sysdate
+        end,
+        <!--if test="kdTombolTutupBuku == '0'">
+            null,
+        </if>
+        <if test="kdTombolTutupBuku == '1'">
+            sysdate,
+        </if-->
+        <!--#{bkuProses},-->
+        #{idEntry},
+        sysdate,
+        #{kodeWilProses},
+        #{kodeNihil}
+        )
+    </insert>
+
+
+    <update id="updateBkuPengeluaran" parameterType="spp.model.TutupBuku"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        C_STATUS ='1',
+        C_TGL_TUTUP = #{tglPenutupan}
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and C_STATUS ='0'
+        and substr(D_POSTING,1,6) = c_angg_tahun || #{bulan}
+        <if test="idskpd=='761' or idskpd=='1234'">
+            and C_WIL_SP2DPROSES = #{kodeWilProses}
+        </if>
+    </update>
+
+    <delete id="deleteTutupBku" parameterType="spp.model.TutupBuku"  >
+        DELETE TMSKPDBKUREKAP
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND C_BLN_TUTUP = #{bulan}
+        <if test="idskpd=='761' or idskpd=='1234'">
+            and C_WIL_SP2DPROSES = #{kodeWilProses}
+        </if>
+    </delete>
+
+    <insert id="insertBKUPengeluaran" parameterType="spp.model.TutupBuku" >
+        {CALL PROC_BKU_INS_TISKPDBKU (#{tahun}, #{idskpd}, #{bulan}, #{kodeWilProses}, #{kdTombolTutupBuku})}
+    </insert>
+
+    <select id="getBanyakDataBKUPengeluaran" parameterType="spp.model.TutupBuku" resultType="java.lang.Integer" >
+        select count(*)
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun=#{tahun}
+        and i_idskpd=#{idskpd}
+        and substr(d_posting,5,2)=#{bulan}
+        <if test="idskpd=='761' or idskpd=='1234'">
+            and C_WIL_SP2DPROSES = #{kodeWilProses}
+        </if>
+    </select>
+
+</mapper>

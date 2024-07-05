@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.KartuKendaliMapper">
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF  where i_id = '1'
+    </select>
+    
+    <select id="getListKegiatan" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idKegiatan, kodeKeg, namaKeg FROM  (SELECT   ROWNUM AS rn, a.* FROM (        
+        select distinct i_id as idKegiatan, c_kegiatan as kodeKeg ,   n_kegiatan as namaKeg
+        from  tmdpakegiatan
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        order by c_kegiatan
+       
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getBanyakListKegiatan" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select distinct i_id as idKegiatan, c_kegiatan as kodeKeg ,   n_kegiatan as namaKeg
+        from  tmdpakegiatan
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        )
+    </select>
+    
+</mapper>

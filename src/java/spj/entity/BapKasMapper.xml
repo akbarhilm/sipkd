@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.BapKasMapper">
+    <select id="getBapKas" parameterType="java.util.Map"  resultType="spp.model.BapKas">
+        SELECT  idSkpdBAPKas,tahun,"skpd.idSkpd",
+        kodeWilSp2d,namaHari,
+        tglBkuBa,blnBkuBa,nrkPa, nipPa,
+        jabatanPa,namaPa, nrkBend,
+        nipBend,namaBend,jabatanBend,
+        noSkGub,tglSkGub,nilaiUangKertas,
+        nilaiUangLogam, nilaiUangSp2d,nilaiUangSaldoBank,
+        nilaiUangSuratBerharga,nilaiUangTotalBkuBa,
+        nilaiUangSaldoBkuBa,nilaiUangSelisihBkuBa,
+        ketBkuBa,statusBkuBa FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        select    
+        tmskpdbkuba.i_id as idSkpdBAPKas,   
+        tmskpdbkuba.C_ANGG_TAHUN as tahun,tmskpdbkuba.I_IDSKPD AS "skpd.idSkpd",
+        tmskpdbkuba.C_WIL_SP2DPROSES as kodeWilSp2d,tmskpdbkuba.N_BKUBA_HARI as namaHari,
+        TO_CHAR(to_date(C_BKUBA_TGL,'yyyymmdd'), 'DD-MM-YYYY' 
+        ,'nls_date_language = INDONESIAN') AS tglBkuBa,tmskpdbkuba.c_bku_bulanba as blnBkuBa,tmskpdbkuba.I_NRK_PA as nrkPa,tmskpdbkuba.I_NIP_PA as nipPa,
+        tmskpdbkuba.N_PA_JABATAN as jabatanPa, tmskpdbkuba.N_PA as namaPa,tmskpdbkuba.I_NRK_PKBLJ as nrkBend,
+        tmskpdbkuba.I_NIP_PKBLJ as nipBend,tmskpdbkuba.N_PKBLJ as namaBend,tmskpdbkuba.N_PK_JABATAN as jabatanBend,
+        tmskpdbkuba.I_SKGUB as noSkGub,tmskpdbkuba.D_SKGUB as tglSkGub,tmskpdbkuba.V_KAS_KERTAS as nilaiUangKertas,
+        tmskpdbkuba.V_KAS_LOGAM as nilaiUangLogam,tmskpdbkuba.V_KAS_LAIN1 as nilaiUangSp2d,tmskpdbkuba.V_KAS_SALDOBANK as nilaiUangSaldoBank,
+        tmskpdbkuba.V_KAS_LAIN2 as nilaiUangSuratBerharga,tmskpdbkuba.V_BKUBA_TOTAL as nilaiUangTotalBkuBa,
+        tmskpdbkuba.V_BKUBA_SALDO as nilaiUangSaldoBkuBa,tmskpdbkuba.V_BKUBA_SELISIH as nilaiUangSelisihBkuBa,
+        tmskpdbkuba.E_BKUBA as ketBkuBa,tmskpdbkuba.C_STATUS as statusBkuBa
+        FROM tmskpdbkuba
+        WHERE  tmskpdbkuba.i_idskpd =#{idskpd} 
+        and tmskpdbkuba.c_angg_tahun = #{tahun}
+        order by blnBkuBa
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+ 
+    </select>
+    
+    <select id="getBapKasById" parameterType="java.util.Map"
+            resultType="spp.model.BapKas">
+        select    
+        tmskpdbkuba.i_id as idSkpdBAPKas,   
+        tmskpdbkuba.C_ANGG_TAHUN as tahun,tmskpdbkuba.I_IDSKPD AS "skpd.idSkpd",trskpd.N_SKPD "skpd.namaSkpd",
+        tmskpdbkuba.C_WIL_SP2DPROSES as kodeWilSp2d,tmskpdbkuba.N_BKUBA_HARI as namaHari,
+        <!--TO_CHAR(to_date(C_BKUBA_TGL,'yyyymmdd'), 'DD/MM/YYYY' ,'nls_date_language = INDONESIAN') AS tglBkuBa,-->
+        C_BKUBA_TGL AS tglBkuBaformat,  to_char((sysdate),'dd/mm/yyyy') AS tglBkuBa2,
+        bulan (tmskpdbkuba.c_bku_bulanba) as blnBkuBa,tmskpdbkuba.I_NRK_PA as nrkPa,tmskpdbkuba.I_NIP_PA as nipPa,
+        tmskpdbkuba.N_PA_JABATAN as jabatanPa, tmskpdbkuba.N_PA as namaPa,tmskpdbkuba.I_NRK_PKBLJ as nrkBend,
+        tmskpdbkuba.I_NIP_PKBLJ as nipBend,tmskpdbkuba.N_PKBLJ as namaBend,tmskpdbkuba.N_PK_JABATAN as jabatanBend,
+        tmskpdbkuba.I_SKGUB as noSkGub,tmskpdbkuba.D_SKGUB as tglSkGub,tmskpdbkuba.V_KAS_KERTAS as nilaiUangKertas,
+        tmskpdbkuba.V_KAS_LOGAM as nilaiUangLogam,tmskpdbkuba.V_KAS_LAIN1 as nilaiUangSp2d,tmskpdbkuba.V_KAS_SALDOBANK as nilaiUangSaldoBank,
+        tmskpdbkuba.V_KAS_LAIN2 as nilaiUangSuratBerharga,tmskpdbkuba.V_BKUBA_TOTAL as nilaiUangTotalBkuBa,
+        tmskpdbkuba.V_BKUBA_SALDO as nilaiUangSaldoBkuBa,tmskpdbkuba.V_BKUBA_SELISIH as nilaiUangSelisihBkuBa,
+        tmskpdbkuba.E_BKUBA as ketBkuBa,tmskpdbkuba.C_STATUS as statusBkuBa
+        FROM tmskpdbkuba,trskpd
+        WHERE  i_idskpd =#{idskpd} and tmskpdbkuba.i_idskpd = trskpd.I_ID 
+        and c_angg_tahun = #{tahun} 
+        and c_bku_bulanba = #{bulan}
+    </select>
+    
+    <select id="getHari"  resultType="java.lang.String" parameterType="java.util.Map">
+        select TO_CHAR(to_date(C_BKUBA_TGL,'yyyymmdd'), 'DAY' 
+        ,'nls_date_language = INDONESIAN')  as hari from TMSKPDBKUBA
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+ 
+    </select>
+    
+    <update id="updateBapKas" parameterType="spp.model.BapKas"   >
+        UPDATE TMSKPDBKUBA
+        SET          
+        C_ANGG_TAHUN = #{tahun},
+        I_IDSKPD =  #{skpd.idSkpd},
+        C_WIL_SP2DPROSES = #{kodeWilSp2d}, 
+        N_BKUBA_HARI = TO_CHAR(to_date( #{tglBkuBa} ,'yyyymmdd'), 'DAY' 
+        ,'nls_date_language = INDONESIAN'),
+        C_BKUBA_TGL =   #{tglBkuBa},
+        <!--C_BKU_BULANBA =   #{blnBkuBa}, -->
+        I_NRK_PA = #{nrkPa},
+        I_NIP_PA = #{nipPa},
+        N_PA_JABATAN =  #{jabatanPa},
+        N_PA = #{namaPa}, 
+        I_NRK_PKBLJ = #{nrkBend},
+        I_NIP_PKBLJ =   #{nipBend},
+        N_PKBLJ = #{namaBend},
+        N_PK_JABATAN = #{jabatanBend},
+        I_SKGUB =  #{noSkGub},
+        D_SKGUB = #{tglSkGub}, 
+        V_KAS_KERTAS = #{nilaiUangKertas},
+        V_KAS_LOGAM =   #{nilaiUangLogam},
+        V_KAS_LAIN1 = #{nilaiUangSp2d},
+        V_KAS_SALDOBANK = #{nilaiUangSaldoBank},
+        V_KAS_LAIN2 = #{nilaiUangSuratBerharga},
+        V_BKUBA_TOTAL =  #{nilaiUangTotalBkuBa},
+        V_BKUBA_SALDO = #{nilaiUangSaldoBkuBa},
+        V_BKUBA_SELISIH = #{nilaiUangSelisihBkuBa},
+        E_BKUBA =   #{ketBkuBa} 
+        
+        WHERE  I_IDSKPD = #{skpd.idSkpd} and c_angg_tahun = #{tahun}
+        and I_ID=#{idSkpdBAPKas}
+    </update>
+    
+    <update id="updateBapKasRinci" parameterType="spp.model.BapKasRinci" >
+        UPDATE TMSKPDBKUBARINCI 
+        SET
+        I_IDSKPDBKUBA = #{idSkpdBAPKas}, 
+        N_BA = #{namaBapKas},
+        V_BA = #{nilaiBapKas}
+        where I_ID = #{idSkpdBAPKasRinci}       
+    </update>
+    
+    <delete id="deleteBapKas" parameterType="java.util.Map">
+        delete TMSKPDBKUBA WHERE  I_IDSKPD = #{idskpd} and c_angg_tahun = #{tahun} and c_bku_bulanba = #{blnBkuBa}
+    </delete>
+    
+    <delete id="deleteBapKasRinci2" parameterType="java.util.Map">
+        delete TMSKPDBKUBARINCI WHERE  I_IDSKPDBKUBA = #{idba}
+    </delete>
+     
+    <select id="getCountBapKas" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count (*) as banyak from tmskpdbkuba 
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}   
+    </select>  
+    
+    <select id="getCountTglBkuProses" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        <!-- SELECT  nvl( count(D_BKU_PROSES), 0 ) as tglBkuPros
+        from tmskpdbkurekap 
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun1} -->
+        
+        SELECT  nvl( count(*), 0 ) as tglBkuPros
+        from tmskpdbkurekap 
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun1} 
+        and D_BKU_PROSES is not null    
+    </select>  
+    
+    <update id="updateHari" parameterType="java.util.Map"  >
+        UPDATE TMSKPDBKUBA
+        SET          
+        N_BKUBA_HARI = #{namaHari}
+        WHERE  I_IDSKPD = #{idskpd}
+    </update>
+    
+    <insert id="insertBapKas" parameterType="spp.model.BapKas"  useGeneratedKeys="true" keyColumn="I_ID" keyProperty="idSkpdBAPKas" >
+        INSERT INTO TMSKPDBKUBA ( I_ID,
+        C_ANGG_TAHUN,I_IDSKPD,C_WIL_SP2DPROSES,N_BKUBA_HARI,C_BKUBA_TGL,C_BKU_BULANBA,I_NRK_PA,I_NIP_PA,N_PA_JABATAN,
+        N_PA,I_NRK_PKBLJ,I_NIP_PKBLJ,N_PKBLJ,N_PK_JABATAN,I_SKGUB,D_SKGUB,V_KAS_KERTAS,V_KAS_LOGAM,
+        V_KAS_LAIN1,V_KAS_SALDOBANK,V_KAS_LAIN2,V_BKUBA_TOTAL,V_BKUBA_SALDO,V_BKUBA_SELISIH,E_BKUBA,
+        I_PGUN_REKAM,D_PGUN_REKAM) 
+        VALUES (
+        (select  (nvl(max(I_ID),0)+1) from TMSKPDBKUBA),
+        #{tahun},#{skpd.idSkpd},#{kodeWilSp2d},
+        TO_CHAR(to_date( #{tglBkuBa} ,'yyyymmdd'), 'DAY' 
+        ,'nls_date_language = INDONESIAN'),
+        #{tglBkuBa},#{blnBkuBa},#{nrkPa},#{nipPa},#{jabatanPa},#{namaPa}
+        ,#{nrkBend},#{nipBend},#{namaBend},#{jabatanBend},#{noSkGub},#{tglSkGub},#{nilaiUangKertas},#{nilaiUangLogam}
+        ,#{nilaiUangSp2d},#{nilaiUangSaldoBank},#{nilaiUangSuratBerharga},#{nilaiUangTotalBkuBa},#{nilaiUangSaldoBkuBa}
+        ,#{nilaiUangSelisihBkuBa},#{ketBkuBa},#{idEntry},#{tglEntry}
+        )
+    </insert>
+    
+    <insert id="insertBapKasRinci" parameterType="spp.model.BapKasRinci"  useGeneratedKeys="true" keyColumn="I_ID" keyProperty="idSkpdBAPKas" >
+        INSERT INTO TMSKPDBKUBARINCI (
+        I_ID,
+        I_IDSKPDBKUBA, 
+        I_NOURUT,
+        N_BA,
+        V_BA)
+        VALUES
+        ((select (nvl(max(I_ID),0)+1) from TMSKPDBKUBARINCI),
+        #{idSkpdBAPKas}, 
+        (select 
+        NVL (MAX (I_NOURUT), 0) + 1 AS noUrut
+        from TMSKPDBKUBARINCI
+        where I_IDSKPDBKUBA = #{idSkpdBAPKas}), 
+        #{namaBapKas},
+        #{nilaiBapKas}
+        )        
+    </insert>
+    
+    <delete id="deleteBapKasRinci" parameterType="spp.model.BapKasRinci"  >
+        DELETE TMSKPDBKUBARINCI
+        WHERE
+        I_IDSKPDBKUBA = #{idSkpdBAPKas}
+    </delete>
+     
+    <insert id="insertSaldoAwalBank" parameterType="java.util.Map"  useGeneratedKeys="true"   >
+        INSERT INTO TMJOURSALDOAWAL (
+        C_ANGG_TAHUN,I_IDSKPD,v_saldoawal,v_saldoawal_debet,i_idbas) 
+        VALUES ( 
+        #{tahun},#{idskpd},#{saldobank},#{saldobankdebet},#{idbas}
+        )
+    </insert> 
+    
+    <update id="updateSaldoAwalBank" parameterType="java.util.Map"  >
+        UPDATE TMJOURSALDOAWAL
+        SET          
+        v_saldoawal = #{saldobank},
+        v_saldoawal_debet = #{saldobankdebet}
+        WHERE  I_IDSKPD = #{idskpd} and c_angg_tahun = #{tahun}
+        and i_idbas = #{idbas}
+    </update>
+    
+    <delete id="deleteSaldoAwalBank" parameterType="java.util.Map">
+        delete TMJOURSALDOAWAL WHERE  I_IDSKPD = #{idskpd} and c_angg_tahun = #{tahun1} and i_idbas=#{idbas}
+    </delete>
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5,E_PERATURAN_SPD6,
+        E_PERATURAN_SPD7
+        from   TRDOKREFF 
+    </select>
+    
+    <select id="getBulanList"   parameterType="java.util.Map" resultType="java.util.Map">
+        <!--    
+        select distinct SUBSTR (d_posting, 5,2) as blnBkuBa,bulan (SUBSTR (d_posting, 5,2)) AS ketbul 
+        from tmbkuskpdpengeluaran a
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and not exists (select 1 from tmskpdbkuba b where i_idskpd =  #{idskpd} and c_angg_tahun =#{tahun} and  b.c_bku_bulanba = SUBSTR(d_posting, 5,2) )
+        order by 1  
+        -->
+        select distinct bln as blnBkuBa, bulan (bln) AS ketbul from (
+        select distinct SUBSTR (d_posting, 5,2) bln
+        from tmbkuskpdpengeluaran a
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and not exists (select 1 from tmskpdbkuba b where i_idskpd =  #{idskpd} and c_angg_tahun = #{tahun} and  b.c_bku_bulanba = SUBSTR(d_posting, 5,2) )
+       
+        union all
+        select '01' as bln from dual
+        where not exists (select 1 from tmskpdbkuba b where i_idskpd =  #{idskpd} and c_angg_tahun = #{tahun} and  b.c_bku_bulanba = '01' )
+      
+        union all
+        select c_bln_tutup as bln from tmskpdbkurekap a
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and not exists (select 1 from tmskpdbkuba b where i_idskpd =  #{idskpd} and c_angg_tahun = #{tahun} and  b.c_bku_bulanba = a.c_bln_tutup )
+        ) 
+        order by 1
+        
+    </select>
+    
+    <select id="getBulanListEdit"   parameterType="java.util.Map" resultType="java.util.Map">
+        select c_bku_bulanba as blnBkuBa,bulan (c_bku_bulanba) as ketbul FROM tmskpdbkuba
+        WHERE  i_idskpd =#{idskpd}  
+        and c_angg_tahun = #{tahun} 
+    </select>
+    
+    <select id="getAllBAPKAS" parameterType="java.util.Map"  resultType="spp.model.BapKas">
+        select 
+        I_ID as idSkpdBAPKasRinci,
+        I_IDSKPDBKUBA as idSkpdBAPKas, 
+        N_BA as namaBapKas,
+        V_BA as nilaiBapKas 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT *
+        from TMSKPDBKUBARINCI
+        where I_IDSKPDBKUBA=#{idSkpdBAPKas}
+        order by i_id desc
+        ) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakAllBAPKAS" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT COUNT(I_ID) AS banyakrinci
+        FROM   TMSKPDBKUBARINCI
+        WHERE I_IDSKPDBKUBA=#{idSkpdBAPKas}
+    </select>
+    <!--
+      <select id="getSaldoBkuRekap"  parameterType="java.util.Map"  resultType="spp.model.BapKas" >
+          select nvl(sum(v_bku_saldo),0)
+          from tmskpdbkurekap
+          where c_angg_tahun=#{tahun}
+          and i_idskpd=#{idSkpd}
+          and c_bln_tutup=#{bulanTutup}
+      </select>
+    -->
+  
+    <select id="getNilaiKas" parameterType="java.util.Map"  resultType="spp.model.BapKas">
+      <!--Query disamakan dengan report Saldo kas Report_Laporan_SaldoKas-SKPD -->
+        SELECT SUM(SALDO) AS nilaiUangSaldoBkuBa
+        FROM(
+        SELECT SUM(V_SALDOAWAL_DEBET) AS V_TERIMA, SUM(V_SALDOAWAL_KREDIT) AS V_KELUAR, SUM(V_SALDOAWAL_DEBET-V_SALDOAWAL_KREDIT) AS SALDO
+        FROM TMJOURSALDOAWAL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND C_AKUN LIKE '1.1.01.03.01.002%'
+        UNION ALL
+        SELECT SUM(V_SALDOAWAL_DEBET) AS V_TERIMA, SUM(V_SALDOAWAL_KREDIT) AS V_KELUAR, SUM(V_SALDOAWAL_DEBET-V_SALDOAWAL_KREDIT) AS SALDO
+        FROM TMJOURSALDOAWAL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND (#{idskpd} = 761 OR #{idskpd} = 1234)
+        AND I_IDBAS IN (3904,3905,3906,3907,3908,3909,3902,3911,3912)
+
+        UNION ALL
+        SELECT SUM(V_KAS_TERIMA) AS V_TERIMA, SUM(V_KAS_KELUAR) AS V_KELUAR, SUM(V_KAS_TERIMA-V_KAS_KELUAR) AS SALDO
+        FROM TMBKUSKPDPENGELUARAN
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND C_BEBAN = 'LS'
+        AND I_IDSKPD = #{idskpd}
+        AND SUBSTR(D_POSTING,1,6) &lt;= #{tahun}||#{bulan}
+
+        UNION ALL
+        SELECT SUM(V_SALDOAWAL_DEBET) AS V_TERIMA, SUM(V_SALDOAWAL_KREDIT) AS V_KELUAR, SUM(V_SALDOAWAL_DEBET-V_SALDOAWAL_KREDIT) AS SALDO
+        FROM TMJOURSALDOAWAL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND C_AKUN LIKE '1.1.01.03.01.003%'
+
+        UNION ALL
+        SELECT SUM(V_KAS_TERIMA) AS V_TERIMA, SUM(V_KAS_KELUAR) AS V_KELUAR, SUM(V_KAS_TERIMA-V_KAS_KELUAR) AS SALDO
+        FROM TMBKUSKPDPENGELUARAN
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND C_BEBAN = 'TU'
+        AND I_IDSKPD = #{idskpd}
+        AND SUBSTR(D_POSTING,1,6) &lt;= #{tahun}||#{bulan}
+
+        UNION ALL
+        SELECT SUM(V_SALDOAWAL_DEBET) AS V_TERIMA, SUM(V_SALDOAWAL_KREDIT) AS V_KELUAR, SUM(V_SALDOAWAL_DEBET-V_SALDOAWAL_KREDIT) AS SALDO
+        FROM TMJOURSALDOAWAL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND C_AKUN LIKE '1.1.01.03.01.001%'
+
+        UNION ALL
+        SELECT SUM(V_SALDOAWAL_DEBET) AS V_TERIMA, SUM(V_SALDOAWAL_KREDIT) AS V_KELUAR, SUM(V_SALDOAWAL_DEBET-V_SALDOAWAL_KREDIT) AS SALDO
+        FROM TMJOURSALDOAWAL
+        WHERE C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND (#{idskpd} != 761 OR #{idskpd} != 1234)
+        AND I_IDBAS IN (3904,3905,3906,3907,3908,3909,3902,3911,3912)
+
+        UNION ALL
+        SELECT SUM(A.V_KAS_TERIMA) AS V_TERIMA, SUM(A.V_KAS_KELUAR) AS V_KELUAR, SUM(A.V_KAS_TERIMA-A.V_KAS_KELUAR) AS SALDO
+        FROM TMBKUSKPDPENGELUARAN A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.C_BEBAN IN ('UP','GU')
+        AND A.I_IDSKPD = #{idskpd}
+        AND SUBSTR(D_POSTING,1,6) &lt;= #{tahun}||#{bulan}
+        )
+    </select>
+</mapper>

@@ -1,0 +1,815 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.BkuPencarianMapper">
+    
+    <select id="getPencarianNoDok" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti, noBKU, inboxFile, tglPosting,nilaiMasuk, nilaiKeluar, saldoKas, tglPosting, kodeakun
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (  
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        
+        v_kas_terima as nilaiMasuk,  v_kas_keluar as nilaiKeluar, tglPosting, kodeakun,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from(
+        select i_doc_bukti , i_bkuno , i_filling , i_idskpd,  v_kas_terima,  v_kas_keluar ,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting,
+        c_akun ||' / '|| e_doc_bukti as kodeakun
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and i_doc_bukti = #{nodokumen} and c_trx = 'JO' 
+        <!-- and d_posting between #{tglAwal} and #{tglAkhir} -->
+        order by i_id
+        )
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getPencarianKegiatan" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, saldoKas,tglPosting,kodeakun
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM ( 
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk,  v_kas_keluar as nilaiKeluar, kodeakun, tglPosting,
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti , i_bkuno , i_filling , 
+        v_kas_terima ,  v_kas_keluar , i_idskpd,
+        c_akun ||' / '|| e_doc_bukti as kodeakun,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan} and substr(c_akun,1,1) in ('4','5','6') and d_posting between #{tglAwal} and #{tglAkhir}
+        order by d_posting, i_bkuno,v_kas_keluar , v_kas_terima )
+        
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    
+    <select id="getPencarianSisaUangPptk" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti , nipPptk,namaPptk, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, saldoKas, tglPosting
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (  
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, tglPosting,
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar, i_pptk_nip as nipPptk, n_pptk as namaPptk,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from ( select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk ,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting
+        
+        from(
+        
+        select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk, d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'NP'
+        and c_uangpersediaan = 3
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk , d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'NM'
+        and c_uangpersediaan = 3
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling, v_kas_terima ,v_kas_keluar, i_pptk_nip, n_pptk , d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_uangpersediaan = 3
+        and c_trx not in ('NP','NM')
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        )
+        where 1=1
+        <if test="namafilter != null and namafilter != '' ">
+            and upper(n_pptk) like '%'||upper(#{namafilter})||'%'
+        </if>
+        
+        <if test="nipfilter != null and nipfilter != '' ">
+            and upper(i_pptk_nip) like '%'||upper(#{nipfilter})||'%'
+        </if>
+        order by d_posting,i_bkuno, v_kas_terima,i_doc_bukti, i_id )
+        
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        <!--
+        SELECT noBukti, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, saldoKas, nipPptk,namaPptk
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (  
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar, i_pptk_nip as nipPptk, n_pptk as namaPptk,
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk 
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and c_trx in ('NP','NM')
+        <if test="namafilter != null and namafilter != '' ">
+            and upper(n_pptk) like '%'||upper(#{namafilter})||'%'
+        </if>
+        
+        <if test="nipfilter != null and nipfilter != '' ">
+            and upper(i_pptk_nip) like '%'||upper(#{nipfilter})||'%'
+        </if>
+        
+        order by i_doc_bukti, i_id )
+        
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        -->
+        
+    </select>
+    
+    <select id="getPencarianSisaUangPerPptk" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti , nipPptk,namaPptk, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, saldoKas, tglPosting, ketakun, ketKegiatan
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (  
+        
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar, i_pptk_nip as nipPptk, n_pptk as namaPptk,tglPosting, ketakun, ketKegiatan,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from ( select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk ,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting, ketakun, ketKegiatan
+        from(
+        
+        select A.i_id,A.i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk , A.d_posting, 
+        A.c_kegiatan ||'/' ||B.n_kegiatan as ketKegiatan, A.c_akun  ||'/' ||C.n_akun as ketakun
+        from tmbkuskpdpengeluaran A, tmdpakegiatan B, trbas C
+        where A.i_idkegiatan =  B.i_id
+        and A.i_idbas = C.i_id
+        and A.i_idskpd = B.i_idskpd
+        and A.c_angg_tahun = B.c_angg_tahun
+        and A.i_idskpd = #{idskpd}
+        and A.c_angg_tahun = #{tahun}
+        and c_trx = 'NP'
+        and c_uangpersediaan = 3
+        and n_pptk = #{namafilter}
+        and i_pptk_nip = #{nipfilter}
+        and A.d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select A.i_id,A.i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk  , A.d_posting,
+        A.c_kegiatan ||'/' ||B.n_kegiatan as ketKegiatan, A.c_akun  ||'/' ||C.n_akun as ketakun
+        from tmbkuskpdpengeluaran A,  tmdpakegiatan B, trbas C
+        where A.i_idkegiatan =  B.i_id
+        and A.i_idbas = C.i_id
+        and A.i_idskpd = B.i_idskpd
+        and A.c_angg_tahun = B.c_angg_tahun
+        and A.i_idskpd = #{idskpd}
+        and A.c_angg_tahun = #{tahun}
+        and c_trx = 'NM'
+        and c_uangpersediaan = 3
+        and n_pptk = #{namafilter}
+        and i_pptk_nip = #{nipfilter}
+        and A.d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select A.i_id,A.i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar, i_pptk_nip, n_pptk, A.d_posting, 
+        A.c_kegiatan ||'/' ||B.n_kegiatan as ketKegiatan, A.c_akun  ||'/' ||C.n_akun as ketakun
+        from tmbkuskpdpengeluaran A,  tmdpakegiatan B, trbas C
+        where A.i_idkegiatan =  B.i_id
+        and A.i_idbas = C.i_id
+        and A.i_idskpd = B.i_idskpd
+        and A.c_angg_tahun = B.c_angg_tahun
+        and A.i_idskpd = #{idskpd}
+        and A.c_angg_tahun = #{tahun}
+        and c_uangpersediaan = 3
+        and c_trx not in ('NP','NM')
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        and n_pptk = #{namafilter}
+        and i_pptk_nip = #{nipfilter}
+        
+        ) order by d_posting, i_bkuno, v_kas_terima,i_doc_bukti, i_id )
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getPencarianCek" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, saldoKas, tglPosting
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (  
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, tglPosting,
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from ( select i_id,i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd ,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting
+        from(
+        
+        select i_id,i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd, d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'C1'
+        and v_kas_terima &lt;&gt; 0
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all 
+        select i_id, i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd, d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'C2'
+        and v_kas_keluar &lt;&gt; 0
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all 
+        select i_id, i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd, d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'JJ'
+        and v_kas_keluar &lt;&gt; 0
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all 
+        select i_id, i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd, d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx in ('P1','P2','P3','P4','P5','P6')
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        )order by i_doc_bukti, i_id  ) )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        <!--
+        SELECT noBukti, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, saldoKas
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (  
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and c_trx in ('C1','C2') order by i_doc_bukti, i_id )
+        
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        -->
+    </select>
+    
+    <select id="getPencarianSetoran" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, saldoKas, tglPosting
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (  
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting,
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd, d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and c_trx = 'ST'
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        order by i_doc_bukti, i_id )
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getPencarianNoDokSPJ" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti, noBKU, inboxFile, tglPosting, nilaiMasuk, nilaiKeluar, saldoKas, kodeakun, tglPosting
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (  
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, kodeakun,tglPosting,
+        v_kas_terima as nilaiMasuk,  v_kas_keluar as nilaiKeluar,
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti, i_bkuno, i_filling, v_kas_terima,  v_kas_keluar, i_idskpd,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting,
+        c_akun ||' / '|| e_doc_bukti as kodeakun
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and i_doc_bukti = #{nodokumen}  and c_trx = 'JJ' 
+        <!-- and d_posting between #{tglAwal} and #{tglAkhir} -->
+        order by i_id )
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getPencarianPajak" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, saldoKas, tglPosting
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (  
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from(
+        select i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd, d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and c_trx = #{jenispajak} 
+        and d_posting between #{tglAwal} and #{tglAkhir} order by i_doc_bukti, i_id )
+        
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getPencarianPajakAll" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, saldoKas, tglPosting,kodeTransaksi
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (  
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar,
+        (CASE c_trx
+        WHEN 'P1' THEN 'PPH PS 21'
+        WHEN 'P2' THEN 'PPH PS 22'
+        WHEN 'P3' THEN 'PPH PS 23 JASA I'
+        WHEN 'P4' THEN 'PPH PS 4 Ayat 2'
+        WHEN 'P5' THEN 'PPN' 
+        WHEN 'P6' THEN 'PPH' 
+        END )   AS kodeTransaksi,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd, c_trx, d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and c_trx in ('P1','P2','P3','P4','P5','P6')
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        order by i_doc_bukti, i_id)
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getBanyakCariNoDok" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk,  v_kas_keluar as nilaiKeluar,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from(
+        select i_doc_bukti , i_bkuno , i_filling , i_idskpd,  v_kas_terima,  v_kas_keluar 
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and i_doc_bukti = #{nodokumen} and c_trx = 'JO' 
+        <!-- and d_posting between #{tglAwal} and #{tglAkhir} -->
+        order by i_id
+        ))
+    </select>
+    
+    <select id="getBanyakCariKegiatan" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk,  v_kas_keluar as nilaiKeluar, 
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti , i_bkuno , i_filling , 
+        v_kas_terima ,  v_kas_keluar , i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan} and substr(c_akun,1,1) in ('4','5','6') and d_posting between #{tglAwal} and #{tglAkhir}
+        order by d_posting, i_bkuno,v_kas_keluar , v_kas_terima))
+    </select>
+    
+    <select id="getBanyakCariSisaUangPptk" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar, i_pptk_nip as nipPptk, n_pptk as namaPptk,
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from ( select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk from(
+        
+        select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk, d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'NP'
+        and c_uangpersediaan = 3
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk , d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'NM'
+        and c_uangpersediaan = 3
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling, v_kas_terima ,v_kas_keluar, i_pptk_nip, n_pptk , d_posting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_uangpersediaan = 3
+        and c_trx not in ('NP','NM')
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        )
+        where 1=1
+        <if test="namafilter != null and namafilter != '' ">
+            and upper(n_pptk) like '%'||upper(#{namafilter})||'%'
+        </if>
+        
+        <if test="nipfilter != null and nipfilter != '' ">
+            and upper(i_pptk_nip) like '%'||upper(#{nipfilter})||'%'
+        </if>
+        order by v_kas_terima,i_doc_bukti, i_id )
+        )
+    </select>
+    
+    <select id="getBanyakCariSisaUangPerPptk" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar, i_pptk_nip as nipPptk, n_pptk as namaPptk,
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from ( select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk from(
+        
+        select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'NP'
+        and c_uangpersediaan = 3
+        and n_pptk = #{namafilter}
+        and i_pptk_nip = #{nipfilter}
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar , i_pptk_nip, n_pptk
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'NM'
+        and c_uangpersediaan = 3
+        and n_pptk = #{namafilter}
+        and i_pptk_nip = #{nipfilter}
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select i_id,i_idskpd, i_doc_bukti, i_bkuno , i_filling , v_kas_terima, v_kas_keluar, i_pptk_nip, n_pptk
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_cara_bayar = 3
+        and c_trx not in ('NP','NM')
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        and n_pptk = #{namafilter}
+        and i_pptk_nip = #{nipfilter}
+        
+        ) order by v_kas_terima,i_doc_bukti, i_id ) )
+    </select>
+    
+    <select id="getBanyakCariNoDokSpj" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk,  v_kas_keluar as nilaiKeluar,
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti, i_bkuno, i_filling, v_kas_terima,  v_kas_keluar, i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and i_doc_bukti = #{nodokumen}  and c_trx = 'JJ' 
+        <!-- and d_posting between #{tglAwal} and #{tglAkhir} -->
+        order by i_id ))
+        
+    </select>
+    
+    <select id="getBanyakCariCek" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from ( select i_id,i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd from(
+        
+        select i_id,i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'C1'
+        and v_kas_terima &lt;&gt; 0
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all 
+        select i_id, i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'C2'
+        and v_kas_keluar &lt;&gt; 0
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all 
+        select i_id, i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'JJ'
+        and v_kas_keluar &lt;&gt; 0
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all 
+        select i_id, i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx in ('P1','P2','P3','P4','P5','P6')
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        )order by i_doc_bukti, i_id  ))
+    </select>
+    
+    <select id="getBanyakCariSetoran" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar,
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and c_trx = 'ST'
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        order by i_doc_bukti, i_id ))
+        
+    </select>
+    
+    <select id="getBanyakCariPajak" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from(
+        select i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and c_trx = #{jenispajak} 
+        and d_posting between #{tglAwal} and #{tglAkhir} order by i_doc_bukti, i_id )
+        )
+    </select>
+    
+    <select id="getBanyakCariPajakAll" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti, i_bkuno, i_filling, v_kas_terima, v_kas_keluar, i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and c_trx in ('P1','P2','P3','P4','P5','P6') 
+        and d_posting between #{tglAwal} and #{tglAkhir} order by i_doc_bukti, i_id))
+        
+    </select>
+    
+    <select id="getListKegiatan" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idKegiatan, kodeKeg, namaKeg FROM  (SELECT   ROWNUM AS rn, a.* FROM (        
+        select distinct tmbkuskpdpengeluaran.i_idkegiatan as idKegiatan, tmdpakegiatan.c_kegiatan as kodeKeg , 
+        tmdpakegiatan.n_kegiatan as namaKeg
+        from tmbkuskpdpengeluaran, tmdpakegiatan
+        where tmbkuskpdpengeluaran.i_idkegiatan = tmdpakegiatan.i_id and 
+        tmbkuskpdpengeluaran.i_idskpd = #{idskpd} 
+        and tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        <if test="jeniscari == 'TU' ">
+            and tmbkuskpdpengeluaran.c_beban = 'TU'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        order by tmdpakegiatan.c_kegiatan
+       
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getBanyakListKegiatan" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select distinct tmbkuskpdpengeluaran.i_idkegiatan as idKegiatan, tmdpakegiatan.c_kegiatan as kodeKeg , 
+        tmdpakegiatan.n_kegiatan as namaKeg
+        from tmbkuskpdpengeluaran, tmdpakegiatan
+        where tmbkuskpdpengeluaran.i_idkegiatan = tmdpakegiatan.i_id and 
+        tmbkuskpdpengeluaran.i_idskpd = #{idskpd} 
+        and tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        <if test="jeniscari == 'TU' ">
+            and tmbkuskpdpengeluaran.c_beban = 'TU'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+        )
+    </select>
+    
+    <select id="getListNoDokumen" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti,noBKU, beban, jenis, inboxFile,tglPosting, nilaiMasuk
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (        
+        select distinct i_doc_bukti as noBukti, c_beban as beban, i_bkuno as noBKU, i_filling as inboxFile,
+        SUBSTR (d_posting, 7, 2) || '-' || SUBSTR (d_posting, 5, 2) || '-' || SUBSTR (d_posting, 1, 4) as tglPosting, 
+        (CASE c_jenis
+        WHEN '1'
+        THEN 'BTL'
+        WHEN '2'
+        THEN 'BANTUAN'
+        WHEN '3'
+        THEN 'BL'
+        WHEN '4'
+        THEN 'PEMBIAYAAN PENGELUARAN'
+        WHEN '5'
+        THEN 'RESTITUSI PENERIMAAN'
+        END
+        ) AS jenis,
+         
+        
+        <if test="idskpd == 761 or idskpd == 1234 or jenisdok == 'JJ' ">
+            SUM (v_kas_keluar) as nilaiMasuk
+        </if>
+        
+        <if test="idskpd != 761 and idskpd != 1234 and jenisdok == 'JO' ">
+            SUM (v_kas_terima) as nilaiMasuk
+        </if>
+        
+        from tmbkuskpdpengeluaran 
+        where  i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and c_trx = #{jenisdok}
+        
+        <if test="nodokumen != null and nodokumen != '' ">
+            and upper(i_doc_bukti) like '%'||upper(#{nodokumen})||'%'
+        </if>
+        
+        group by d_posting, i_doc_bukti, c_jenis, c_beban, i_bkuno, i_filling        
+        <!--order by d_posting, i_doc_bukti-->
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset} order by tglPosting, noBukti
+        
+    </select>
+    
+    <select id="getBanyakListNoDokumen" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select distinct i_doc_bukti as noBukti, c_beban as beban, i_bkuno as noBKU, i_filling as inboxFile,
+        SUBSTR (d_posting, 7, 2) || '-' || SUBSTR (d_posting, 5, 2) || '-' || SUBSTR (d_posting, 1, 4) as tglPosting, 
+        (CASE c_jenis
+        WHEN '1'
+        THEN 'BTL'
+        WHEN '2'
+        THEN 'BANTUAN'
+        WHEN '3'
+        THEN 'BL'
+        WHEN '4'
+        THEN 'PEMBIAYAAN PENGELUARAN'
+        WHEN '5'
+        THEN 'RESTITUSI PENERIMAAN'
+        END
+        ) AS jenis,
+         
+        <if test="idskpd == 761 or idskpd == 1234 or jenisdok == 'JJ' ">
+            SUM (v_kas_keluar) as nilaiMasuk
+        </if>
+        
+        <if test="idskpd != 761 and idskpd != 1234 and jenisdok == 'JO' ">
+            SUM (v_kas_terima) as nilaiMasuk
+        </if>
+        
+        from tmbkuskpdpengeluaran 
+        where  i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and c_trx = #{jenisdok}
+        
+        <if test="nodokumen != null and nodokumen != '' ">
+            and upper(i_doc_bukti) like '%'||upper(#{nodokumen})||'%'
+        </if>
+        
+        group by d_posting, i_doc_bukti, c_jenis, c_beban, i_bkuno, i_filling        
+        )
+    </select>
+    
+    <select id="getNilaiAnggaran" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select v_angg_tapd as nilaiAnggaran from tmdpakegiatan 
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id = #{idkegiatan}
+    </select>
+    
+    <select id="getNilaiAnggaranTU" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(sum(v_kas_terima),0) as nilaiAnggaran 
+        from tmbkuskpdpengeluaran
+        where c_trx = 'JO'
+        and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_beban = 'TU'
+        and i_idkegiatan = #{idkegiatan}
+    </select>
+    
+    <select id="getListPptk" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT namaPptk, nipPptk
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM ( 
+        select distinct n_pptk as namaPptk, i_pptk_nip as nipPptk 
+        from tmbkuskpdpengeluaran
+        where c_trx in ('NP','NM') and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        <if test="nama != null and nama != '' ">
+            and upper(n_pptk) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="nip != null and nip != '' ">
+            and upper(i_pptk_nip) like '%'||upper(#{nip})||'%'
+        </if>
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+    
+    <select id="getBanyakListPptk" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select distinct n_pptk as namaPptk, i_pptk_nip as nipPptk 
+        from tmbkuskpdpengeluaran
+        where c_trx in ('NP','NM') and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        <if test="nama != null and nama != '' ">
+            and upper(n_pptk) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="nip != null and nip != '' ">
+            and upper(i_pptk_nip) like '%'||upper(#{nip})||'%'
+        </if>
+        )
+    </select>
+    
+    <select id="getPencarianKegiatanTU" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBukti, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, saldoKas,tglPosting,kodeakun
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM ( 
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk,  v_kas_keluar as nilaiKeluar, kodeakun, tglPosting,
+        SUM (NVL(v_kas_terima,0) - NVL(v_kas_keluar,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti , i_bkuno , i_filling , 
+        v_kas_terima ,  v_kas_keluar , i_idskpd,
+        tmbkuskpdpengeluaran.c_akun ||' / '|| trbas.n_akun as kodeakun,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting
+        from tmbkuskpdpengeluaran, trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan} 
+        and c_trx = 'JO'
+        and c_beban = 'TU'
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select i_doc_bukti , i_bkuno , i_filling , 
+        v_kas_terima ,  v_kas_keluar , i_idskpd,
+        tmbkuskpdpengeluaran.c_akun ||' / '|| trbas.n_akun as kodeakun,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting
+        from tmbkuskpdpengeluaran, trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan} 
+        and c_trx = 'JJ'
+        and c_beban = 'TU'
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select i_doc_bukti , i_bkuno , i_filling , 
+        v_kas_terima ,  v_kas_keluar , i_idskpd,
+        tmbkuskpdpengeluaran.c_akun ||' / '|| trbas.n_akun as kodeakun,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting
+        from tmbkuskpdpengeluaran, trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan} 
+        and c_trx = 'ST'
+        and c_beban = 'TU'
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        )
+        order by tglPosting , noBKU
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset} 
+        
+    </select>
+    
+    <select id="getBanyakCariKegiatanTU" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT noBukti, noBKU, inboxFile, nilaiMasuk, nilaiKeluar, kodeakun
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM ( 
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk,  v_kas_keluar as nilaiKeluar, kodeakun
+        from (
+        select i_doc_bukti , i_bkuno , i_filling , 
+        v_kas_terima ,  v_kas_keluar , i_idskpd,
+        tmbkuskpdpengeluaran.c_akun ||' / '|| trbas.n_akun as kodeakun
+        from tmbkuskpdpengeluaran, trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan} 
+        and c_trx = 'JO'
+        and c_beban = 'TU'
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select i_doc_bukti , i_bkuno , i_filling , 
+        v_kas_terima ,  v_kas_keluar , i_idskpd,
+        tmbkuskpdpengeluaran.c_akun ||' / '|| trbas.n_akun as kodeakun
+        from tmbkuskpdpengeluaran, trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan} 
+        and c_trx = 'JJ'
+        and c_beban = 'TU'
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        union all
+        select i_doc_bukti , i_bkuno , i_filling , 
+        v_kas_terima ,  v_kas_keluar , i_idskpd,
+        tmbkuskpdpengeluaran.c_akun ||' / '|| trbas.n_akun as kodeakun
+        from tmbkuskpdpengeluaran, trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan} 
+        and c_trx = 'ST'
+        and c_beban = 'TU'
+        and d_posting between #{tglAwal} and #{tglAkhir}
+        
+        ))a))
+    </select>
+    
+    <select id="getListXlsBkuPencarianKegiatan" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT RN, noBukti as NO_BUKTI, noBKU AS NO_BKU, inboxFile as NO_FILLING, nilaiMasuk AS MASUK, nilaiKeluar AS KELUAR, saldoKas AS SALDO,tglPosting AS TANGGAL_POSTING,kodeakun AS KODE_AKUN
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM ( 
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk,  v_kas_keluar as nilaiKeluar, kodeakun, tglPosting,
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti , i_bkuno , i_filling , 
+        v_kas_terima ,  v_kas_keluar , i_idskpd,
+        c_akun ||' / '|| e_doc_bukti as kodeakun,
+        SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4) AS tglPosting
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan} and substr(c_akun,1,1) in ('4','5','6') and d_posting between #{tglAwal} and #{tglAkhir}
+        order by d_posting, i_bkuno,v_kas_keluar , v_kas_terima )
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    
+    <select id="getBanyakListXlsBkuPencarianKegiatan" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_doc_bukti as noBukti, i_bkuno as noBKU, i_filling as inboxFile, 
+        v_kas_terima as nilaiMasuk,  v_kas_keluar as nilaiKeluar, 
+        SUM (NVL(v_kas_keluar,0) - NVL(v_kas_terima,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas
+        from (
+        select i_doc_bukti , i_bkuno , i_filling , 
+        v_kas_terima ,  v_kas_keluar , i_idskpd
+        from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan} and substr(c_akun,1,1) in ('4','5','6') and d_posting between #{tglAwal} and #{tglAkhir}
+        order by d_posting, i_bkuno,v_kas_keluar , v_kas_terima))
+    </select>
+    
+</mapper>

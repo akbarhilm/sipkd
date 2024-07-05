@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.BukuBesarJurnalSkpdMapper">
+    
+    <select id="getTanggalPosting" parameterType="java.util.Map" resultType="java.lang.String">
+        <!--
+        select max(d_posting) as tanggal
+        from TISKPDBUKUBESAR
+        where i_idbas = #{kodeAkun}
+        and i_idskpd = #{idskpd}
+        -->
+        select to_char( max(d_PGUN_REKAM) ,'dd/mm/yyyy hh:mm:ss' ) as tanggal
+        from TISKPDBUKUBESAR
+        where i_idbas = #{kodeAkun}
+        and i_idskpd = #{idskpd}
+            
+    </select>
+    
+    <select id="getTanggalPostingMap" parameterType="java.util.Map" resultType="java.util.Map">
+        select max(d_posting) as tglPosting
+        from TISKPDBUKUBESAR
+        where i_idbas = #{kodeAkun}
+        and i_idskpd = #{idskpd}
+         
+    </select>
+    
+    <insert id="insertBukuBesarSkpd" statementType="CALLABLE" parameterType="spp.model.BukuBesar"> 
+        {CALL proc_tiskpdbukubesar_perskpd (#{tahun},#{idskpd},#{kodeakun},#{tglPostingAwal},#{tglPosting},#{idEntry})}
+    </insert>
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF  where i_id = '1'
+    </select>
+    
+    <select id="getListBukuBesar" parameterType="java.util.Map" resultType="spp.model.BukuBesar">
+        SELECT nourut, tglPosting, nojurnal, nodokumen, debet, kredit, saldo
+        FROM (SELECT   ROWNUM AS rn, a.* 
+        FROM (
+        select i_nourut as nourut, d_posting as tglPosting, i_journo as nojurnal, i_docno as nodokumen, v_debet as debet, v_kredit as kredit , v_bb_saldo as saldo
+        from tiskpdbukubesar
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_akun = #{kodeakun}) 
+        a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+         
+    </select>
+    
+    <select id="getBannyakListBukuBesar" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        select i_nourut, d_posting, i_journo, i_docno, v_debet, v_kredit , v_bb_saldo
+        from tiskpdbukubesar
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_akun = #{kodeakun}
+        )
+         
+    </select>
+    
+</mapper>

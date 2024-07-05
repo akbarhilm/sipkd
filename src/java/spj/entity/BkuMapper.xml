@@ -1,0 +1,4605 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.BkuMapper">
+
+    <select id="getNoBukti" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT tmspp.c_beban as beban, tmspp.c_jenis as jenis, tmspp.i_id as idspp , tmsp2d.i_id as idsp2d,
+        to_char(tmsp2d.d_sp2d_sah, 'yyyymmdd') as tglPosting, i_sp2dno_dok || '  -  ' || e_spp as noBukti
+        FROM tmsp2d, tmspp
+        WHERE tmsp2d.i_idspp = tmspp.i_id
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmsp2d.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND TO_CHAR (tmsp2d.d_sp2d_sah, 'MM') = #{bulan}
+        AND NOT EXISTS (
+        SELECT 1
+        FROM tmbkuskpdpengeluaran
+        WHERE tmsp2d.c_angg_tahun = #{tahun}
+        AND tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        AND c_trx = 'JO'
+        AND i_idtrx = tmsp2d.i_id
+        AND SUBSTR (tmbkuskpdpengeluaran.d_posting, 5, 2) = #{bulan})
+
+    </select>
+
+    <select id="getBannyaNoBukti" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT tmspp.c_beban as beban, tmspp.c_jenis as jenis, tmspp.i_id as idspp , tmsp2d.i_id as idsp2d,
+        to_char(tmsp2d.d_sp2d_sah, 'yyyymmdd') as tglPosting, i_sp2dno_dok || '  -  ' || e_spp as noBukti
+        FROM tmsp2d, tmspp
+        WHERE tmsp2d.i_idspp = tmspp.i_id
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmsp2d.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND TO_CHAR (tmsp2d.d_sp2d_sah, 'MM') = #{bulan}
+        AND NOT EXISTS (
+        SELECT 1
+        FROM tmbkuskpdpengeluaran
+        WHERE tmsp2d.c_angg_tahun = #{tahun}
+        AND tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        AND c_trx = 'JO'
+        AND i_idtrx = tmsp2d.i_id
+        AND SUBSTR (tmbkuskpdpengeluaran.d_posting, 5, 2) = #{bulan})
+        )
+    </select>
+
+    <select id="getListBkuLs1" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT kodeTransaksi, idspp, idsp2d, idBas, uraianBukti, namaakun, nilaiMasuk, nilaiKeluar, noDok, tglDok ,'' as idKegiatan, '' as kodeKeg FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT 'JO' AS kodeTransaksi, tmspp.i_id idspp, tmsp2d.i_id idsp2d, 9948 idBas,
+        trim(e_spp)as  uraianBukti, '' namaakun, SUM (a.v_spp) nilaiMasuk, 0 nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibtl a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.i_id = #{idspp}
+        GROUP BY tmspp.i_id,
+        tmsp2d.i_id,
+        e_spp,
+        trskpd.c_skpd,
+        trskpd.c_unitkerja,
+        trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok,
+        tmsp2d.d_sp2d_sah,
+        tmsp2d.c_sp2d_sah
+
+        UNION ALL
+        SELECT 'JL' AS kodeTransaksi, tmspp.i_id idspp, tmsp2d.i_id idsp2d, a.i_idbas as idBas,
+        trbas.c_akun uraianBukti, trbas.n_akun as namaakun, 0 nilaiMasuk, a.v_spp nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibtl a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_id = #{idspp}
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBannyakListBkuLs1" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        SELECT 'JO' AS kodeTransaksi, tmspp.i_id idspp, tmsp2d.i_id idsp2d, 9948 idBas,
+        e_spp uraianBukti, '' namaakun, SUM (a.v_spp) nilaiMasuk, 0 nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibtl a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.i_id = #{idspp}
+        GROUP BY tmspp.i_id,
+        tmsp2d.i_id,
+        e_spp,
+        trskpd.c_skpd,
+        trskpd.c_unitkerja,
+        trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok,
+        tmsp2d.d_sp2d_sah,
+        tmsp2d.c_sp2d_sah
+
+        UNION ALL
+        SELECT 'JL' AS kodeTransaksi, tmspp.i_id idspp, tmsp2d.i_id idsp2d, a.i_idbas as idBas,
+        trbas.c_akun uraianBukti, trbas.n_akun as namaakun, 0 nilaiMasuk, a.v_spp nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibtl a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_id = #{idspp}
+        )
+
+    </select>
+
+    <select id="getListBkuLs2" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT kodeTransaksi, idspp, idsp2d, idBas, uraianBukti, namaakun, idKegiatan,kodeKeg,namaKeg, nilaiMasuk, nilaiKeluar, noDok, tglDok  FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT 'JO' AS kodeTransaksi, tmspp.i_id idspp, tmsp2d.i_id idsp2d, 9948 idBas,
+        e_spp uraianBukti, '' namaakun,
+        NULL  as idKegiatan, '' kodeKeg,'' namaKeg, SUM (a.v_spp) nilaiMasuk, 0 nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibtlbantuan a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.i_id = #{idspp}
+        GROUP BY tmspp.i_id, tmsp2d.i_id,
+        e_spp,
+        trskpd.c_skpd,
+        trskpd.c_unitkerja,
+        trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok,
+        tmsp2d.d_sp2d_sah,
+        tmsp2d.c_sp2d_sah
+        UNION ALL
+        SELECT 'JL' AS kodeTransaksi, tmspp.i_id idspp,  tmsp2d.i_id idsp2d,a.i_idbas as idBas, trbas.c_akun uraianBukti,
+        trbas.n_akun as namaakun, a.i_idbtlbantuan idKegiatan, b.c_kegiatan kodeKeg,b.n_kegiatan namaKeg, 0 nilaiMasuk, a.v_spp nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibtlbantuan a, tmsp2d, trskpd, trbas,
+        tmdpabtlbantuan b
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND a.i_idbtlbantuan = b.i_id
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_id = #{idspp}
+        )
+        a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBannyakListBkuLs2" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        SELECT 'JO' AS kodeTransaksi, tmspp.i_id idspp, tmsp2d.i_id idsp2d, 9948 idBas,
+        e_spp uraianBukti, '' namaakun,
+        NULL  as idKegiatan, '' kodeKeg, SUM (a.v_spp) nilaiMasuk, 0 nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibtlbantuan a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.i_id = #{idspp}
+        GROUP BY tmspp.i_id, tmsp2d.i_id,
+        e_spp,
+        trskpd.c_skpd,
+        trskpd.c_unitkerja,
+        trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok,
+        tmsp2d.d_sp2d_sah,
+        tmsp2d.c_sp2d_sah
+        UNION ALL
+        SELECT 'JL' AS kodeTransaksi, tmspp.i_id idspp,  tmsp2d.i_id idsp2d,a.i_idbas as idBas, trbas.c_akun uraianBukti,
+        trbas.n_akun as namaakun, a.i_idbtlbantuan idKegiatan, b.c_kegiatan kodeKeg, 0 nilaiMasuk, a.v_spp nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibtlbantuan a, tmsp2d, trskpd, trbas,
+        tmdpabtlbantuan b
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND a.i_idbtlbantuan = b.i_id
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_id = #{idspp}
+        )
+    </select>
+
+    <select id="getListBkuLs3" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT kodeTransaksi, idspp, idsp2d, idBas, uraianBukti, namaakun,idKegiatan,namaKeg,kodeKeg,  nilaiMasuk, nilaiKeluar, noDok, tglDok  FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT 'JO' AS kodeTransaksi, tmspp.i_id as idspp,  tmsp2d.i_id idsp2d,9948 idBas,
+        e_spp uraianBukti, '' namaakun,
+        NULL idKegiatan, '' kodeKeg, '' namaKeg, SUM (a.v_spp) nilaiMasuk, 0 nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibl a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.i_id = #{idspp}
+        GROUP BY tmspp.i_id, tmsp2d.i_id ,
+        e_spp,
+        trskpd.c_skpd,
+        trskpd.c_unitkerja,
+        trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok,
+        tmsp2d.d_sp2d_sah,
+        tmsp2d.c_sp2d_sah
+        UNION ALL
+        SELECT 'JL' AS kodeTransaksi, tmspp.i_id as idspp, tmsp2d.i_id idsp2d, a.i_idbas as idBas, trbas.c_akun uraianBukti,
+        trbas.n_akun as namaakun, a.i_idkegiatan as idKegiatan, b.c_kegiatan as kodeKeg, b.n_kegiatan as namaKeg,
+        0 nilaiMasuk, a.v_spp nilaiKeluar, tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibl a, tmsp2d, trskpd, trbas, tmdpakegiatan b
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND a.i_idkegiatan = b.i_id
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_id = #{idspp}
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBannyakListBkuLs3" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        SELECT 'JO' AS c_trx, tmspp.i_id,  tmsp2d.i_id i_idsp2d,9948 i_idbas,
+        e_spp e_doc_bukti, '' n_akun,
+        NULL i_idkegiatan, '' c_kegiatan, SUM (a.v_spp) masuk, 0 keluar,
+        trskpd.c_skpd, trskpd.n_skpd, tmsp2d.i_sp2dno_dok, tmsp2d.d_sp2d_sah
+        FROM tmspp, tmspprincibl a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.i_id = #{idspp}
+        GROUP BY tmspp.i_id, tmsp2d.i_id ,
+        e_spp,
+        trskpd.c_skpd,
+        trskpd.c_unitkerja,
+        trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok,
+        tmsp2d.d_sp2d_sah,
+        tmsp2d.c_sp2d_sah
+        UNION ALL
+        SELECT 'JL' AS c_trx, tmspp.i_id, tmsp2d.i_id i_idsp2d, a.i_idbas, trbas.c_akun e_doc_bukti,
+        trbas.n_akun, a.i_idkegiatan, b.c_kegiatan, 0 masuk, a.v_spp keluar,
+        trskpd.c_skpd, trskpd.n_skpd, tmsp2d.i_sp2dno_dok, tmsp2d.d_sp2d_sah
+        FROM tmspp, tmspprincibl a, tmsp2d, trskpd, trbas, tmdpakegiatan b
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND a.i_idkegiatan = b.i_id
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_id = #{idspp}
+        )
+    </select>
+
+    <select id="getListBkuLs4" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT kodeTransaksi, idspp, idsp2d, idBas, uraianBukti, namaakun, nilaiMasuk, nilaiKeluar, noDok,
+        tglDok FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT 'JO' AS kodeTransaksi,
+        tmspp.i_id as idspp,
+        tmsp2d.i_id idsp2d,
+        9948 idBas,
+        e_spp uraianBukti,
+        '' namaakun,
+        SUM (a.v_spp) nilaiMasuk,
+        0 nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibiaya a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.i_id = #{idspp}
+        GROUP BY tmspp.i_id, tmsp2d.i_id, e_spp,
+        trskpd.c_skpd,
+        trskpd.c_unitkerja,
+        trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok,
+        tmsp2d.d_sp2d_sah,
+        tmsp2d.c_sp2d_sah
+        UNION ALL
+        SELECT 'JL' AS kodeTransaksi,
+        tmspp.i_id as idspp,
+        tmsp2d.i_id idsp2d,
+        a.i_idbas as idBas,
+        trbas.c_akun uraianBukti,
+        trbas.n_akun as namaakun,
+        0 nilaiMasuk,
+        a.v_spp nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok,
+        tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibiaya a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_id = #{idspp}
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBannyakListBkuLs4" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        SELECT 'JO' AS c_trx, tmspp.i_id, tmsp2d.i_id i_idsp2d, 9948 i_idbas,
+        e_spp e_doc_bukti, '' n_akun,
+        SUM (a.v_spp) masuk, 0 keluar, trskpd.c_skpd, trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok, tmsp2d.d_sp2d_sah
+        FROM tmspp, tmspprincibiaya a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.i_id = #{idspp}
+        GROUP BY tmspp.i_id, tmsp2d.i_id, e_spp,
+        trskpd.c_skpd,
+        trskpd.c_unitkerja,
+        trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok,
+        tmsp2d.d_sp2d_sah,
+        tmsp2d.c_sp2d_sah
+        UNION ALL
+        SELECT 'JL' AS c_trx, tmspp.i_id, tmsp2d.i_id i_idsp2d, a.i_idbas, trbas.c_akun e_doc_bukti,
+        trbas.n_akun, 0 masuk, a.v_spp keluar, trskpd.c_skpd, trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok, tmsp2d.d_sp2d_sah
+        FROM tmspp, tmspprincibiaya a, tmsp2d, trskpd, trbas
+        WHERE ((tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND (a.i_idbas = trbas.i_id)
+        )
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.c_beban = ('LS')
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_id = #{idspp}
+        )
+    </select>
+
+    <select id="getListBkuUpgutu" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT kodeTransaksi, idspp, idsp2d, idBas, uraianBukti, namaakun,  nilaiMasuk, nilaiKeluar, noDok, tglDok  FROM
+        (SELECT ROWNUM AS rn, a.* FROM (
+        SELECT 'JO' AS kodeTransaksi, tmspp.i_id as idspp,  tmsp2d.i_id idsp2d, 9948 AS idBas,
+        e_spp uraianBukti,
+        'Sisa Uang Persediaan' namaakun, SUM (a.v_spp) nilaiMasuk, 0 nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibl a, tmsp2d, trskpd
+        WHERE (tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.i_id = #{idspp}
+        GROUP BY tmspp.i_id, tmsp2d.i_id, e_spp,
+        trskpd.c_skpd,
+        trskpd.c_unitkerja,
+        trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok,
+        tmsp2d.d_sp2d_sah,
+        tmsp2d.c_sp2d_sah
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBannyakListBkuUpgutu" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        SELECT 'JO' AS kodeTransaksi, tmspp.i_id as idspp,  tmsp2d.i_id idsp2d, 9948 AS idBas,
+        e_spp uraianBukti,
+        'Sisa Uang Persediaan' namaakun, SUM (a.v_spp) nilaiMasuk, 0 nilaiKeluar,
+        tmsp2d.i_sp2dno_dok as noDok, tmsp2d.d_sp2d_sah as tglDok
+        FROM tmspp, tmspprincibl a, tmsp2d, trskpd
+        WHERE (tmspp.i_id = a.i_idspp)
+        AND (tmsp2d.i_idspp = tmspp.i_id)
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmspp.i_id = #{idspp}
+        GROUP BY tmspp.i_id, tmsp2d.i_id ,e_spp,
+        trskpd.c_skpd,
+        trskpd.c_unitkerja,
+        trskpd.n_skpd,
+        tmsp2d.i_sp2dno_dok,
+        tmsp2d.d_sp2d_sah,
+        tmsp2d.c_sp2d_sah
+        )
+    </select>
+
+    <insert id="insertBKU" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        I_IDTRX,
+        D_DOC_BUKTI,
+        E_DOC_BUKTI,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        I_IDBAS,
+        C_AKUN,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        C_JENIS,
+        C_BEBAN,
+        I_BKUNO,
+        I_FILLING,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{idsp2d},
+        #{tglDok},
+        #{uraianBukti},
+        #{idKegiatan},
+        #{kodeKeg},
+        #{idBas},
+        #{kodeakun},
+        #{nilaiMasuk},
+        #{nilaiKeluar},
+        #{jenis},
+        #{beban},
+        #{noBKU},
+        #{inboxFile},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <select id="getNilaiIndex" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT nvl(sum  (v_kas_terima),0) nilaiMasuk , nvl(sum ( v_kas_keluar),0) nilaiKeluar ,
+        nvl(sum(v_kas_terima - v_kas_keluar ) ,0)  as nilaiSisa FROM (
+        SELECT (v_saldoawal_debet)  v_kas_terima,(v_saldoawal_kredit)  v_kas_keluar
+        FROM tmjoursaldoawal a
+        WHERE a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND i_idbas in (39,41,9947,9948,9949,11554,11555,11556,11557,11558,11559,11560)
+
+        union all
+        SELECT (v_saldoawal_debet)  v_kas_terima,(v_saldoawal_kredit)  v_kas_keluar
+        FROM tmjoursaldoawal a , trbas
+        WHERE a.i_idbas = trbas.i_id
+        and a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND trbas.c_akun between '1.1.01.03' and '1.1.01.03.99'
+
+        union all
+        SELECT   (a.v_kas_terima) v_kas_terima ,(a.v_kas_keluar)
+        FROM tmbkuskpdpengeluaran a
+        WHERE a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND SUBSTR (d_posting, 5,2) &lt;= #{bulan})
+
+    </select>
+
+    <select id="getListIndex" parameterType="spp.model.BukuKasUmum" resultType="spp.model.BukuKasUmum">
+        <!--
+        SELECT  tglPosting, kodeTransaksi, idTransaksi, noBukti, tglDok, uraianBukti, idKegiatan, kodeKeg,
+        kodeakun, nilaiMasuk,nilaiKeluar, idBas, bkuStatus, ketKegiatan, beban,idBku, jenis
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT  tglPosting, kodeTransaksi, idTransaksi, noBukti, tglDok,
+        e_doc_bukti as uraianBukti, idKegiatan, kodeKeg, kodeakun,
+        nvl(v_kas_terima,0) as nilaiMasuk, nvl(v_kas_keluar,0) as nilaiKeluar, idBas,
+        c_status as bkuStatus, ketKegiatan, beban,idBku, jenis
+        FROM (
+        SELECT #{tahun} AS c_angg_tahun, #{idskpd} AS i_idskpd, NULL tglPosting,
+        NULL kodeTransaksi, NULL idTransaksi, NULL noBukti, NULL tglDok,
+        case when #{bulan} ='01' then
+        'SALDO AWAL '
+        when #{bulan} ='11'  then
+        'SALDO KAS S.D ' || bulan((to_number(#{bulan})-1))
+        when #{bulan} ='12'  then
+        'SALDO KAS S.D ' || bulan((to_number(#{bulan})-1))
+        else
+        'SALDO KAS S.D ' || bulan ('0'||to_char(to_number(#{bulan})-1))
+        end   AS e_doc_bukti,
+        NULL idKegiatan, NULL kodeKeg, NULL kodeakun,
+        SUM (v_kas_terima) AS v_kas_terima, NULL v_kas_keluar,
+        NULL idBas, NULL c_status, NULL as ketKegiatan, NULL as beban, NULL as idBku, NULL as jenis
+        FROM (SELECT (v_saldoawal_debet - v_saldoawal_kredit
+        ) v_kas_terima
+        FROM tmjoursaldoawal a
+        WHERE a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND i_idbas = 38
+        UNION ALL
+        SELECT (a.v_kas_terima - a.v_kas_keluar)
+        FROM tmbkuskpdpengeluaran a
+        WHERE a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND SUBSTR (d_posting, 5,2) &lt; #{bulan}) xxx
+        UNION ALL
+        SELECT *
+        FROM (SELECT #{tahun} AS c_angg_tahun, #{idskpd} AS i_idskpd,
+        a.d_posting as tglPosting, a.c_trx as kodeTransaksi, a.i_idtrx as idTransaksi,
+        a.i_doc_bukti as noBukti, a.d_doc_bukti as tglDok, a.e_doc_bukti, a.i_idkegiatan as idKegiatan,
+        a.c_kegiatan as kodeKeg, a.c_akun as kodeakun, a.v_kas_terima,
+        a.v_kas_keluar, a.i_idbas as idBas, a.c_status, k.c_kegiatan || ' / ' || k.n_kegiatan as ketKegiatan,
+        a.c_beban as beban, a.i_id as idBku, a.c_jenis as jenis
+        FROM tmbkuskpdpengeluaran a
+        left join tmdpakegiatan k on a.i_idkegiatan = k.i_id
+        WHERE a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND SUBSTR (d_posting, 5,2) = #{bulan}
+        AND a.c_aktif = 1
+        ORDER BY a.d_posting ) aaa) yyy
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+        -->
+
+        SELECT  idskpd,tglPosting, kodeTransaksi, idTransaksi, noBukti, tglDok, uraianBukti, idKegiatan, kodeKeg,
+        kodeakun, nilaiMasuk,nilaiKeluar,saldoKas, idBas, bkuStatus, ketKegiatan, beban,idBku, jenis, noBKU,
+        noBkuRef, noJournal, kodeKoreksi
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+
+        SELECT I_IDSKPD as idskpd ,
+        <!-- DECODE(ROWNUM,1,NULL, SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4)) AS tglPosting, -->
+        D_POSTING AS tglPosting,
+        C_TRX as kodeTransaksi, I_IDTRX as idTransaksi, I_DOC_BUKTI as noBukti, D_DOC_BUKTI as tglDok, E_DOC_BUKTI as uraianBukti, I_IDKEGIATAN as idKegiatan,  kodeKeg, bkuStatus,
+        ketKegiatan, I_IDBAS as idBas, C_AKUN as kodeakun, NVL(V_KAS_TERIMA,0) as nilaiMasuk, NVL(V_KAS_KELUAR,0) as nilaiKeluar,
+        SUM(NVL(V_KAS_TERIMA,0) - NVL(V_KAS_KELUAR,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas,
+        C_JENIS as jenis, C_BEBAN as beban, idBku, noBKU, noBkuRef, noJournal, kodeKoreksi
+        FROM(
+        SELECT #{tahun} AS C_ANGG_TAHUN, #{idskpd} AS I_IDSKPD, #{bulan} AS BLN_POSTING, #{tahun}||#{bulan}||'01' AS D_POSTING,
+        null AS C_TRX, null AS I_IDTRX, null AS I_DOC_BUKTI, null AS D_DOC_BUKTI,
+        (CASE
+        WHEN #{bulan} ='01' THEN 'SALDO AWAL ' || #{tahun}
+        ELSE 'SALDO KAS AWAL ' || UPPER(BULAN(#{bulan})) ||' '|| #{tahun}
+        END) AS E_DOC_BUKTI, null AS I_IDKEGIATAN, null AS  ketKegiatan, null  as kodeKeg, null as bkuStatus,
+        null AS I_IDBAS, null AS C_AKUN, SUM(V_KAS_TERIMA) AS V_KAS_TERIMA, 0 AS V_KAS_KELUAR
+        , NULL C_JENIS, NULL C_BEBAN,  NULL as idBku, NULL as noBKU, NULL as noBkuRef, NULL as noJournal, '0' as kodeKoreksi
+        FROM (
+        SELECT (V_SALDOAWAL_DEBET - V_SALDOAWAL_KREDIT) AS V_KAS_TERIMA
+        FROM TMJOURSALDOAWAL A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND I_IDBAS in (39,41,9947,9948,9949,11554,11555,11556,11557,11558,11559,11560)
+        UNION ALL
+        SELECT (v_saldoawal_debet)  v_kas_terima
+        FROM tmjoursaldoawal a , trbas
+        WHERE a.i_idbas = trbas.i_id
+        and a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND trbas.c_akun between '1.1.01.03' and '1.1.01.03.99'
+        UNION ALL
+        SELECT SUM(A.V_KAS_TERIMA - A.V_KAS_KELUAR) AS V_KAS_TERIMA
+        FROM TMBKUSKPDPENGELUARAN A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND SUBSTR (A.D_POSTING, 5.2) &lt; #{bulan} )
+        UNION ALL
+        SELECT * FROM(
+        SELECT A.C_ANGG_TAHUN, A.I_IDSKPD, SUBSTR (A.D_POSTING, 5,2) AS BLN_POSTING, A.D_POSTING, A.C_TRX, A.I_IDTRX, A.I_DOC_BUKTI, A.D_DOC_BUKTI,
+        REPLACE(REPLACE(REPLACE(TRIM(E_DOC_BUKTI),'  ',' '),'  ',' '),'  ',' '),
+        A.I_IDKEGIATAN,  DECODE(k.c_kegiatan,NULL,NULL,  k.c_kegiatan || ' / ' || k.n_kegiatan) as ketKegiatan, k.c_kegiatan as kodeKeg,
+        A.c_status as bkuStatus, A.I_IDBAS, A.C_AKUN, A.V_KAS_TERIMA, A.V_KAS_KELUAR, A.C_JENIS, A.C_BEBAN ,
+        a.i_id as idBku, a.i_bkuno as noBKU, a.i_bkuno_ref as noBkuRef, a.i_jour as noJournal, a.c_bku_koreksi as kodeKoreksi
+        FROM TMBKUSKPDPENGELUARAN A  left join tmdpakegiatan k on a.i_idkegiatan = k.i_id
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND SUBSTR (A.D_POSTING, 5,2) = #{bulan}
+        AND a.c_aktif = 1
+
+        <if test="idskpd == 761 or idskpd == 1234">
+            and A.C_WIL_SP2DPROSES = #{kodeWilayah}
+
+            ORDER BY <!-- A.D_POSTING, a.i_bkuno,  A.I_ID -->
+
+        <choose>
+           <when test="iSortCol_0 == 2 ">
+                a.i_bkuno
+            </when>
+
+            <when test="iSortCol_0 == 1 ">
+                A.D_POSTING, a.i_bkuno
+            </when>
+
+            <otherwise>
+                A.D_POSTING, a.i_bkuno
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise>
+                asc
+            </otherwise>
+        </choose>
+
+        </if>
+
+        <if test="idskpd != 761 and idskpd != 1234">
+            ORDER BY  a.i_bkuno,  A.D_POSTING, A.I_ID
+        </if>
+
+        ))
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+
+    </select>
+
+    <select id="getBannyakListIndex" parameterType="spp.model.BukuKasUmum" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT I_IDSKPD as idskpd , DECODE(ROWNUM,1,NULL, SUBSTR(D_POSTING,7,2)||'/'||SUBSTR(D_POSTING,5,2)||'/'||SUBSTR(D_POSTING,1,4)) AS tglPosting,
+        C_TRX as kodeTransaksi, I_IDTRX as idTransaksi, I_DOC_BUKTI as noBukti, D_DOC_BUKTI as tglDok, E_DOC_BUKTI as uraianBukti, I_IDKEGIATAN as idKegiatan,  kodeKeg, bkuStatus,
+        ketKegiatan, I_IDBAS as idBas, C_AKUN as kodeakun, V_KAS_TERIMA as nilaiMasuk, V_KAS_KELUAR as nilaiKeluar,
+        SUM(NVL(V_KAS_TERIMA,0) - NVL(V_KAS_KELUAR,0)) OVER (PARTITION BY I_IDSKPD ORDER BY ROWNUM, I_IDSKPD RANGE UNBOUNDED PRECEDING) AS saldoKas,
+        C_JENIS as jenis, C_BEBAN as beban, idBku
+        FROM(
+        SELECT #{tahun} AS C_ANGG_TAHUN, #{idskpd} AS I_IDSKPD, #{bulan} AS BLN_POSTING, #{tahun}||#{bulan}||'01' AS D_POSTING,
+        null AS C_TRX, null AS I_IDTRX, null AS I_DOC_BUKTI, null AS D_DOC_BUKTI,
+        (CASE
+        WHEN #{bulan} ='01' THEN 'SALDO AWAL ' || #{tahun}
+        ELSE 'SALDO KAS AWAL ' || UPPER(BULAN(#{bulan})) ||' '|| #{tahun}
+        END) AS E_DOC_BUKTI, null AS I_IDKEGIATAN, null AS  ketKegiatan, null  as kodeKeg, null as bkuStatus,
+        null AS I_IDBAS, null AS C_AKUN, SUM(V_KAS_TERIMA) AS V_KAS_TERIMA, 0 AS V_KAS_KELUAR
+        , NULL C_JENIS, NULL C_BEBAN,  NULL as idBku
+        FROM (
+        SELECT (V_SALDOAWAL_DEBET - V_SALDOAWAL_KREDIT) AS V_KAS_TERIMA
+        FROM TMJOURSALDOAWAL A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND I_IDBAS in (39,41,9947,9948,9949,11554,11555,11556,11557,11558,11559,11560)
+        UNION ALL
+        SELECT (v_saldoawal_debet)  v_kas_terima
+        FROM tmjoursaldoawal a , trbas
+        WHERE a.i_idbas = trbas.i_id
+        and a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND trbas.c_akun between '1.1.01.03' and '1.1.01.03.99'
+        UNION ALL
+        SELECT SUM(A.V_KAS_TERIMA - A.V_KAS_KELUAR) AS V_KAS_TERIMA
+        FROM TMBKUSKPDPENGELUARAN A
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND SUBSTR (A.D_POSTING, 5.2) &lt; #{bulan} )
+        UNION ALL
+        SELECT * FROM(
+        SELECT A.C_ANGG_TAHUN, A.I_IDSKPD, SUBSTR (A.D_POSTING, 5,2) AS BLN_POSTING, A.D_POSTING, A.C_TRX, A.I_IDTRX, A.I_DOC_BUKTI, A.D_DOC_BUKTI,
+        REPLACE(REPLACE(REPLACE(TRIM(E_DOC_BUKTI),'  ',' '),'  ',' '),'  ',' '),
+        A.I_IDKEGIATAN,  DECODE(k.c_kegiatan,NULL,NULL,  k.c_kegiatan || ' / ' || k.n_kegiatan) as ketKegiatan, k.c_kegiatan as kodeKeg,
+        A.c_status as bkuStatus, A.I_IDBAS, A.C_AKUN, A.V_KAS_TERIMA, A.V_KAS_KELUAR, A.C_JENIS, A.C_BEBAN , a.i_id as idBku
+        FROM TMBKUSKPDPENGELUARAN A  left join tmdpakegiatan k on a.i_idkegiatan = k.i_id
+        WHERE A.C_ANGG_TAHUN = #{tahun}
+        AND A.I_IDSKPD = #{idskpd}
+        AND SUBSTR (A.D_POSTING, 5,2) = #{bulan}
+        AND a.c_aktif = 1
+        <if test="idskpd == 761 or idskpd == 1234">
+            and A.C_WIL_SP2DPROSES = #{kodeWilayah}
+        </if>
+        ORDER BY A.D_POSTING, A.I_ID))
+        )
+        <!-- SELECT count(*) as banyak from (
+        SELECT  tglPosting, kodeTransaksi, idTransaksi, noBukti, tglDok,
+        e_doc_bukti as uraianBukti, idKegiatan, kodeKeg, kodeakun,
+        nvl(v_kas_terima,0) as nilaiMasuk, nvl(v_kas_keluar,0) as nilaiKeluar, idBas, c_status as bkuStatus, ketKegiatan, beban
+        FROM (
+        SELECT #{tahun} AS c_angg_tahun, #{idskpd} AS i_idskpd, NULL tglPosting,
+        NULL kodeTransaksi, NULL idTransaksi, NULL noBukti, NULL tglDok,
+        case when #{bulan} ='01' then
+        'SALDO AWAL '
+        else
+        'SALDO KAS S.D ' || bulan (#{bulan})
+        end   AS e_doc_bukti,
+        NULL idKegiatan, NULL kodeKeg, NULL kodeakun,
+        SUM (v_kas_terima) AS v_kas_terima, NULL v_kas_keluar,
+        NULL idBas, NULL c_status, NULL as ketKegiatan, NULL as beban
+        FROM (SELECT (v_saldoawal_debet - v_saldoawal_kredit
+        ) v_kas_terima
+        FROM tmjoursaldoawal a
+        WHERE a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND i_idbas = 38
+        UNION ALL
+        SELECT (a.v_kas_terima - a.v_kas_keluar)
+        FROM tmbkuskpdpengeluaran a
+        WHERE a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND SUBSTR (d_posting, 5,2) &lt; #{bulan}) xxx
+        UNION ALL
+        SELECT *
+        FROM (SELECT #{tahun} AS c_angg_tahun, #{idskpd} AS i_idskpd,
+        a.d_posting as tglPosting, a.c_trx as kodeTransaksi, a.i_idtrx as idTransaksi,
+        a.i_doc_bukti as noBukti, a.d_doc_bukti as tglDok, a.e_doc_bukti, a.i_idkegiatan as idKegiatan,
+        a.c_kegiatan as kodeKeg, a.c_akun as kodeakun, a.v_kas_terima,
+        a.v_kas_keluar, a.i_idbas as idBas, a.c_status, k.c_kegiatan || '/' || k.n_kegiatan as ketKegiatan, a.c_beban as beban
+        FROM tmbkuskpdpengeluaran a
+        left join tmdpakegiatan k on a.i_idkegiatan = k.i_id
+        WHERE a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        AND SUBSTR (d_posting, 5,2) = #{bulan}
+        AND a.c_aktif = 1
+        ORDER BY a.i_doc_bukti ) aaa) yyy
+        ) -->
+    </select>
+
+    <select id="getKegiatan" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idKegiatan, kodeKeg, namaKeg FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT DISTINCT  tmspdrincibl.i_idkegiatan as idKegiatan,
+        tmdpakegiatan.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg
+        FROM tmspd, tmspdrincibl,  tmspdsah,
+        tmdpakegiatan, tmspp, tmspprincibl,  tmsp2d
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id = tmspdrincibl.i_idkegiatan
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_beban &lt;&gt; 'LS'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBannyakKegiatan" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT DISTINCT  tmspdrincibl.i_idkegiatan as idKegiatan,
+        tmdpakegiatan.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg
+        FROM tmspd, tmspdrincibl,  tmspdsah,
+        tmdpakegiatan, tmspp, tmspprincibl,  tmsp2d
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id = tmspdrincibl.i_idkegiatan
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_beban &lt;&gt; 'LS'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        )
+    </select>
+
+    <select id="getAkunCombo" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        <!--
+        SELECT DISTINCT tmspdrincibl.i_idbas as idBas, trbas.c_akun as kodeakun, trbas.n_akun as namaakun
+        FROM tmspd, tmspdrincibl, tmspdsah, tmdpakegiatan,
+        tmspp, tmspprincibl, tmsp2d, trbas
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id = tmspdrincibl.i_idkegiatan
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_beban &lt;&gt; 'LS'
+        AND tmspdrincibl.i_idbas = trbas.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        and tmspdrincibl.i_idkegiatan = #{idkegiatan}
+
+        -->
+        SELECT DISTINCT tmspdrincibl.i_idbas as idBas, trbas.n_akun as namaakun,
+        trbas.c_akun as ketakun, trbas.c_akun  ||'/'|| trbas.n_akun as kodeakun
+        FROM tmspd, tmspdrincibl, tmspdsah, tmdpakegiatan,
+        trbas
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id = tmspdrincibl.i_idkegiatan
+        AND tmspdrincibl.i_idbas = trbas.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        and tmspdrincibl.i_idkegiatan = #{idkegiatan}
+        and tmspdrincibl.c_spd_status &lt;&gt; 'P'
+
+    </select>
+
+    <insert id="insertBkuSpj" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        E_DOC_BUKTI,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        I_IDBAS,
+        C_AKUN,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        C_JENIS,
+        C_BEBAN,
+        I_BKUNO,
+        I_FILLING,
+        I_PPTK_NIP,
+        N_PPTK,
+        E_RMKS,
+        C_CARA_BAYAR,
+        C_UANGPERSEDIAAN,
+        C_WIL_SP2DPROSES,
+        C_BKU_KOREKSI,
+        <if test="idSpd != null and idSpd > 0 ">
+            I_IDSPD,
+        </if>
+        <if test="noBkuPj != null and noBkuPj != '' and noBkuPj != 'BELUM ADA PG' ">
+            I_BKUNO_REF,
+        </if>
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        #{uraianBukti},
+        #{idKegiatan},
+        #{kodeKeg},
+        #{idBas},
+        #{kodeakun},
+        #{nilaiMasuk},
+        #{nilaiKeluar},
+        #{jenis},
+        #{beban},
+        #{noBKU},
+        #{inboxFile},
+        #{nipPptk},
+        #{namaPptk},
+        #{uraian},
+        #{kodePembayaran},
+        #{kodeUangPersediaan},
+        #{kodeWilayah},
+        #{kodeKoreksi},
+        <if test="idSpd != null and idSpd > 0 ">
+            #{idSpd},
+        </if>
+        <if test="noBkuPj != null and noBkuPj != '' and noBkuPj != 'BELUM ADA PG' ">
+            #{noBkuPj},
+        </if>
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <select id="getBkuEdit" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select distinct  tmbkuskpdpengeluaran.c_angg_tahun as tahun,
+        SUBSTR (d_posting, 7,2) ||'/'|| SUBSTR (d_posting, 5,2) ||'/'|| SUBSTR (d_posting, 1,4) as tglPosting,
+        c_trx as kodeTransaksi, SUBSTR (d_posting, 5,2) as bulan,
+        i_doc_bukti as noBukti ,  d_doc_bukti as tglDok, d_posting as noJournalDok, c_beban as beban, c_jenis as jenis,
+        i_filling as inboxFile , i_pptk_nip as nipPptk, n_pptk as namaPptk , e_rmks as uraian , i_bkuno as noBKU,
+        c_cara_bayar as kodePembayaran, i_idspd as idSpd, i_idkegiatan as idKegiatan, tmbkuskpdpengeluaran.c_kegiatan as kodeKeg,
+        tmbkuskpdpengeluaran.c_kegiatan ||'/'|| n_kegiatan as ketKegiatan
+        from tmbkuskpdpengeluaran left join tmdpakegiatan on tmbkuskpdpengeluaran.i_idkegiatan =  tmdpakegiatan.i_id
+        where tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and  tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and  tmbkuskpdpengeluaran.i_bkuno = #{noBku}
+
+    </select>
+
+    <select id="getBkuEditPajak" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select distinct tmbkuskpdpengeluaran.c_angg_tahun as tahun, SUBSTR (d_posting, 7,2) ||'/'|| SUBSTR (d_posting, 5,2) ||'/'|| SUBSTR (d_posting, 1,4) as tglPosting,
+        c_trx as kodeTransaksi, SUBSTR (d_posting, 5,2) as bulan, i_bkuno_ref as noBkuPj,
+        i_doc_bukti as noBukti ,  d_doc_bukti as tglDok, d_posting as noJournalDok, c_beban as beban, c_jenis as jenis,
+        i_filling as inboxFile , i_pptk_nip as nipPptk, n_pptk as namaPptk , e_doc_bukti as uraian , i_bkuno as noBKU,
+        c_cara_bayar as kodePembayaran, i_idkegiatan as idKegiatan,
+        tmdpakegiatan.c_kegiatan || ' / '|| n_kegiatan as ketKegiatan, tmdpakegiatan.c_kegiatan as kodeKeg
+        from tmbkuskpdpengeluaran left join tmdpakegiatan on tmbkuskpdpengeluaran.i_idkegiatan = tmdpakegiatan.i_id
+        where tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and i_bkuno = #{noBku}
+
+    </select>
+
+    <select id="getRinciSpjEdit" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select  tmbkuskpdpengeluaran.i_id as idBku, i_idbas as idBas,e_doc_bukti as namaakun, c_akun as kodeakun, i_idkegiatan as idKegiatan,
+        tmbkuskpdpengeluaran.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg,
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar, i_idspd as idSpd
+        from tmbkuskpdpengeluaran
+        left join tmdpakegiatan on tmdpakegiatan.i_id = tmbkuskpdpengeluaran.i_idkegiatan
+        where tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and i_doc_bukti = #{nobukti}
+        and d_posting = #{tglposting}
+        and i_bkuno = #{nobku}
+
+    </select>
+
+    <select id="getBanyakRinciSpjEdit" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select  tmbkuskpdpengeluaran.i_id as idBku, i_idbas as idBas,e_doc_bukti as namaakun, c_akun as kodeakun, i_idkegiatan as idKegiatan,
+        tmbkuskpdpengeluaran.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg,
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar
+        from tmbkuskpdpengeluaran
+        left join tmdpakegiatan on tmdpakegiatan.i_id = tmbkuskpdpengeluaran.i_idkegiatan
+        where tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and i_doc_bukti = #{nobukti}
+        and d_posting = #{tglposting}
+        and i_bkuno = #{nobku}
+        )
+    </select>
+
+    <update id="updateBku" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        <!-- E_DOC_BUKTI = #{uraianBukti}, -->
+        I_IDKEGIATAN = #{idKegiatan},
+        C_KEGIATAN = #{kodeKeg},
+        I_IDBAS = #{idBas},
+        C_AKUN = #{kodeakun},
+        V_KAS_TERIMA = #{nilaiMasuk},
+        V_KAS_KELUAR = #{nilaiKeluar},
+        C_JENIS = #{jenis},
+        C_BEBAN = #{beban},
+        I_FILLING = #{inboxFile},
+        I_PPTK_NIP = #{nipPptk},
+        N_PPTK = #{namaPptk},
+        E_DOC_BUKTI = #{uraian},
+        E_RMKS = #{uraian},
+        I_PGUN_UBAH = #{idEntry},
+        C_CARA_BAYAR = #{kodePembayaran},
+        C_UANGPERSEDIAAN = #{kodeUangPersediaan},
+        <if test="idSpd != null and idSpd > 0 ">
+            I_IDSPD = #{idSpd},
+        </if>
+        D_PGUN_UBAH = sysdate
+        WHERE
+        I_ID = #{idBku}
+
+    </update>
+
+    <insert id="insertBkuSetorUp" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        <if test="kodeTransaksi == 'SB' or kodeTransaksi == 'ST'">
+            C_JENIS,
+            C_BEBAN,
+        </if>
+        I_BKUNO,
+        I_FILLING,
+        I_PPTK_NIP,
+        N_PPTK,
+        E_DOC_BUKTI,
+        E_RMKS,
+        C_CARA_BAYAR,
+        C_UANGPERSEDIAAN,
+        C_WIL_SP2DPROSES,
+        <if test="kodeTransaksi == 'SB' or kodeTransaksi == 'LL' or kodeTransaksi == 'ST'">
+            C_AKUN,
+            I_IDBAS,
+        </if>
+        C_BKU_KOREKSI,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        #{nilaiMasuk},
+        #{nilaiKeluar},
+        <if test="kodeTransaksi == 'SB' or kodeTransaksi == 'ST'">
+            #{jenis},
+            #{beban},
+        </if>
+        #{noBKU},
+        #{inboxFile},
+        #{nipPptk},
+        #{namaPptk},
+        #{uraian},
+        #{uraian},
+        #{kodePembayaran},
+        #{kodeUangPersediaan},
+        #{kodeWilayah},
+        <if test="kodeTransaksi == 'SB' or kodeTransaksi == 'LL' or kodeTransaksi == 'ST' ">
+            #{akunPn},
+            #{idBas},
+        </if>
+        #{kodeKoreksi},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <insert id="insertBkuCek" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        I_BKUNO,
+        I_FILLING,
+        C_AKUN,
+        I_IDBAS,
+        C_WIL_SP2DPROSES,
+        <if test="kodeTransaksi == 'NP' or kodeTransaksi == 'NM' ">
+            I_PPTK_NIP,
+            N_PPTK,
+            C_JENIS,
+            I_IDKEGIATAN,
+            C_KEGIATAN,
+            C_BEBAN,
+        </if>
+        C_CARA_BAYAR,
+        C_UANGPERSEDIAAN,
+        E_DOC_BUKTI,
+        C_BKU_KOREKSI,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        #{nilaiCek},
+        0,
+        #{noBKU},
+        #{inboxFile},
+        #{akunPn},
+        #{idbasPn},
+        #{kodeWilayah},
+        <if test="kodeTransaksi == 'NP' or kodeTransaksi == 'NM' ">
+            #{nipPptk},
+            #{namaPptk},
+            #{jenis},
+            #{idKegiatan},
+            #{kodeKeg},
+            #{beban},
+        </if>
+        #{caraBayarPn},
+        #{caraBayarPn},
+        #{uraianPn},
+        #{kodeKoreksi},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <insert id="insertBkuCekPg" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        I_BKUNO,
+        I_FILLING,
+        C_AKUN,
+        I_IDBAS,
+        C_WIL_SP2DPROSES,
+        <if test="kodeTransaksi == 'NP' or kodeTransaksi == 'NM' ">
+            I_PPTK_NIP,
+            N_PPTK,
+            C_JENIS,
+            I_IDKEGIATAN,
+            C_KEGIATAN,
+            C_BEBAN,
+        </if>
+        C_CARA_BAYAR,
+        C_UANGPERSEDIAAN,
+        E_DOC_BUKTI,
+        C_BKU_KOREKSI,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        0,
+        #{nilaiCek},
+        #{noBKU},
+        #{inboxFile},
+        #{akunPg},
+        #{idbasPg},
+        #{kodeWilayah},
+        <if test="kodeTransaksi == 'NP' or kodeTransaksi == 'NM' ">
+            #{nipPptk},
+            #{namaPptk},
+            #{jenis},
+            #{idKegiatan},
+            #{kodeKeg},
+            #{beban},
+        </if>
+        #{caraBayarPg},
+        #{caraBayarPg},
+        #{uraianPg},
+        #{kodeKoreksi},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <select id="getKegiatanBantuan" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idKegiatan, kodeKeg, namaKeg FROM  (SELECT  ROWNUM AS rn, a.* FROM (
+        SELECT DISTINCT  tmspdrincibtlbantuan.I_IDBTLBANTUAN as idKegiatan,
+        tmdpabtlbantuan.c_kegiatan as kodeKeg , tmdpabtlbantuan.n_kegiatan as namaKeg
+        from tmspd, tmspdrincibtlbantuan, tmdpabtlbantuan, tmspdsah, tmspp, tmspprincibtlbantuan, tmsp2d
+        where  tmspd.i_id =  tmspdrincibtlbantuan.i_idspd
+        AND tmdpabtlbantuan.i_id = tmspdrincibtlbantuan.I_IDBTLBANTUAN
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibtlbantuan.i_idspp
+        AND tmspd.i_id = tmspdrincibtlbantuan.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '2'
+        AND tmspp.c_beban= 'LS'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpabtlbantuan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpabtlbantuan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakKegiatanBantuan" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT DISTINCT  tmspdrincibtlbantuan.I_IDBTLBANTUAN as idKegiatan,
+        tmdpabtlbantuan.c_kegiatan as kodeKeg , tmdpabtlbantuan.n_kegiatan as namaKeg
+        from tmspd, tmspdrincibtlbantuan, tmdpabtlbantuan, tmspdsah, tmspp, tmspprincibtlbantuan, tmsp2d
+        where  tmspd.i_id =  tmspdrincibtlbantuan.i_idspd
+        AND tmdpabtlbantuan.i_id = tmspdrincibtlbantuan.I_IDBTLBANTUAN
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibtlbantuan.i_idspp
+        AND tmspd.i_id = tmspdrincibtlbantuan.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '2'
+        AND tmspp.c_beban= 'LS'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        )
+    </select>
+
+    <select id="getKegiatanBl" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idKegiatan, kodeKeg, namaKeg FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT DISTINCT  tmspdrincibl.i_idkegiatan as idKegiatan,
+        tmdpakegiatan.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg
+        FROM tmspd, tmspdrincibl,  tmspdsah,
+        tmdpakegiatan, tmspp, tmspprincibl,  tmsp2d
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id = tmspdrincibl.i_idkegiatan
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_beban = 'LS'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakKegiatanBl" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT DISTINCT  tmspdrincibl.i_idkegiatan as idKegiatan,
+        tmdpakegiatan.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg
+        FROM tmspd, tmspdrincibl,  tmspdsah,
+        tmdpakegiatan, tmspp, tmspprincibl,  tmsp2d
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id = tmspdrincibl.i_idkegiatan
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_beban = 'LS'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        )
+    </select>
+
+    <select id="getAkunComboBtl" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT DISTINCT  tmspdrincibtl.i_idbas as idBas, trbas.c_akun as ketakun,
+        trbas.c_akun  ||'/'|| trbas.n_akun as kodeakun, trbas.n_akun as namaakun
+        FROM tmspd, tmspdrincibtl,  tmspdsah,
+        trbas, tmspp, tmspprincibtl,  tmsp2d
+        WHERE tmspd.i_id = tmspdrincibtl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND trbas.i_id = tmspdrincibtl.i_idbas
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibtl.i_idspp
+        AND tmspd.i_id = tmspprincibtl.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '1'
+        AND tmspp.c_beban = 'LS'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        <if test="pajak == 'BUKANPAJAK' ">
+            AND tmspdrincibtl.c_spd_status &lt;&gt; 'P'
+        </if>
+
+    </select>
+
+    <select id="getAkunComboBantuan" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT DISTINCT  tmspdrincibtlbantuan.i_idbtlbantuan, tmspdrincibtlbantuan.i_idbas as idBas,
+        trbas.c_akun as ketakun, trbas.c_akun  ||'/'|| trbas.n_akun as kodeakun, trbas.n_akun as namaakun
+        FROM tmspd, tmspdrincibtlbantuan, tmspdsah,
+        tmspp, tmspprincibtlbantuan, tmsp2d, trbas
+        WHERE tmspd.i_id = tmspdrincibtlbantuan.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspdrincibtlbantuan.i_idbas = trbas.i_id
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibtlbantuan.i_idspp
+        AND tmspd.i_id = tmspdrincibtlbantuan.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '2'
+        AND tmspp.c_beban= 'LS'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        and tmspdrincibtlbantuan.i_idbtlbantuan =  #{idkegiatan}
+        AND tmspdrincibtl.c_spd_status &lt;&gt; 'P'
+    </select>
+
+    <select id="getAkunComboBl" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT DISTINCT  tmspdrincibl.i_idbas as idBas, trbas.c_akun ||'/'|| trbas.n_akun as kodeakun  ,
+        trbas.n_akun as namaakun, trbas.c_akun as ketakun
+        FROM tmspd, tmspdrincibl, tmspdsah, tmdpakegiatan,
+        tmspp, tmspprincibl, tmsp2d, trbas
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id = tmspdrincibl.i_idkegiatan
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_beban in ('LS','TU')
+        AND tmspdrincibl.i_idbas = trbas.i_id
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        and tmspdrincibl.i_idkegiatan =  #{idkegiatan}
+        AND tmspdrincibl.c_spd_status &lt;&gt; 'P'
+    </select>
+
+    <select id="getAkunComboTU" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select tmspprincibl.i_idbas as idBas, trbas.c_akun ||'/'|| trbas.n_akun as kodeakun  ,
+        trbas.n_akun as namaakun, trbas.c_akun as ketakun
+        from tmspp, tmspprincibl, trbas
+        where c_beban = 'TU'
+        and tmspp.i_id =  tmspprincibl.i_idspp
+        and tmspprincibl.i_idbas = trbas.i_id
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        and i_idkegiatan = #{idkegiatan}
+        and i_idspd = #{idspd}
+
+    </select>
+
+    <select id="getAkunComboBiaya" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT DISTINCT  tmspdrincibiaya.i_idbas as idBas,trbas.c_akun as ketakun,
+        trbas.c_akun ||'/'|| trbas.n_akun  as kodeakun, trbas.n_akun as namaakun
+        FROM tmspd, tmspdrincibiaya,  tmspdsah,
+        trbas, tmspp, tmspprincibiaya,  tmsp2d
+        WHERE tmspd.i_id = tmspdrincibiaya.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND trbas.i_id = tmspdrincibiaya.i_idbas
+        AND tmspd.i_idskpd = tmspp.i_idskpd
+        AND tmspd.c_angg_tahun = tmspp.c_angg_tahun
+        AND tmspp.i_id = tmspprincibiaya.i_idspp
+        AND tmspd.i_id = tmspprincibiaya.i_idspd
+        AND tmspp.i_id = tmsp2d.i_idspp
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_jenis = '4'
+        AND tmspp.c_beban = 'LS'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspdrincibiaya.c_spd_status &lt;&gt; 'P'
+    </select>
+
+    <insert id="insertBkuTanpaKeg" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        <!--  E_DOC_BUKTI, -->
+        I_IDBAS,
+        C_AKUN,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        C_JENIS,
+        C_BEBAN,
+        I_BKUNO,
+        I_FILLING,
+        I_PPTK_NIP,
+        N_PPTK,
+        E_DOC_BUKTI,
+        E_RMKS,
+        C_CARA_BAYAR,
+        C_UANGPERSEDIAAN,
+        C_WIL_SP2DPROSES,
+        C_BKU_KOREKSI,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        <!--  #{uraianBukti}, -->
+        #{idBas},
+        #{kodeakun},
+        #{nilaiMasuk},
+        #{nilaiKeluar},
+        #{jenis},
+        #{beban},
+        #{noBKU},
+        #{inboxFile},
+        #{nipPptk},
+        #{namaPptk},
+        #{uraian},
+        #{uraian},
+        #{kodePembayaran},
+        #{kodeUangPersediaan},
+        #{kodeWilayah},
+        #{kodeKoreksi},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <select id="getBkuEditStUp" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select  i_id as idBku,  v_kas_keluar as nilaiKeluar, v_kas_terima as nilaiMasuk, SUBSTR (d_posting, 5,2) as bulan,
+        SUBSTR (d_posting, 7,2) ||'/'|| SUBSTR (d_posting, 5,2) ||'/'|| SUBSTR (d_posting, 1,4) as tglPosting,
+        c_trx as kodeTransaksi, c_angg_tahun as tahun, i_doc_bukti as noBukti, e_doc_bukti as uraian,
+        i_pptk_nip as nipPptk, n_pptk as namaPptk , i_bkuno as noBKU, c_cara_bayar as kodePembayaran, i_idbas as idBas,
+        d_doc_bukti as tglDok, c_beban as beban, c_jenis as jenis, i_filling as inboxFile, C_BKU_KOREKSI as kodeKoreksi,
+        i_bkuno_ref as noBkuRef
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id = #{idbku}
+
+    </select>
+
+    <select id="getBkuEditCek" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select sum(v_kas_terima) as nilaiCek, i_bkuno as noBKU, SUBSTR (d_posting, 5,2) as bulan,
+        SUBSTR (d_posting, 7,2) ||'/'|| SUBSTR (d_posting, 5,2) ||'/'|| SUBSTR (d_posting, 1,4) as tglPosting,
+        c_trx as kodeTransaksi, c_angg_tahun as tahun, i_doc_bukti as noBukti, d_doc_bukti as tglDok,  i_filling as inboxFile,
+        (select e_doc_bukti  from tmbkuskpdpengeluaran  where  c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd} and i_BKUNO = #{noBKU} and v_kas_terima &gt; 0 ) as uraianPn,
+        (select e_doc_bukti  from tmbkuskpdpengeluaran  where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd} and i_BKUNO = #{noBKU} and v_kas_keluar &gt; 0 ) as uraianPg
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_BKUNO = #{noBKU}
+        group by i_BKUNO, d_posting, c_trx, c_angg_tahun, i_doc_bukti, d_doc_bukti, i_filling
+
+        <!--
+        select  i_id as idBku,  v_kas_keluar as nilaiKeluar, v_kas_terima as nilaiMasuk, SUBSTR (d_posting, 5,2) as bulan,
+        SUBSTR (d_posting, 7,2) ||'/'|| SUBSTR (d_posting, 5,2) ||'/'|| SUBSTR (d_posting, 1,4) as tglPosting,
+        c_trx as kodeTransaksi, c_angg_tahun as tahun, i_doc_bukti as noBukti,
+        d_doc_bukti as tglDok,  i_filling as inboxFile
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id = #{idbku}
+        -->
+    </select>
+
+    <update id="updateBkuSetorUp" parameterType="spp.model.BukuKasUmum" >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        <if test="kodeTransaksi == 'SB'">
+            V_KAS_TERIMA = #{nilaiKeluar},
+        </if>
+
+        <if test="kodeTransaksi == 'ST'">
+            V_KAS_KELUAR = #{nilaiKeluar},
+        </if>
+
+        <if test="kodeTransaksi == 'LL' or kodeTransaksi == 'KM'">
+            V_KAS_TERIMA = #{nilaiMasuk},
+        </if>
+
+        <if test="kodeTransaksi == 'LL'">
+            V_KAS_KELUAR = #{nilaiKeluar},
+        </if>
+
+        <if test="kodeTransaksi == 'SB' or kodeTransaksi == 'LL'">
+            C_AKUN = #{akunPn},
+            I_IDBAS = #{idBas},
+        </if>
+        <if test="kodeTransaksi == 'SB' or kodeTransaksi == 'ST'">
+            C_JENIS = #{jenis},
+            C_BEBAN = #{beban},
+        </if>
+        I_FILLING = #{inboxFile},
+        I_PPTK_NIP = #{nipPptk},
+        N_PPTK = #{namaPptk},
+        E_DOC_BUKTI = #{uraian},
+        E_RMKS = #{uraian},
+        C_CARA_BAYAR = #{kodePembayaran},
+        C_UANGPERSEDIAAN = #{kodeUangPersediaan},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        I_ID = #{idBku}
+
+    </update>
+
+    <update id="updateBkuNpd" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        V_KAS_TERIMA = #{nilaiCek},
+        I_FILLING = #{inboxFile},
+
+        I_PPTK_NIP = #{nipPptk},
+        N_PPTK = #{namaPptk},
+        I_IDKEGIATAN = #{idKegiatan},
+        C_KEGIATAN = #{kodeKeg},
+        C_BEBAN = #{beban},
+        C_CARA_BAYAR = #{caraBayarPn},
+        C_UANGPERSEDIAAN = #{caraBayarPn},
+        I_IDBAS = #{idbasPn},
+        C_AKUN = #{akunPn},
+
+        E_DOC_BUKTI = #{uraianPn},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND I_BKUNO = #{noBKU}
+
+        AND C_TRX = #{kodeTransaksi}
+
+        <if test="kodeTransaksi == 'NM'">
+             AND (C_AKUN = '1.1.01.03.01.001.02' OR C_AKUN = '1.1.01.03.01.003.02' OR C_AKUN = '1.1.01.03.01.001.01' OR C_AKUN = '1.1.01.03.01.003.01')
+        </if>
+
+        <if test="kodeTransaksi == 'NP'">
+            AND C_AKUN = #{akunPn}
+        </if>
+
+    </update>
+
+    <update id="updateBkuNpdPg" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        V_KAS_KELUAR = #{nilaiCek},
+        I_FILLING = #{inboxFile},
+
+        I_PPTK_NIP = #{nipPptk},
+        N_PPTK = #{namaPptk},
+        I_IDKEGIATAN = #{idKegiatan},
+        C_KEGIATAN = #{kodeKeg},
+        C_BEBAN = #{beban},
+        C_CARA_BAYAR = #{caraBayarPg},
+        C_UANGPERSEDIAAN = #{caraBayarPg},
+        I_IDBAS = #{idbasPg},
+        C_AKUN = #{akunPg},
+
+        E_DOC_BUKTI = #{uraianPg},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND I_BKUNO = #{noBKU}
+        AND C_TRX = #{kodeTransaksi}
+
+        <if test="kodeTransaksi == 'NP'">
+             AND (C_AKUN = '1.1.01.03.01.001.02' OR C_AKUN = '1.1.01.03.01.003.02' OR C_AKUN = '1.1.01.03.01.001.01' OR C_AKUN = '1.1.01.03.01.003.01')
+        </if>
+
+        <if test="kodeTransaksi == 'NM'">
+            AND C_AKUN = #{akunPg}
+        </if>
+
+    </update>
+
+    <update id="updateBkuCek" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        V_KAS_TERIMA = #{nilaiCek},
+        I_FILLING = #{inboxFile},
+        <if test="kodeTransaksi == 'NP' or kodeTransaksi == 'NM' ">
+            I_PPTK_NIP = #{nipPptk},
+            N_PPTK = #{namaPptk},
+            I_IDKEGIATAN = #{idKegiatan},
+            C_KEGIATAN = #{kodeKeg},
+            C_BEBAN = #{beban},
+            C_CARA_BAYAR = #{caraBayarPn},
+            C_UANGPERSEDIAAN = #{caraBayarPn},
+            I_IDBAS = #{idbasPn},
+            C_AKUN = #{akunPn},
+        </if>
+        E_DOC_BUKTI = #{uraianPn},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND I_BKUNO = #{noBKU}
+        AND C_AKUN = #{akunPn}
+        AND C_TRX = #{kodeTransaksi}
+
+    </update>
+
+    <update id="updateBkuCekPg" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        V_KAS_KELUAR = #{nilaiCek},
+        I_FILLING = #{inboxFile},
+        <if test="kodeTransaksi == 'NP' or kodeTransaksi == 'NM' ">
+            I_PPTK_NIP = #{nipPptk},
+            N_PPTK = #{namaPptk},
+            I_IDKEGIATAN = #{idKegiatan},
+            C_KEGIATAN = #{kodeKeg},
+            C_BEBAN = #{beban},
+            C_CARA_BAYAR = #{caraBayarPg},
+            C_UANGPERSEDIAAN = #{caraBayarPg},
+            I_IDBAS = #{idbasPg},
+            C_AKUN = #{akunPg},
+        </if>
+        E_DOC_BUKTI = #{uraianPg},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND I_BKUNO = #{noBKU}
+        AND C_TRX = #{kodeTransaksi}
+        AND C_AKUN = #{akunPg}
+
+    </update>
+
+    <update id="updateBkuLs2" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        <!--E_DOC_BUKTI = #{uraianBukti}, -->
+        I_IDBAS = #{idBas},
+        C_AKUN = #{kodeakun},
+        V_KAS_TERIMA = #{nilaiMasuk},
+        V_KAS_KELUAR = #{nilaiKeluar},
+        C_JENIS = #{jenis},
+        C_BEBAN = #{beban},
+        I_FILLING = #{inboxFile},
+        I_PPTK_NIP = #{nipPptk},
+        N_PPTK = #{namaPptk},
+        E_DOC_BUKTI = #{uraian},
+        E_RMKS = #{uraian},
+        C_CARA_BAYAR = #{kodePembayaran},
+        C_UANGPERSEDIAAN = #{kodeUangPersediaan},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        I_ID = #{idBku}
+
+    </update>
+
+    <select id="getRinciEditLs2" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select  tmbkuskpdpengeluaran.i_id as idBku, i_idbas as idBas,e_doc_bukti as namaakun, c_akun as kodeakun,
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar
+        from tmbkuskpdpengeluaran
+        where tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and i_doc_bukti = #{nobukti}
+        and d_posting = #{tglposting}
+        and i_bkuno = #{nobku}
+
+    </select>
+
+    <select id="getBanyakRinciEditLs2" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select  tmbkuskpdpengeluaran.i_id as idBku, i_idbas as idBas,e_doc_bukti as namaakun, c_akun as kodeakun,
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar
+        from tmbkuskpdpengeluaran
+        where tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and i_doc_bukti = #{nobukti}
+        and d_posting = #{tglposting}
+        and i_bkuno = #{nobku}
+        )
+    </select>
+
+    <select id="getSkpdBl" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select distinct 'bl' as ketskpd,  i_idskpd as idskpd  from tmdpakegiatan
+        where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd}
+    </select>
+
+    <select id="getSkpdBtl" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select distinct 'btl' as ketskpd ,  i_idskpd as idskpd from tmdpabtl
+        where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd}
+    </select>
+
+    <select id="getListSPJ" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idBas, kodeakun, namaakun, nilaiAnggaran, nilaiBkuSp2d,
+        nilaiBkuSebelum, nilaiSisa, nilaiBkuInput
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+
+        SELECT  i_idBas as idBas, kodeakun, namaakun, SUM(V_ANGG_tapd) as nilaiAnggaran,
+        SUM(BKU_SP2D_LS) as nilaiBkuSp2d, sum(V_BKU_SPJ) as nilaiBkuSebelum,
+        sum(V_ANGG_tapd - BKU_SP2D_LS - V_BKU_SPJ) as nilaiSisa,
+        SUM(V_BKU_ENTRY) AS nilaiBkuInput
+        from (
+        <!-- NILAI SPD-->
+        SELECT tmspd.i_idskpd i_idskpd,tmspdrincibl.i_idkegiatan i_idkegiatan,tmspdrincibl.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , tmspdrincibl.v_spd as V_ANGG_TAPD, 0 AS BKU_SP2D_LS ,
+        0 AS V_BKU_SPJ ,0 AS V_BKU_ENTRY , tmspd.i_spdno as nospd
+        FROM tmspd, tmspdrincibl, tmspdsah, trbas
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspdrincibl.c_spd_status &lt;&gt; 'P'
+        AND tmspdrincibl.i_idbas = trbas.i_id
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+
+        <!-- Nilai angg dikurangi nilai pengajuan spp tu-->
+        union all
+        select tmspp.i_idskpd i_idskpd,tmspprincibl.i_idkegiatan i_idkegiatan,tmspprincibl.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , (tmspprincibl.v_spp*-1) as V_ANGG_TAPD, 0 AS BKU_SP2D_LS ,
+        0 AS V_BKU_SPJ ,0 AS V_BKU_ENTRY , 0 as nospd
+        FROM   tmspp,  tmspprincibl, TRBAS
+        WHERE  (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (TRBAS.I_ID = tmspprincibl.i_idbas)
+        AND tmspp.c_beban = 'TU'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{idskpd}
+        AND tmspp.i_idskpd = #{tahun}
+        AND tmspprincibl.i_idkegiatan = #{idkegiatan}
+
+        <!-- Nilai angg ditambah nilai setoran TU -->
+        union all
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun ,(A.V_KAS_KELUAR - A.V_KAS_TERIMA)  AS V_ANGG_TAPD ,
+        0 AS BKU_SP2D_LS,
+        0 as V_BKU_SPJ , 0 AS V_BKU_ENTRY , 0 as nospd
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='ST'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND i_jour is not null
+        and c_beban = 'TU'
+
+        <!--   //NILAI KONTRAK RINCI -->
+        union all
+        SELECT   tmkontrakrinci.i_idskpd as i_idskpd, tmkontrakrinci.i_idkegiatan as i_idkegiatan, tmkontrakrinci.i_idbas as i_idBas,
+        TRBAS.C_AKUN as kodeakun, TRBAS.N_AKUN as namaakun , 0 AS V_ANGG_TAPD, tmkontrakrinci.v_kontrak AS BKU_SP2D_LS,
+        0  as V_BKU_SPJ ,0 AS V_BKU_ENTRY, 0 as nospd
+        FROM   tmkontrakrinci , TRBAS
+        WHERE  (TRBAS.I_ID = tmkontrakrinci.i_idbas)
+        AND tmkontrakrinci.c_angg_tahun = #{tahun}
+        AND tmkontrakrinci.i_idskpd = #{idskpd}
+        AND tmkontrakrinci.i_idkegiatan = #{idkegiatan}
+
+        <!-- ditambah 21 des 18 oleh zainab, realisasi BL-LS membaca BAST
+        union all
+        SELECT   tmbast.i_idskpd as i_idskpd, tmbast.i_idkegiatan as i_idkegiatan, tmbast.i_idbas as i_idBas,
+        TRBAS.C_AKUN as kodeakun, TRBAS.N_AKUN as namaakun , 0 AS V_ANGG_TAPD, tmbast.v_bast AS BKU_SP2D_LS,
+        0  as V_BKU_SPJ ,0 AS V_BKU_ENTRY, 0 as nospd
+        FROM   tmbast , TRBAS
+        WHERE  (TRBAS.I_ID = tmbast.i_idbas)
+        AND tmbast.c_angg_tahun = #{tahun}
+        AND tmbast.i_idskpd = #{idskpd}
+        AND tmbast.i_idkegiatan = #{idkegiatan}
+        -->
+
+        union all <!-- NILAI SEBELUM -->
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS,
+        (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_SPJ , 0 AS V_BKU_ENTRY , 0 as nospd
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno &lt;&gt; #{nobku}
+        and c_beban != 'TU'
+
+        union all <!-- NILAI BKU ENTRY -->
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS, 0  as V_BKU_SPJ ,
+        (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_ENTRY , 0 as nospd
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno = #{nobku}
+        )
+        group by i_idskpd , i_idkegiatan,  i_idBas, kodeakun, namaakun
+
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        order by kodeakun
+
+    </select>
+
+    <select id="getListSpjTU" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idBas, kodeakun, namaakun, nilaiAnggaran, nilaiBkuSp2d,
+        nilaiBkuSebelum, nilaiSisaTu as nilaiSisa,
+        <!-- LEAST(nilaiSisaTu, nilaiSisaSemua) as nilaiSisa, ditutup 27 Agt, untuk TU jadinya hanya membaca TU-->
+        nilaiBkuInput
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+
+        SELECT  i_idBas as idBas, kodeakun, namaakun, SUM(V_ANGG_tapd) as nilaiAnggaran,
+        SUM(BKU_SP2D_LS) as nilaiBkuSp2d, sum(V_BKU_TU) as nilaiBkuSebelum,
+        sum(V_ANGG_tapd - V_BKU_SPJ) as nilaiSisaSemua, sum(BKU_SP2D_LS-V_BKU_TU) as nilaiSisaTu,
+        SUM(V_BKU_ENTRY) AS nilaiBkuInput, sum(V_BKU_TU) as nilaiBkuTu
+        from (
+        <!-- NILAI SPD TU -->
+        SELECT tmspd.i_idskpd i_idskpd,tmspdrincibl.i_idkegiatan i_idkegiatan,tmspdrincibl.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , sum(tmspdrincibl.v_spd) as V_ANGG_TAPD,
+        0 AS BKU_SP2D_LS , 0 AS V_BKU_SPJ ,0 AS V_BKU_ENTRY , 0 as V_BKU_TU
+        FROM   tmspd, tmspdrincibl,  tmspdsah,  tmspp,  TMSPPRINCIBL, TRBAS
+        WHERE   (tmspd.i_id = tmspdsah.i_id)
+        AND (tmspd.i_id = tmspdrincibl.i_idspd)
+        AND (TRBAS.I_ID = tmspdrincibl.i_idbas)
+        AND (tmspdrincibl.I_IDBAS = tmspprincibl.i_idbas)
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspd.c_jenis = '3'
+        AND tmspp.c_jenis = '3'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspp.C_BEBAN = 'TU'
+        AND tmspdrincibl.i_idkegiatan = #{idkegiatan}
+        AND tmspprincibl.i_idkegiatan = #{idkegiatan}
+        and tmspdrincibl.C_SPD_STATUS&lt;&gt; 'P'
+        group by tmspd.C_ANGG_TAHUN , tmspd.i_idskpd ,  tmspdrincibl.i_idkegiatan,
+        tmspdrincibl.i_idbl, tmspdrincibl.i_idbas, TRBAS.C_AKUN, TRBAS.N_AKUN
+
+        union all  <!-- NILAI LS - SPP TU -->
+        SELECT tmspp.i_idskpd i_idskpd,tmspprincibl.i_idkegiatan i_idkegiatan,tmspprincibl.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 as V_ANGG_TAPD,
+        tmspprincibl.v_spp AS BKU_SP2D_LS , 0 AS V_BKU_SPJ ,0 AS V_BKU_ENTRY  , 0 as V_BKU_TU
+        FROM   tmspp,  tmspm, tmsp2d,  tmspprincibl, TRBAS
+        WHERE   (tmspp.i_id = tmspm.i_idspp)
+        AND (tmspm.i_id = tmsp2d.i_idspm)
+        AND (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (TRBAS.I_ID = tmspprincibl.i_idbas)
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban = 'TU'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idkegiatan = #{idkegiatan}
+
+        union all <!-- NILAI SEBELUM (SEMUA UPGUTU)-->
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS,
+        (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_SPJ , 0 AS V_BKU_ENTRY  , 0 as V_BKU_TU
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno &lt;&gt; #{nobku}
+
+        union all <!-- NILAI SEBELUM (TU)-->
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS,
+        0 as V_BKU_SPJ , 0 AS V_BKU_ENTRY , (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_TU
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno &lt;&gt; #{nobku}
+        AND a.c_beban = 'TU'
+
+        union all
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS, 0  as V_BKU_SPJ ,
+        (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_SPJ  , 0 as V_BKU_TU
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno = #{nobku}
+        AND a.c_beban = 'TU'
+        )
+        group by i_idskpd , i_idkegiatan,  i_idBas, kodeakun, namaakun
+
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        and nilaiAnggaran != 0
+        order by kodeakun
+
+
+        <!-- ditutup 270218 oleh zainab, sisa TU baca minimal dari sisa angg-spj(upgutu) dan
+        SELECT idBas, kodeakun, namaakun, nilaiAnggaran, nilaiBkuSp2d,
+        nilaiBkuSebelum, nilaiSisa, nilaiBkuInput
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+
+        SELECT  i_idBas as idBas, kodeakun, namaakun, SUM(V_ANGG_tapd) as nilaiAnggaran,
+        SUM(BKU_SP2D_LS) as nilaiBkuSp2d, sum(V_BKU_SPJ) as nilaiBkuSebelum,
+        sum(BKU_SP2D_LS - V_BKU_SPJ) as nilaiSisa,
+        SUM(V_BKU_ENTRY) AS nilaiBkuInput
+        from (
+
+        SELECT tmspd.i_idskpd i_idskpd,tmspdrincibl.i_idkegiatan i_idkegiatan,tmspdrincibl.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , sum(tmspdrincibl.v_spd) as V_ANGG_TAPD,
+        0 AS BKU_SP2D_LS , 0 AS V_BKU_SPJ ,0 AS V_BKU_ENTRY
+        FROM   tmspd, tmspdrincibl,  tmspdsah,  tmspp,  TMSPPRINCIBL, TRBAS
+        WHERE   (tmspd.i_id = tmspdsah.i_id)
+        AND (tmspd.i_id = tmspdrincibl.i_idspd)
+        AND (TRBAS.I_ID = tmspdrincibl.i_idbas)
+        AND (tmspdrincibl.I_IDBAS = tmspprincibl.i_idbas)
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspd.c_jenis = '3'
+        AND tmspp.c_jenis = '3'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspp.C_BEBAN = 'TU'
+        AND tmspdrincibl.i_idkegiatan = #{idkegiatan}
+        AND tmspprincibl.i_idkegiatan = #{idkegiatan}
+        and tmspdrincibl.C_SPD_STATUS &lt;&gt; 'P'
+        group by tmspd.C_ANGG_TAHUN , tmspd.i_idskpd ,  tmspdrincibl.i_idkegiatan,
+        tmspdrincibl.i_idbl, tmspdrincibl.i_idbas, TRBAS.C_AKUN, TRBAS.N_AKUN
+
+        union all
+        SELECT tmspp.i_idskpd i_idskpd,tmspprincibl.i_idkegiatan i_idkegiatan,tmspprincibl.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 as V_ANGG_TAPD,
+        tmspprincibl.v_spp AS BKU_SP2D_LS , 0 AS V_BKU_SPJ ,0 AS V_BKU_ENTRY
+        FROM   tmspp,  tmspm, tmsp2d,  tmspprincibl, TRBAS
+        WHERE   (tmspp.i_id = tmspm.i_idspp)
+        AND (tmspm.i_id = tmsp2d.i_idspm)
+        AND (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (TRBAS.I_ID = tmspprincibl.i_idbas)
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban = 'TU'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idkegiatan = #{idkegiatan}
+
+        union all
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS,
+        (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_SPJ , 0 AS V_BKU_ENTRY
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno &lt;&gt; #{nobku}
+         AND a.c_beban = 'TU'  ditutup 030118 oleh zainab, TU baca juga UP agar tidak pelampauan
+
+        union all
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS, 0  as V_BKU_SPJ ,
+        (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_SPJ
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno = #{nobku}
+        AND a.c_beban = 'TU'
+        )
+        group by i_idskpd , i_idkegiatan,  i_idBas, kodeakun, namaakun
+
+        )a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        order by kodeakun
+        -->
+    </select>
+
+    <select id="getBannyakListSPJ" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT  i_idBas as idBas, kodeakun, namaakun, SUM(V_ANGG_tapd) as nilaiAnggaran,
+        SUM(BKU_SP2D_LS) as nilaiBkuSp2d, sum(V_BKU_SPJ) as nilaiBkuSebelum,
+        sum(V_ANGG_tapd - BKU_SP2D_LS - V_BKU_SPJ) as nilaiSisa,
+        SUM(V_BKU_ENTRY) AS nilaiBkuInput
+        from (
+        <!-- NILAI SPD-->
+        SELECT tmspd.i_idskpd i_idskpd,tmspdrincibl.i_idkegiatan i_idkegiatan,tmspdrincibl.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , tmspdrincibl.v_spd as V_ANGG_TAPD, 0 AS BKU_SP2D_LS , 0 AS V_BKU_SPJ ,0 AS V_BKU_ENTRY
+        FROM tmspd, tmspdrincibl, tmspdsah, trbas
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspdrincibl.c_spd_status &lt;&gt; 'P'
+        AND tmspdrincibl.i_idbas = trbas.i_id
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+
+        union all <!-- NILAI KONTRAK RINCI-->
+        SELECT   tmkontrakrinci.i_idskpd as i_idskpd, tmkontrakrinci.i_idkegiatan as i_idkegiatan, tmkontrakrinci.i_idbas as i_idBas,
+        TRBAS.C_AKUN as kodeakun, TRBAS.N_AKUN as namaakun , 0 AS V_ANGG_TAPD, tmkontrakrinci.v_kontrak AS BKU_SP2D_LS,
+        0  as V_BKU_SPJ ,0 AS V_BKU_ENTRY
+        FROM   tmkontrakrinci , TRBAS
+        WHERE  (TRBAS.I_ID = tmkontrakrinci.i_idbas)
+        AND tmkontrakrinci.c_angg_tahun = #{tahun}
+        AND tmkontrakrinci.i_idskpd = #{idskpd}
+        AND tmkontrakrinci.i_idkegiatan = #{idkegiatan}
+
+        <!-- ditambah 21 des 18 oleh zainab, realisasi BL-LS membaca BAST
+        union all
+        SELECT   tmbast.i_idskpd as i_idskpd, tmbast.i_idkegiatan as i_idkegiatan, tmbast.i_idbas as i_idBas,
+        TRBAS.C_AKUN as kodeakun, TRBAS.N_AKUN as namaakun , 0 AS V_ANGG_TAPD, tmbast.v_bast AS BKU_SP2D_LS,
+        0  as V_BKU_SPJ ,0 AS V_BKU_ENTRY, 0 as nospd
+        FROM   tmbast , TRBAS
+        WHERE  (TRBAS.I_ID = tmbast.i_idbas)
+        AND tmbast.c_angg_tahun = #{tahun}
+        AND tmbast.i_idskpd = #{idskpd}
+        AND tmbast.i_idkegiatan = #{idkegiatan}
+        -->
+
+        union all <!-- NILAI SEBELUM -->
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS,
+        (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_SPJ , 0 AS V_BKU_ENTRY
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno &lt;&gt; #{nobku}
+
+        union all <!-- NILAI BKU ENTRY -->
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS, 0  as V_BKU_SPJ ,
+        (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_ENTRY
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno = #{nobku}
+        ) group by i_idskpd , i_idkegiatan,  i_idBas, kodeakun, namaakun
+        )
+    </select>
+
+    <select id="getBannyakListSpjTU" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT idBas, kodeakun, namaakun, nilaiAnggaran, nilaiBkuSp2d,
+        nilaiBkuSebelum, nilaiSisaTu as nilaiSisa, nilaiBkuInput
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+
+        SELECT  i_idBas as idBas, kodeakun, namaakun, SUM(V_ANGG_tapd) as nilaiAnggaran,
+        SUM(BKU_SP2D_LS) as nilaiBkuSp2d, sum(V_BKU_TU) as nilaiBkuSebelum,
+        sum(V_ANGG_tapd - V_BKU_SPJ) as nilaiSisaSemua, sum(BKU_SP2D_LS-V_BKU_TU) as nilaiSisaTu,
+        SUM(V_BKU_ENTRY) AS nilaiBkuInput, sum(V_BKU_TU) as nilaiBkuTu
+        from (
+        <!-- NILAI SPD TU -->
+        SELECT tmspd.i_idskpd i_idskpd,tmspdrincibl.i_idkegiatan i_idkegiatan,tmspdrincibl.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , sum(tmspdrincibl.v_spd) as V_ANGG_TAPD,
+        0 AS BKU_SP2D_LS , 0 AS V_BKU_SPJ ,0 AS V_BKU_ENTRY , 0 as V_BKU_TU
+        FROM   tmspd, tmspdrincibl,  tmspdsah,  tmspp,  TMSPPRINCIBL, TRBAS
+        WHERE   (tmspd.i_id = tmspdsah.i_id)
+        AND (tmspd.i_id = tmspdrincibl.i_idspd)
+        AND (TRBAS.I_ID = tmspdrincibl.i_idbas)
+        AND (tmspdrincibl.I_IDBAS = tmspprincibl.i_idbas)
+        AND tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspd.i_id = tmspprincibl.i_idspd
+        AND tmspd.c_jenis = '3'
+        AND tmspp.c_jenis = '3'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspp.C_BEBAN = 'TU'
+        AND tmspdrincibl.i_idkegiatan = #{idkegiatan}
+        AND tmspprincibl.i_idkegiatan = #{idkegiatan}
+        and tmspdrincibl.C_SPD_STATUS&lt;&gt; 'P'
+        group by tmspd.C_ANGG_TAHUN , tmspd.i_idskpd ,  tmspdrincibl.i_idkegiatan,
+        tmspdrincibl.i_idbl, tmspdrincibl.i_idbas, TRBAS.C_AKUN, TRBAS.N_AKUN
+
+        union all  <!-- NILAI LS - SPP TU -->
+        SELECT tmspp.i_idskpd i_idskpd,tmspprincibl.i_idkegiatan i_idkegiatan,tmspprincibl.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 as V_ANGG_TAPD,
+        tmspprincibl.v_spp AS BKU_SP2D_LS , 0 AS V_BKU_SPJ ,0 AS V_BKU_ENTRY  , 0 as V_BKU_TU
+        FROM   tmspp,  tmspm, tmsp2d,  tmspprincibl, TRBAS
+        WHERE   (tmspp.i_id = tmspm.i_idspp)
+        AND (tmspm.i_id = tmsp2d.i_idspm)
+        AND (tmspp.i_id = tmspprincibl.i_idspp)
+        AND (TRBAS.I_ID = tmspprincibl.i_idbas)
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban = 'TU'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND tmspprincibl.i_idkegiatan = #{idkegiatan}
+
+        union all <!-- NILAI SEBELUM (SEMUA UPGUTU)-->
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS,
+        (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_SPJ , 0 AS V_BKU_ENTRY  , 0 as V_BKU_TU
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno &lt;&gt; #{nobku}
+
+        union all <!-- NILAI SEBELUM (TU)-->
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS,
+        0 as V_BKU_SPJ , 0 AS V_BKU_ENTRY , (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_TU
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno &lt;&gt; #{nobku}
+        AND a.c_beban = 'TU'
+
+        union all
+        SELECT a.i_idskpd i_idskpd,a.i_idkegiatan i_idkegiatan,a.i_idbas as i_idBas,
+        trbas.c_akun as kodeakun, trbas.n_akun as namaakun , 0 AS V_ANGG_TAPD ,0 AS BKU_SP2D_LS, 0  as V_BKU_SPJ ,
+        (A.V_KAS_KELUAR - A.V_KAS_TERIMA) as V_BKU_SPJ  , 0 as V_BKU_TU
+        FROM  TMBKUSKPDPENGELUARAN a, trbas
+        WHERE  a.i_idbas = trbas.i_id
+        AND a.c_angg_tahun = #{tahun}
+        AND a.C_TRX='JJ'
+        AND a.i_idskpd = #{idskpd}
+        and a.i_idkegiatan = #{idkegiatan}
+        AND a.i_bkuno = #{nobku}
+        AND a.c_beban = 'TU'
+        )
+        group by i_idskpd , i_idkegiatan,  i_idBas, kodeakun, namaakun
+
+        )a) WHERE nilaiAnggaran != 0
+        )
+    </select>
+
+    <select id="getBkuSPJEdit" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select distinct tmbkuskpdpengeluaran.c_angg_tahun as tahun, SUBSTR (d_posting, 7,2) ||'/'|| SUBSTR (d_posting, 5,2) ||'/'|| SUBSTR (d_posting, 1,4) as tglPosting,
+        c_trx as kodeTransaksi, SUBSTR (d_posting, 5,2) as bulan, i_doc_bukti as noBukti ,  d_doc_bukti as tglDok, d_posting as noJournalDok,
+        c_beban as beban, c_jenis as jenis, i_idkegiatan as idKegiatan, tmdpakegiatan.c_kegiatan || ' / '|| n_kegiatan as ketKegiatan, tmdpakegiatan.c_kegiatan as kodeKeg,
+        i_filling as inboxFile, i_pptk_nip as nipPptk, n_pptk as namaPptk, i_bkuno as noBKU, e_rmks as uraian, c_cara_bayar as kodePembayaran
+        from tmbkuskpdpengeluaran, tmdpakegiatan
+        where tmbkuskpdpengeluaran.i_idkegiatan = tmdpakegiatan.i_id
+        and tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and i_bkuno = #{nobku}
+        <!-- and d_posting = #{tglPosting} -->
+
+    </select>
+
+    <delete id="deleteBkuSpj" parameterType="java.util.Map"  >
+        DELETE TMBKUSKPDPENGELUARAN
+        WHERE
+        I_IDSKPD = #{idskpd}
+        AND I_BKUNO = #{nobku}
+        AND C_ANGG_TAHUN = #{tahun}
+
+    </delete>
+
+    <select id="getBkuNo" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT   NVL (MAX (i_bkuno), 0) + 1 AS nobku
+        FROM   TMBKUSKPDPENGELUARAN
+        WHERE   c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+    </select>
+
+    <select id="getBkuNoPpkd" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT   NVL (MAX (i_bkuno), 0) + 1 AS nobku
+        FROM   TMBKUSKPDPENGELUARAN
+        WHERE   c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd} and c_wil_sp2dproses = #{wilayah}
+    </select>
+
+    <select id="getListSp2dEdit" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select P.c_akun as kodeakun, B.n_akun as namaakun, P.c_kegiatan  as kodeKeg, K.n_kegiatan as namaKeg,
+        P.v_kas_terima as nilaiMasuk, P.v_kas_keluar as nilaiKeluar
+        from tmbkuskpdpengeluaran P
+        left join tmdpakegiatan K on  P.i_idkegiatan = K.i_id
+        left join trbas B on   P.i_idbas = B.i_id
+        where c_trx  = 'JO'
+        and P.i_idskpd = #{idskpd}
+        and i_idtrx = #{idtransaksi}
+        and P.c_angg_tahun = #{tahun}
+        and i_bkuno = #{nobku}
+    </select>
+
+    <select id="getBanyakListSp2dEdit" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select P.c_akun as kodeakun, B.n_akun as namaakun, P.c_kegiatan  as kodeKeg, K.n_kegiatan as namaKeg,
+        P.v_kas_terima as nilaiMasuk, P.v_kas_keluar as nilaiKeluar
+        from tmbkuskpdpengeluaran P
+        left join tmdpakegiatan K on  P.i_idkegiatan = K.i_id
+        left join trbas B on   P.i_idbas = B.i_id
+        where c_trx = 'JO'
+        and P.i_idskpd = #{idskpd}
+        and i_idtrx = #{idtransaksi}
+        and P.c_angg_tahun = #{tahun}
+        and i_bkuno = #{nobku}
+        )
+    </select>
+
+    <select id="getBkuEditSp2d" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select distinct i_idtrx as idTransaksi, c_angg_tahun as tahun,
+        SUBSTR (d_posting, 7,2) ||'/'|| SUBSTR (d_posting, 5,2) ||'/'|| SUBSTR (d_posting, 1,4) as tglPosting,
+        c_trx as kodeTransaksi, SUBSTR (d_posting, 5,2) as bulan , i_bkuno as noBKU,
+        i_doc_bukti as noBukti ,  d_doc_bukti as tglDok,
+        i_filling as inboxFile
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idtrx = #{idtransaksi}
+        and i_bkuno = #{nobku}
+        and c_trx = 'JO'
+
+    </select>
+
+    <update id="updateBkuSp2d" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        I_FILLING = #{inboxFile},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        C_TRX = 'JO'
+        and I_IDSKPD = #{idskpd}
+        and I_IDTRX = #{idTransaksi}
+        and C_ANGG_TAHUN = #{tahun}
+        and I_BKUNO = #{noBKU}
+
+    </update>
+
+    <insert id="insertBkuNpPn" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        E_DOC_BUKTI,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        I_IDBAS,
+        C_AKUN,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        C_JENIS,
+        C_BEBAN,
+        I_BKUNO,
+        I_FILLING,
+        I_PPTK_NIP,
+        N_PPTK,
+        <if test="idskpd == 761 or idskpd == 1234 ">
+            C_WIL_SP2DPROSES,
+        </if>
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        #{uraianBukti},
+        #{idKegiatan},
+        #{kodeKeg},
+        #{idBas},
+        #{kodeakun},
+        #{nilaiKeluar},
+        0,
+        #{jenis},
+        #{beban},
+        #{noBKU},
+        #{inboxFile},
+        #{nipPptk},
+        #{namaPptk},
+        <if test="idskpd == 761 or idskpd == 1234 ">
+            #{kodeWilayah},
+        </if>
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <insert id="insertBkuNpPg" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        E_DOC_BUKTI,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        I_IDBAS,
+        C_AKUN,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        C_JENIS,
+        C_BEBAN,
+        I_BKUNO,
+        I_FILLING,
+        I_PPTK_NIP,
+        N_PPTK,
+        <if test="idskpd == 761 or idskpd == 1234 ">
+            C_WIL_SP2DPROSES,
+        </if>
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        #{uraianBukti},
+        #{idKegiatan},
+        #{kodeKeg},
+        #{idBas},
+        #{akunPn},
+        0,
+        #{nilaiCek},
+        #{jenis},
+        #{beban},
+        #{noBKU},
+        #{inboxFile},
+        #{nipPptk},
+        #{namaPptk},
+        <if test="idskpd == 761 or idskpd == 1234 ">
+            #{kodeWilayah},
+        </if>
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <insert id="insertBkuNmPn" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        E_DOC_BUKTI,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        I_IDBAS,
+        C_AKUN,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        C_JENIS,
+        C_BEBAN,
+        I_BKUNO,
+        I_FILLING,
+        I_PPTK_NIP,
+        N_PPTK,
+        <if test="idskpd == 761 or idskpd == 1234">
+            C_WIL_SP2DPROSES,
+        </if>
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        #{uraianBukti},
+        #{idKegiatan},
+        #{kodeKeg},
+        #{idBas},
+        #{akunPn},
+        #{nilaiCek},
+        0,
+        #{jenis},
+        #{beban},
+        #{noBKU},
+        #{inboxFile},
+        #{nipPptk},
+        #{namaPptk},
+        <if test="idskpd == 761 or idskpd == 1234 ">
+            #{kodeWilayah},
+        </if>
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <insert id="insertBkuNmPg" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        E_DOC_BUKTI,
+        I_IDKEGIATAN,
+        C_KEGIATAN,
+        I_IDBAS,
+        C_AKUN,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        C_JENIS,
+        C_BEBAN,
+        I_BKUNO,
+        I_FILLING,
+        I_PPTK_NIP,
+        N_PPTK,
+        <if test="idskpd == 761 or idskpd == 1234 ">
+            C_WIL_SP2DPROSES,
+        </if>
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        #{uraianBukti},
+        #{idKegiatan},
+        #{kodeKeg},
+        #{idBas},
+        #{kodeakun},
+        0,
+        #{nilaiMasuk},
+        #{jenis},
+        #{beban},
+        #{noBKU},
+        #{inboxFile},
+        #{nipPptk},
+        #{namaPptk},
+        <if test="idskpd == 761 or idskpd == 1234 ">
+            #{kodeWilayah},
+        </if>
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <select id="getBkuEditNPD" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select distinct tmbkuskpdpengeluaran.c_angg_tahun as tahun, SUBSTR (d_posting, 7,2) ||'/'|| SUBSTR (d_posting, 5,2) ||'/'|| SUBSTR (d_posting, 1,4) as tglPosting,
+        c_trx as kodeTransaksi, SUBSTR (d_posting, 5,2) as bulan,
+        i_doc_bukti as noBukti ,  d_doc_bukti as tglDok, d_posting as noJournalDok, tmbkuskpdpengeluaran.c_beban as beban, tmbkuskpdpengeluaran.c_jenis as jenis,
+        i_idkegiatan as idKegiatan, tmdpakegiatan.c_kegiatan || ' / '|| n_kegiatan as ketKegiatan, tmdpakegiatan.c_kegiatan as kodeKeg,
+        i_filling as inboxFile , i_pptk_nip as nipPptk, n_pptk as namaPptk , e_rmks as uraian , i_bkuno as noBKU,
+        (select e_doc_bukti  from tmbkuskpdpengeluaran  where  c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd} and i_BKUNO = #{nobku} and v_kas_terima &gt; 0 ) as uraianPn,
+        (select e_doc_bukti  from tmbkuskpdpengeluaran  where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd} and i_BKUNO = #{nobku} and v_kas_keluar &gt; 0 ) as uraianPg,
+        (select c_cara_bayar from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd} and i_bkuno = #{nobku}
+        and c_angg_tahun = #{tahun}
+        and c_cara_bayar &lt;&gt; 3) as kodePembayaran
+        from tmbkuskpdpengeluaran, tmdpakegiatan
+        where tmbkuskpdpengeluaran.i_idkegiatan = tmdpakegiatan.i_id
+        and tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        <!-- and d_posting = #{tglPosting} -->
+        and c_trx = #{kotransaksi}
+        and i_bkuno = #{nobku}
+
+
+        <!--
+        select distinct c_angg_tahun as tahun, SUBSTR (d_posting, 7,2) ||'/'|| SUBSTR (d_posting, 5,2) ||'/'|| SUBSTR (d_posting, 1,4) as tglPosting,
+        c_trx as kodeTransaksi, SUBSTR (d_posting, 5,2) as bulan,
+        i_doc_bukti as noBukti ,  d_doc_bukti as tglDok, d_posting as noJournalDok, c_beban as beban, c_jenis as jenis,
+        i_filling as inboxFile , i_pptk_nip as nipPptk, n_pptk as namaPptk , e_rmks as uraian , i_bkuno as noBKU
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_doc_bukti = #{nobukti}
+        and d_posting = #{tglPosting}
+        and c_trx = #{kotransaksi}
+        and i_bkuno = #{nobku}
+        and c_akun &lt;&gt; #{akuntunai}
+        -->
+
+    </select>
+
+    <select id="getBanyakRinciNpdEdit" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select  tmbkuskpdpengeluaran.i_id as idBku, i_idbas as idBas,e_doc_bukti as namaakun, c_akun as kodeakun, i_idkegiatan as idKegiatan,
+        tmbkuskpdpengeluaran.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg,
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar
+        from tmbkuskpdpengeluaran
+        left join tmdpakegiatan on tmdpakegiatan.i_id = tmbkuskpdpengeluaran.i_idkegiatan
+        where tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and i_doc_bukti = #{nobukti}
+        and i_bkuno = #{nobku}
+        and c_akun &lt;&gt; #{akuntunai}
+        )
+    </select>
+
+    <select id="getRinciNpdEdit" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select  tmbkuskpdpengeluaran.i_id as idBku, i_idbas as idBas,e_doc_bukti as namaakun, c_akun as kodeakun, i_idkegiatan as idKegiatan,
+        tmbkuskpdpengeluaran.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg,
+        v_kas_terima as nilaiKeluar , v_kas_keluar as nilaiMasuk
+        from tmbkuskpdpengeluaran
+        left join tmdpakegiatan on tmdpakegiatan.i_id = tmbkuskpdpengeluaran.i_idkegiatan
+        where tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and i_doc_bukti = #{nobukti}
+        and i_bkuno = #{nobku}
+        and c_akun &lt;&gt; #{akuntunai}
+
+        <!-- Kalo pake TRBAS BARU
+        and AND (C_AKUN != '1.1.01.03.01.001.01' OR C_AKUN != '1.1.01.03.01.003.01')
+        -->
+    </select>
+
+    <update id="updateBkuNP" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        E_DOC_BUKTI = #{uraianBukti},
+        I_IDKEGIATAN = #{idKegiatan},
+        C_KEGIATAN = #{kodeKeg},
+        I_IDBAS = #{idBas},
+        C_AKUN = #{kodeakun},
+        V_KAS_TERIMA = #{nilaiKeluar},
+        C_JENIS = #{jenis},
+        C_BEBAN = #{beban},
+        I_FILLING = #{inboxFile},
+        I_PPTK_NIP = #{nipPptk},
+        N_PPTK = #{namaPptk},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        I_ID = #{idBku}
+
+    </update>
+
+    <update id="updateBkuNPTunai" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        V_KAS_KELUAR = #{nilaiCek},
+        C_BEBAN = #{beban},
+        I_FILLING = #{inboxFile},
+        I_PPTK_NIP = #{nipPptk},
+        N_PPTK = #{namaPptk},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        I_BKUNO = #{noBKU}
+        AND C_AKUN = #{akunPn}
+
+    </update>
+
+    <update id="updateBkuNM" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        E_DOC_BUKTI = #{uraianBukti},
+        I_IDKEGIATAN = #{idKegiatan},
+        C_KEGIATAN = #{kodeKeg},
+        I_IDBAS = #{idBas},
+        C_AKUN = #{kodeakun},
+        V_KAS_KELUAR = #{nilaiMasuk},
+        C_JENIS = #{jenis},
+        C_BEBAN = #{beban},
+        I_FILLING = #{inboxFile},
+        I_PPTK_NIP = #{nipPptk},
+        N_PPTK = #{namaPptk},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        I_ID = #{idBku}
+
+    </update>
+
+    <update id="updateBkuNMTunai" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        C_TRX = #{kodeTransaksi},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        V_KAS_TERIMA = #{nilaiCek},
+        C_BEBAN = #{beban},
+        I_FILLING = #{inboxFile},
+        I_PPTK_NIP = #{nipPptk},
+        N_PPTK = #{namaPptk},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        I_BKUNO = #{noBKU}
+        AND C_AKUN = #{akunPn}
+
+    </update>
+
+    <select id="getListNM" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT tahun, idskpd, nilaiNpd, nilaiBkuSebelum, nilaiSisa, nilaiBkuInput
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+
+        SELECT   c_angg_tahun as tahun, i_idskpd as idskpd,
+        SUM (total_np) AS nilaiNpd, SUM (total_nm) AS nilaiBkuSebelum,
+        SUM (total_np - total_nm) as nilaiSisa, SUM (nm_entry) as nilaiBkuInput
+        FROM (
+        SELECT c_angg_tahun, i_idskpd,
+        i_idkegiatan, i_idbas, c_akun,
+        (v_kas_terima) AS total_np, 0 AS total_nm, 0 AS nm_entry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NP'
+        AND v_kas_terima &lt;&gt; 0
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd,
+        i_idkegiatan, i_idbas, c_akun, 0 total_np,
+        (v_kas_keluar) total_nm, 0 AS nm_entry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NM'
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        AND i_bkuno &lt;&gt; #{nobku}
+        AND v_kas_keluar &lt;&gt; 0
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd,
+        i_idkegiatan, i_idbas, c_akun, 0 total_np,
+        0 total_nm, (v_kas_keluar) nm_entry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NM'
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        AND i_bkuno = #{nobku}
+        AND v_kas_keluar &lt;&gt; 0) xxx
+        GROUP BY c_angg_tahun, i_idskpd, i_idkegiatan
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListNM" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT   c_angg_tahun as tahun, i_idskpd as idskpd,
+        SUM (total_np) AS nilaiNpd, SUM (total_nm) AS nilaiBkuSebelum,
+        SUM (total_np - total_nm) as nilaiSisa, SUM (nm_entry) as nilaiBkuInput
+        FROM (
+        SELECT c_angg_tahun, i_idskpd,
+        i_idkegiatan, c_kegiatan, i_idbas, c_akun,
+        (v_kas_terima) AS total_np, 0 AS total_nm, 0 AS nm_entry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NP'
+        AND v_kas_terima &lt;&gt; 0
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd,
+        i_idkegiatan, c_kegiatan, i_idbas, c_akun, 0 total_np,
+        (v_kas_keluar) total_nm, 0 AS nm_entry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NM'
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        AND i_bkuno &lt;&gt; #{nobku}
+        AND v_kas_keluar &lt;&gt; 0
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd,
+        i_idkegiatan, c_kegiatan, i_idbas, c_akun, 0 total_np,
+        0 total_nm, (v_kas_keluar) nm_entry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NM'
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        AND i_bkuno = #{nobku}
+        AND v_kas_keluar &lt;&gt; 0) xxx
+        GROUP BY c_angg_tahun, i_idskpd, i_idkegiatan, c_kegiatan
+        )
+
+    </select>
+
+    <select id="getListNP" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+
+        SELECT tahun, idskpd, nilaiAnggaran, nilaiBkuSp2d, nilaiBkuSebelum, nilaiNpd, nilaiSpj, nilaiSisa, nilaiBkuInput
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+
+        SELECT   c_angg_tahun as tahun, i_idskpd as idskpd, SUM (spd) as nilaiAnggaran, SUM (bast) as nilaiBkuSp2d,
+        SUM (np) as nilaiBkuSebelum, SUM (nm) as nilaiNpd, SUM (spj) as nilaiSpj,
+        SUM (spd - bast - np + nm - spj) AS nilaiSisa , SUM(nilaientry)  as nilaiBkuInput
+        FROM (SELECT c_angg_tahun, i_idskpd, i_idkegiatan, tmspdrincibl.v_spd spd,
+        0 bast, 0 np, 0 nm, 0 spj, 0 nilaientry
+        FROM tmspd, tmspdrincibl, tmspdsah
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspdrincibl.c_spd_status &lt;&gt; 'P'
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, v_bast bast,
+        0 np, 0 nm, 0 spj, 0 nilaientry
+        FROM tmbast
+        WHERE i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        <!-- UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, v_bast bast,
+        0 np, 0 nm, 0 spj, 0 nilaientry
+        FROM tmbast
+        WHERE i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan} -->
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, 0 bast,
+        (v_kas_terima) np, 0 nm, 0 spj, 0 nilaientry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NP'
+        AND v_kas_terima &lt;&gt; 0
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        AND i_bkuno &lt;&gt; #{nobku}
+
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, 0 bast,
+        0 np, 0 nm, 0 spj,  (v_kas_terima) nilaientry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NP'
+        AND v_kas_terima &lt;&gt; 0
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        AND i_bkuno = #{nobku}
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, 0 bast, 0 np,
+        (v_kas_keluar) nm, 0 spj, 0 nilaientry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NM'
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        AND v_kas_keluar &lt;&gt; 0
+        UNION ALL <!-- nilai setoran TU , edit 4 des 2017 oleh zainab -->
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, nvl((v_kas_keluar-v_kas_terima),0) as v_spd, 0 bast, 0 np,
+        0 nm, 0 spj, 0 nilaientry
+        from tmbkuskpdpengeluaran
+        where C_BEBAN = 'TU'
+        and c_trx = 'ST'
+        and c_jenis = 3
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and I_IDKEGIATAN = #{idkegiatan}
+        and i_jour is not null
+
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, 0 bast, 0 np,
+        0 nm, (v_kas_keluar) spj, 0 nilaientry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'JJ'
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}) xxx
+        GROUP BY c_angg_tahun, i_idskpd, i_idkegiatan
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListNP" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT   c_angg_tahun as tahun, i_idskpd as idskpd, SUM (spd) as nilaiAnggaran, SUM (bast) as nilaiBkuSp2d,
+        SUM (np) as nilaiBkuSebelum, SUM (nm) as nilaiNpd, SUM (spj) as nilaiSpj,
+        SUM (spd - bast - np + nm - spj) AS nilaiSisa , SUM(nilaientry)  as nilaiBkuInput
+        FROM (SELECT c_angg_tahun, i_idskpd, i_idkegiatan, tmspdrincibl.v_spd spd,
+        0 bast, 0 np, 0 nm, 0 spj, 0 nilaientry
+        FROM tmspd, tmspdrincibl, tmspdsah
+        WHERE tmspd.i_id = tmspdrincibl.i_idspd
+        AND tmspd.i_id = tmspdsah.i_id
+        AND tmspdrincibl.c_spd_status &lt;&gt; 'P'
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        <!-- UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, v_bast bast,
+        0 np, 0 nm, 0 spj, 0 nilaientry
+        FROM tmbast
+        WHERE i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan} -->
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, v_bast bast,
+        0 np, 0 nm, 0 spj, 0 nilaientry
+        FROM tmbast
+        WHERE i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, 0 bast,
+        (v_kas_terima) np, 0 nm, 0 spj, 0 nilaientry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NP'
+        AND v_kas_terima &lt;&gt; 0
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        AND i_bkuno &lt;&gt; #{nobku}
+
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, 0 bast,
+        0 np, 0 nm, 0 spj,  (v_kas_terima) nilaientry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NP'
+        AND v_kas_terima &lt;&gt; 0
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        AND i_bkuno = #{nobku}
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, 0 bast, 0 np,
+        (v_kas_keluar) nm, 0 spj, 0 nilaientry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'NM'
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}
+        AND v_kas_keluar &lt;&gt; 0
+        UNION ALL
+        SELECT c_angg_tahun, i_idskpd, i_idkegiatan, 0 v_spd, 0 bast, 0 np,
+        0 nm, (v_kas_keluar) spj, 0 nilaientry
+        FROM tmbkuskpdpengeluaran
+        WHERE c_trx = 'JJ'
+        AND i_idskpd = #{idskpd}
+        AND c_angg_tahun = #{tahun}
+        AND i_idkegiatan = #{idkegiatan}) xxx
+        GROUP BY c_angg_tahun, i_idskpd, i_idkegiatan
+        )
+
+    </select>
+
+    <select id="getKegiatanNP" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idKegiatan, kodeKeg, namaKeg, nilaiAnggaran
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+
+        select i_idkegiatan as idKegiatan, c_kegiatan as kodeKeg, n_kegiatan as namaKeg,
+        sum(tmspdrincibl.v_spd)  as nilaiAnggaran
+        from tmdpakegiatan, tmspdrincibl,  tmspdsah, tmspd
+        where tmdpakegiatan.i_id = tmspdrincibl.i_idkegiatan
+        and  tmspdrincibl.i_idspd = tmspdsah.i_id
+        AND tmdpakegiatan.i_idskpd = #{idskpd}
+        AND tmdpakegiatan.c_angg_tahun = #{tahun}
+        and tmspd.i_id = tmspdrincibl.i_idspd
+        and tmspd.i_id = tmspdsah.i_id
+        AND tmspd.i_idskpd = #{idskpd}
+        AND tmspd.c_angg_tahun = #{tahun}
+
+
+        <if test="nama != null and nama != '' ">
+            and upper(n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+
+        group by tmspd.c_angg_tahun, tmspd.i_idskpd, tmspdrincibl.i_idkegiatan, c_kegiatan , n_kegiatan
+        order by c_kegiatan
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakKegiatanNP" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select i_idkegiatan as idKegiatan, c_kegiatan as kodeKeg, n_kegiatan as namaKeg, sum(tmspdrincibl.v_spd)  as nilaiAnggaran
+        from tmdpakegiatan, tmspdrincibl,  tmspdsah
+        where tmdpakegiatan.i_id = tmspdrincibl.i_idkegiatan
+        and  tmspdrincibl.i_idspd = tmspdsah.i_id
+        AND tmdpakegiatan.i_idskpd = #{idskpd}
+        AND tmdpakegiatan.c_angg_tahun = #{tahun}
+
+        <if test="nama != null and nama != '' ">
+            and upper(n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+
+        group by c_angg_tahun, i_idskpd, i_idkegiatan, c_kegiatan , n_kegiatan
+        order by c_kegiatan
+        )
+
+    </select>
+
+    <select id="getKegiatanNM" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idKegiatan, kodeKeg, namaKeg, nilaiNpd, nilaiBkuSebelum
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+
+        select  i_idkegiatan as idKegiatan, tmdpakegiatan.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan namaKeg,
+        sum(nilai_np) as nilaiNpd , sum(nilai_nm) as nilaiBkuSebelum from (
+        select tmbkuskpdpengeluaran.i_idkegiatan, tmbkuskpdpengeluaran.v_kas_keluar as nilai_np , 0 nilai_nm
+        from tmbkuskpdpengeluaran
+        where tmbkuskpdpengeluaran.C_TRX='NP'
+        AND tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        AND tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        union all
+        select tmbkuskpdpengeluaran.i_idkegiatan, 0 as nilai_np , (tmbkuskpdpengeluaran.v_kas_terima) nilai_nm
+        from tmbkuskpdpengeluaran
+        where tmbkuskpdpengeluaran.C_TRX='NM'
+        AND tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        AND tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}) xxx, tmdpakegiatan
+        where tmdpakegiatan.i_id = xxx.i_idkegiatan
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+        group by i_idkegiatan, tmdpakegiatan.c_kegiatan ,  n_kegiatan
+        having sum(nilai_np) &gt;  sum(nilai_nm)
+        order by tmdpakegiatan.c_kegiatan
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakKegiatanNM" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+
+        select  i_idkegiatan as idKegiatan, tmdpakegiatan.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg,
+        sum(nilai_np) as nilaiNpd , sum(nilai_nm) as nilaiBkuSebelum from (
+        select tmbkuskpdpengeluaran.i_idkegiatan, tmbkuskpdpengeluaran.v_kas_keluar as nilai_np , 0 nilai_nm
+        from tmbkuskpdpengeluaran
+        where tmbkuskpdpengeluaran.C_TRX='NP'
+        AND tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        AND tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        union all
+        select tmbkuskpdpengeluaran.i_idkegiatan, 0 as nilai_np , (tmbkuskpdpengeluaran.v_kas_terima) nilai_nm
+        from tmbkuskpdpengeluaran
+        where tmbkuskpdpengeluaran.C_TRX='NM'
+        AND tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        AND tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}) xxx, tmdpakegiatan
+        where tmdpakegiatan.i_id = xxx.i_idkegiatan
+
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+
+        group by i_idkegiatan, tmdpakegiatan.c_kegiatan , n_kegiatan
+        having sum(nilai_np) &gt;  sum(nilai_nm)
+        order by tmdpakegiatan.c_kegiatan
+        )
+
+    </select>
+
+    <select id="getNamaPPTK" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select distinct  n_pptk as namaPptk, i_pptk_nip as nipPptk, c_beban as beban from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_idkegiatan = #{idkegiatan}
+        and c_trx = 'NP'
+
+    </select>
+
+    <select id="getStatusSuadana"   parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(c_blud,0) as statusSuadana from trskpd where i_id = #{idskpd}
+    </select>
+
+    <delete id="deleteById" parameterType="spp.model.BukuKasUmum"  >
+        DELETE TMBKUSKPDPENGELUARAN
+        WHERE
+        I_ID = #{idBku}
+        AND c_angg_tahun = #{tahun}
+    </delete>
+
+    <select id="getNilaiSisaSpj" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(sum (sp2d_upgu - nilai_spj),0) as nilaiSisa from (
+        select 0 as nilai_spj , sum(v_kas_terima-v_kas_keluar) sp2d_upgu from TMBKUSKPDPENGELUARAN
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'JO'
+        and substr(d_posting,5,2) &lt;= #{bulan}
+
+        <if test="beban == 'UP' ">
+            and c_beban in ('UP','GU')
+        </if>
+        <if test="beban == 'TU' ">
+            and c_beban = 'TU'
+            and i_idkegiatan = #{idkegiatan}
+        </if>
+
+        union all
+        select  sum(v_kas_keluar - v_kas_terima)as nilai_spj , 0 AS sp2d_upgu
+        from  TMBKUSKPDPENGELUARAN
+        where  c_angg_tahun = #{tahun}
+        and c_trx ='JJ'
+        and i_idskpd = #{idskpd}
+        and i_bkuno &lt;&gt; #{nobku}
+        and c_beban = #{beban}
+        and substr(d_posting,5,2) &lt;= #{bulan}
+
+        <if test="beban == 'TU' ">
+            and i_idkegiatan = #{idkegiatan}
+        </if>
+        )
+
+    </select>
+
+    <select id="getNilaiValidasiSisaSpj" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(sum(nilaiSpd),0) as nilaiSpd,  nvl(sum(nilaiKontrak),0) as nilaiKontrak, nvl(sum(nilaiTU),0) as nilaiTU,
+        nvl(sum(nilaiSetoranTU),0) as nilaiSetoranTU, nvl(sum(nilaiBku),0) as nilaiBku,
+        nvl(sum (nilaiSpd - nilaiKontrak - nilaiBku - nilaiTU +nilaiSetoranTU),0) as nilaiSisa from (
+
+        select tmspdrincibl.v_spd as nilaiSpd, 0 as nilaiKontrak, 0 as nilaiBku, 0 as nilaiTU, 0 as nilaiSetoranTU
+        from tmspd, tmspdrincibl, tmspdsah
+        where tmspd.i_id =  tmspdrincibl.i_idspd
+        and tmspd.i_id = tmspdsah.i_id
+        and  i_idskpd = #{idskpd}
+        and c_angg_tahun =  #{tahun}
+        and i_idkegiatan = #{idkegiatan}
+        and tmspdrincibl.c_spd_status &lt;&gt; 'P'
+
+        union all
+        select 0 as nilaiSpd,  v_kontr as nilaiKontrak, 0 as nilaiBku, 0 as nilaiTU, 0 as nilaiSetoranTU
+        from tmkontrak where  i_idskpd = #{idskpd}
+        and c_angg_tahun =  #{tahun}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select  0 as nilaiSpd, 0 as nilaiKontrak, sum(v_kas_keluar - v_kas_terima)as nilaiBku, 0 as nilaiTU, 0 as nilaiSetoranTU
+        from  TMBKUSKPDPENGELUARAN
+        where  c_angg_tahun = #{tahun}
+        and c_trx ='JJ'
+        and i_idskpd = #{idskpd}
+        and i_bkuno &lt;&gt;  #{nobku}
+        and c_beban = 'UP'
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select  0 as nilaiSpd, 0 as nilaiKontrak, 0 as nilaiBku , v_spp as nilaiTU, 0 as nilaiSetoranTU
+        from tmspp, tmspprincibl
+        where  tmspp.i_id = tmspprincibl.i_idspp
+        and c_beban = 'TU'
+        and i_idskpd= #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select  0 as nilaiSpd, 0 as nilaiKontrak, 0 as nilaiBku , 0 as nilaiTU, v_setor as nilaiSetoranTU
+        from tmsetor, tmsetorrinci
+        where tmsetor.i_id = tmsetorrinci.i_idsetor
+        and c_beban = 'TU'
+        and i_idskpd= #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan}
+        )
+
+    </select>
+
+    <select id="getNilaiValidasiSisaSpjTU" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(sum(nilaiSpd),0) as nilaiSpd,  nvl(sum(nilaiKontrak),0) as nilaiKontrak, nvl(sum(nilaiTU),0) as nilaiTU,
+        nvl(sum(nilaiSetoranTU),0) as nilaiSetoranTU, nvl(sum(nilaiBku),0) as nilaiBku,
+        nvl(sum (nilaiSpd - nilaiKontrak - nilaiBku - nilaiTU +nilaiSetoranTU),0) as nilaiSisa from (
+
+        select tmspdrincibl.v_spd as nilaiSpd, 0 as nilaiKontrak, 0 as nilaiBku, 0 as nilaiTU, 0 as nilaiSetoranTU
+        from tmspd, tmspdrincibl, tmspdsah
+        where tmspd.i_id =  tmspdrincibl.i_idspd
+        and tmspd.i_id = tmspdsah.i_id
+        and  i_idskpd = #{idskpd}
+        and c_angg_tahun =  #{tahun}
+        and i_idkegiatan = #{idkegiatan}
+        and tmspdrincibl.c_spd_status &lt;&gt; 'P'
+
+        union all
+        select 0 as nilaiSpd,  v_kontr as nilaiKontrak, 0 as nilaiBku, 0 as nilaiTU, 0 as nilaiSetoranTU
+        from tmkontrak where  i_idskpd = #{idskpd}
+        and c_angg_tahun =  #{tahun}
+        and i_idkegiatan = #{idkegiatan}
+
+        union all
+        select  0 as nilaiSpd, 0 as nilaiKontrak, sum(v_kas_keluar - v_kas_terima)as nilaiBku, 0 as nilaiTU, 0 as nilaiSetoranTU
+        from  TMBKUSKPDPENGELUARAN
+        where  c_angg_tahun = #{tahun}
+        and c_trx ='JJ'
+        and i_idskpd = #{idskpd}
+        and i_idkegiatan = #{idkegiatan}
+        and c_beban = 'UP'
+
+        union all
+        select  0 as nilaiSpd, 0 as nilaiKontrak, 0 as nilaiBku, sum(v_kas_keluar - v_kas_terima) as nilaiTU, 0 as nilaiSetoranTU
+        from  TMBKUSKPDPENGELUARAN
+        where  c_angg_tahun = #{tahun}
+        and c_trx ='JJ'
+        and i_idskpd = #{idskpd}
+        and i_idkegiatan = #{idkegiatan}
+        and c_beban = 'TU'
+        and i_bkuno &lt;&gt;  #{nobku}
+
+
+        union all
+        select  0 as nilaiSpd, 0 as nilaiKontrak, 0 as nilaiBku , 0 as nilaiTU, v_setor as nilaiSetoranTU
+        from tmsetor, tmsetorrinci
+        where tmsetor.i_id = tmsetorrinci.i_idsetor
+        and c_beban = 'TU'
+        and i_idskpd= #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan}
+        )
+
+    </select>
+
+    <select id="getBebanSpjTu" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count (*) as banyak  from tmspp, tmspprincibl
+        where tmspp.i_id =  tmspprincibl.i_idspp
+        and c_beban = 'TU'
+        and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and i_idkegiatan = #{idkegiatan}
+
+    </select>
+
+    <select id="getKegiatanSPJ" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT   DISTINCT i_idkegiatan AS idKegiatan,
+        C_ANGG_TAHUN AS tahunAnggaran,
+        c_KEGIATAN AS kodeKeg,
+        N_KEGIATAN AS namaKeg,
+        kodeBeban AS beban
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+
+        SELECT   DISTINCT tmspdrincibl.i_idkegiatan,
+        tmspd.C_ANGG_TAHUN,
+        tmspd.i_idskpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        'TU' as kodeBeban
+        FROM   tmspd,
+        tmspdrincibl,
+        tmspdsah,
+        tmdpakegiatan,
+        tmspp,
+        tmspm,
+        tmsp2d
+        WHERE  tmspd.i_id = tmspdrincibl.i_idspd
+        and tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id = tmspdrincibl.I_IDKEGIATAN
+        AND tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_id = tmsp2d.I_IDSPM
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban = 'TU'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND  EXISTS (select 1 from tmspp , tmspprincibl
+        where  tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_id =  tmspprincibl.I_idspp
+        and tmspp.i_idskpd = #{idskpd}
+        and tmspp.c_beban ='TU'
+        and tmspprincibl.I_idkegiatan = tmdpakegiatan.I_id)
+
+        union all
+        SELECT   DISTINCT tmspdrincibl.i_idkegiatan,
+        tmspd.C_ANGG_TAHUN,
+        tmspd.i_idskpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        'UP/GU' as kodeBeban
+        FROM   tmspd,
+        tmspdrincibl,
+        tmspdsah,
+        tmdpakegiatan
+        WHERE  tmspd.i_id = tmspdrincibl.i_idspd
+        and tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id =   tmspdrincibl.I_IDKEGIATAN
+        AND tmspd.c_jenis = '3'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        <!--
+        SELECT   DISTINCT tmspdrincibl.i_idkegiatan,
+        tmspd.C_ANGG_TAHUN,
+        tmspd.i_idskpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        'UP/GU' as kodeBeban
+        FROM   tmspd,
+        tmspdrincibl,
+        tmspdsah,
+        tmdpakegiatan,
+        tmspp,
+        tmspprincibl,
+        tmspm,
+        tmsp2d
+        WHERE  tmspd.i_id = tmspdrincibl.i_idspd
+        and tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id =   tmspdrincibl.I_IDKEGIATAN
+        and tmspp.i_id = tmspprincibl.i_idspp
+        and tmspprincibl.i_idspd = tmspd.i_id
+        AND tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_id = tmsp2d.I_IDSPM
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspd.c_jenis = '3'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd} -->
+        ) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        <if test="nama != null and nama != '' ">
+            and upper(N_KEGIATAN) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(C_KEGIATAN) like '%'||upper(#{kode})||'%'
+        </if>
+        order by c_KEGIATAN
+
+    </select>
+
+    <select id="getBanyakKegiatanSPJ" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT   DISTINCT i_idkegiatan AS idKegiatan,
+        C_ANGG_TAHUN AS tahunAnggaran,
+        c_KEGIATAN AS kodeKeg,
+        N_KEGIATAN AS namaKeg,
+        kodeBeban AS beban
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+
+        SELECT   DISTINCT tmspdrincibl.i_idkegiatan,
+        tmspd.C_ANGG_TAHUN,
+        tmspd.i_idskpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        'TU' as kodeBeban
+        FROM   tmspd,tmspdsah,
+        tmspdrincibl,
+        tmdpakegiatan,
+        tmspp,
+        tmspm,
+        tmsp2d
+        WHERE  tmspd.i_id = tmspdrincibl.i_idspd
+        and tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id = tmspdrincibl.I_IDKEGIATAN
+        AND tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_id = tmsp2d.I_IDSPM
+        AND tmsp2d.c_sp2d_sah = '1'
+        AND tmspp.c_beban = 'TU'
+        AND tmspp.c_jenis = '3'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND  EXISTS (select 1 from tmspp , tmspprincibl
+        where  tmspp.c_angg_tahun = #{tahun}
+        and tmspp.i_id =  tmspprincibl.I_idspp
+        and tmspp.i_idskpd = #{idskpd}
+        and tmspp.c_beban ='TU'
+        and tmspprincibl.I_idkegiatan = tmdpakegiatan.I_id)
+
+        union all
+        SELECT   DISTINCT tmspdrincibl.i_idkegiatan,
+        tmspd.C_ANGG_TAHUN,
+        tmspd.i_idskpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        'UP/GU' as kodeBeban
+        FROM   tmspd,
+        tmspdrincibl,
+        tmspdsah,
+        tmdpakegiatan
+        WHERE  tmspd.i_id = tmspdrincibl.i_idspd
+        and tmspd.i_id = tmspdsah.i_id
+        AND tmdpakegiatan.i_id =   tmspdrincibl.I_IDKEGIATAN
+        AND tmspd.c_jenis = '3'
+        AND tmspd.c_angg_tahun = #{tahun}
+        AND tmspd.i_idskpd = #{idskpd}
+        ) a)
+        WHERE 1=1
+        <if test="nama != null and nama != '' ">
+            and upper(N_KEGIATAN) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(C_KEGIATAN) like '%'||upper(#{kode})||'%'
+        </if>
+        )
+    </select>
+
+    <select id="getKodeTutup" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select min( SUBSTR (tmbkuskpdpengeluaran.d_posting, 5, 2) ) as kodebulan ,
+        bulan(min(SUBSTR (tmbkuskpdpengeluaran.d_posting, 5, 2))) as bulan ,
+        c_tgl_tutup as kodeTglTutup
+        from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_tgl_tutup is null
+        group by c_tgl_tutup
+    </select>
+
+    <select id="getKodeTutupMax" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select max( SUBSTR (tmbkuskpdpengeluaran.d_posting, 5, 2) ) as kodebulan ,
+        bulan(max(SUBSTR (tmbkuskpdpengeluaran.d_posting, 5, 2))) as bulan ,
+        c_tgl_tutup as kodeTglTutup
+        from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_tgl_tutup is not null
+        group by c_tgl_tutup
+        order by c_tgl_tutup desc
+    </select>
+
+    <select id="getNamaNipSpjPanjar" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select max(i_id), i_pptk_nip as nipPptk, n_pptk as namaPptk
+        from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_cara_bayar = 3
+        and c_trx = 'NP'
+        and i_idkegiatan = #{idkegiatan}
+        group by n_pptk, i_pptk_nip
+        order by max(i_id) desc
+    </select>
+
+    <select id="getKegiatanSpjPanjar" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT   DISTINCT i_idkegiatan AS idKegiatan,
+        C_ANGG_TAHUN AS tahunAnggaran,
+        c_KEGIATAN AS kodeKeg,
+        N_KEGIATAN AS namaKeg,
+        kodeBeban AS beban
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+
+        SELECT   DISTINCT tmbkuskpdpengeluaran.i_idkegiatan,
+        tmbkuskpdpengeluaran.C_ANGG_TAHUN,
+        tmbkuskpdpengeluaran.i_idskpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        tmbkuskpdpengeluaran.c_beban as kodeBeban
+        FROM   tmbkuskpdpengeluaran,
+        tmdpakegiatan
+        WHERE  tmbkuskpdpengeluaran.I_IDKEGIATAN = tmdpakegiatan.i_id
+        and tmbkuskpdpengeluaran.c_angg_tahun = tmdpakegiatan.c_angg_tahun
+        AND tmbkuskpdpengeluaran.i_idskpd = tmdpakegiatan. i_idskpd
+        AND tmbkuskpdpengeluaran.c_trx= 'NP'
+        AND tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        AND tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        ) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        <if test="nama != null and nama != '' ">
+            and upper(N_KEGIATAN) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(C_KEGIATAN) like '%'||upper(#{kode})||'%'
+        </if>
+        order by c_KEGIATAN
+
+
+
+    </select>
+
+    <select id="getBanyakKegiatanSpjPanjar" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT   DISTINCT i_idkegiatan AS idKegiatan,
+        C_ANGG_TAHUN AS tahunAnggaran,
+        c_KEGIATAN AS kodeKeg,
+        N_KEGIATAN AS namaKeg,
+        kodeBeban AS beban
+
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+
+        SELECT   DISTINCT tmbkuskpdpengeluaran.i_idkegiatan,
+        tmbkuskpdpengeluaran.C_ANGG_TAHUN,
+        tmbkuskpdpengeluaran.i_idskpd,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        tmbkuskpdpengeluaran.c_beban as kodeBeban
+        FROM   tmbkuskpdpengeluaran,
+        tmdpakegiatan
+        WHERE  tmbkuskpdpengeluaran.I_IDKEGIATAN = tmdpakegiatan.i_id
+        and tmbkuskpdpengeluaran.c_angg_tahun = tmdpakegiatan.c_angg_tahun
+        AND tmbkuskpdpengeluaran.i_idskpd = tmdpakegiatan. i_idskpd
+        AND tmbkuskpdpengeluaran.c_trx= 'NP'
+        AND tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        AND tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        ) a)
+        WHERE rn &gt; #{offset}
+        <if test="nama != null and nama != '' ">
+            and upper(N_KEGIATAN) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(C_KEGIATAN) like '%'||upper(#{kode})||'%'
+        </if>
+        )
+    </select>
+
+    <select id="getKegiatanByBeban" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idKegiatan, kodeKeg, namaKeg FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        SELECT DISTINCT  A.i_idkegiatan as idKegiatan,
+        B.c_kegiatan as kodeKeg, B.n_kegiatan as namaKeg
+        FROM tmbkuskpdpengeluaran A,  tmdpakegiatan B
+        WHERE  A.i_idkegiatan = B.i_id
+        AND A.i_idskpd = B.i_idskpd
+        AND A.c_angg_tahun = B.c_angg_tahun
+        AND A.c_beban = #{beban}
+        AND A.c_angg_tahun = #{tahun}
+        AND A.i_idskpd = #{idskpd}
+
+        <if test="nama != null and nama != '' ">
+            and upper(B.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(B.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakKegiatanByBeban" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        SELECT DISTINCT  A.i_idkegiatan as idKegiatan,
+        B.c_kegiatan as kodeKeg, B.n_kegiatan as namaKeg
+        FROM tmbkuskpdpengeluaran A,  tmdpakegiatan B
+        WHERE  A.i_idkegiatan = B.i_id
+        AND A.i_idskpd = B.i_idskpd
+        AND A.c_angg_tahun = B.c_angg_tahun
+        AND A.c_beban = #{beban}
+        AND A.c_angg_tahun = #{tahun}
+        AND A.i_idskpd = #{idskpd}
+
+        <if test="nama != null and nama != '' ">
+            and upper(B.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(B.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+        )
+    </select>
+
+    <select id="getKegiatanSetorTU" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+
+        SELECT noSpd,idSpd,  idKegiatan, kodeKeg, namaKeg FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+        select distinct tmspd.i_spdno as noSpd, tmspprincibl.i_idkegiatan as idKegiatan, i_idspd  as idSpd
+        , tmdpakegiatan. c_kegiatan as kodeKeg, tmdpakegiatan. n_kegiatan as namaKeg
+        from tmspp, tmspprincibl, tmspm, tmsp2d, tmdpakegiatan, tmspd
+        where c_beban = 'TU'
+        and tmspp.i_id =  tmspprincibl.i_idspp
+        and tmspp.i_id =  tmspm.i_idspp
+        and tmspp.i_id =  tmsp2d.i_idspp
+        and tmspprincibl.i_idkegiatan = tmdpakegiatan.i_id
+        and tmspprincibl.i_idspd = tmspd.i_id
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        and tmsp2d.c_sp2d_sah = 1
+
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+
+    <select id="getBanyakKegiatanSetorTU" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select distinct tmspd.i_spdno as noSpd, tmspprincibl.i_idkegiatan as idKegiatan, i_idspd  as idSpd
+        , tmdpakegiatan. c_kegiatan as kodeKeg, tmdpakegiatan. n_kegiatan as namaKeg
+        from tmspp, tmspprincibl, tmspm, tmsp2d, tmdpakegiatan, tmspd
+        where c_beban = 'TU'
+        and tmspp.i_id =  tmspprincibl.i_idspp
+        and tmspp.i_id =  tmspm.i_idspp
+        and tmspp.i_id =  tmsp2d.i_idspp
+        and tmspprincibl.i_idkegiatan = tmdpakegiatan.i_id
+        and tmspprincibl.i_idspd = tmspd.i_id
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        and tmsp2d.c_sp2d_sah = 1
+
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.n_kegiatan) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kode})||'%'
+        </if>
+        )
+    </select>
+
+    <update id="updateBkuSpjKoreksi" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        I_FILLING = #{inboxFile},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND I_BKUNO = #{noBKU}
+
+    </update>
+
+    <select id="getWilayah" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select c_wilayah as kodeWilayah, n_wilayah as ketWilayah
+        from trwilayah
+        where c_aktif = 1
+        <if test="ket == 'login' ">
+            and c_wilayah = #{wilayah}
+        </if>
+
+        order by c_wilayah
+
+    </select>
+
+    <select id="getSetorUPSemester" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and c_trx = 'ST'
+        and c_beban = 'UP'
+
+        <if test="semester == 'AWAL' ">
+            and SUBSTR (d_posting, 5, 2) between '01' and  '06'
+        </if>
+
+        <if test="semester == 'AKHIR' ">
+            and SUBSTR (d_posting, 5, 2) between '07' and  '12'
+        </if>
+
+    </select>
+
+    <select id="getAkunLain" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idBas, kodeakun, namaakun
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM (
+
+        select i_id as idBas, c_akun as kodeakun, n_akun as namaakun
+        from trbas
+        where c_aktif = 1
+
+        <if test="saldoawal == 'SALDO AWAL' ">
+            and c_akun like '2.1.1.02%'
+        </if>
+
+        <if test="saldoawal == 'BUKAN SALDO AWAL' or saldoawal == ''">
+            and (c_akun like '1%'  or c_akun like '2%' or c_akun like '3%' )
+        </if>
+
+        <if test="nama != null and nama != '' ">
+            and upper(n_akun) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+
+        order by c_akun
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakAkunLain" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+        select i_id as idBas, c_akun as kodeakun, n_akun as namaakun
+        from trbas
+        where c_aktif = 1
+
+        <if test="saldoawal == 'SALDO AWAL' ">
+            and c_akun like '2.1.1.02%'
+        </if>
+
+        <if test="saldoawal == 'BUKAN SALDO AWAL' or saldoawal == ''">
+            and (c_akun like '1%'  or c_akun like '2%' or c_akun like '3%' )
+        </if>
+
+        <if test="nama != null and nama != '' ">
+            and upper(n_akun) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+        )
+
+    </select>
+
+    <select id="getBkuEditLainLain" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select  tmbkuskpdpengeluaran.i_id as idBku,  v_kas_keluar as nilaiKeluar, v_kas_terima as nilaiMasuk, SUBSTR (d_posting, 5,2) as bulan,
+        SUBSTR (d_posting, 7,2) ||'/'|| SUBSTR (d_posting, 5,2) ||'/'|| SUBSTR (d_posting, 1,4) as tglPosting,
+        c_trx as kodeTransaksi, c_angg_tahun as tahun, i_doc_bukti as noBukti, e_doc_bukti as uraian,
+        i_pptk_nip as nipPptk, n_pptk as namaPptk , i_bkuno as noBKU, c_cara_bayar as kodePembayaran,
+        d_doc_bukti as tglDok, c_beban as beban, c_jenis as jenis, i_filling as inboxFile, i_idbas as idBas,
+        trbas.c_akun as kodeakun,  trbas.c_akun ||'/'|| trbas.n_akun as ketakun
+        from tmbkuskpdpengeluaran , trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and tmbkuskpdpengeluaran.i_id = #{idbku}
+
+    </select>
+
+    <select id="getBendahara" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select n_pkblj as namaPptk, i_nip_pkblj as nipPptk
+        from tmdpa
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+    </select>
+
+    <select id="getSaldoAwal" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(sum(v_saldoawal) ,0) as saldoKas
+        from tmjoursaldoawal , trbas
+        where tmjoursaldoawal.i_idbas = trbas.i_id
+        and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and (i_idbas in (select i_id  from trbas where c_akun like '1.1.1.03%' and c_detail = 1)
+        or trbas.c_akun between '1.1.01.03' and '1.1.01.03.99')
+        and (select min(c_tgl_tutup) from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}) is null
+
+    </select>
+
+    <select id="getBulanByRekap" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select trim(to_char(nvl(max(c_bln_tutup),0)+1 ,'00')) as kodebulan,
+        bulan(trim(to_char(nvl(max(c_bln_tutup),0)+1 ,'00')) ) as bulan
+        from  tmskpdbkurekap where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and d_bku_proses is not null
+        <if test="idskpd == 761 or idskpd == 1234">
+            and C_WIL_SP2DPROSES = #{kodewilayah}
+        </if>
+
+    </select>
+
+    <select id="getSaldoAwalPajak" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(sum(v_saldoawal),0) as saldoAwalPajak
+        from tmjoursaldoawal where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        <if test="jenis == 'P1' ">
+            and (i_idbas = 11554 or i_idbas = 3904)
+        </if>
+
+        <if test="jenis == 'P2' ">
+            and (i_idbas = 11555 or i_idbas = 3905)
+        </if>
+
+        <if test="jenis == 'P3' ">
+            and (i_idbas = 11556 or i_idbas = 3906)
+        </if>
+
+        <if test="jenis == 'P4' ">
+            and (i_idbas = 11558 or i_idbas = 3908)
+        </if>
+
+        <if test="jenis == 'P5' ">
+            and (i_idbas = 11559 or i_idbas = 3909)
+        </if>
+
+        <if test="jenis == 'P6' ">
+            and (i_idbas = 11557 or i_idbas = 3907)
+        </if>
+
+        <if test="jenis == 'P7' ">
+            and (i_idbas = 11560 or i_idbas = 3910)
+        </if>
+
+    </select>
+
+    <select id="getSisaPajak" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+
+        select nvl(sum(saldoawal-nilaibku),0) as sisaPajak from (
+        <!-- NILAI SALDO
+        select nvl(sum(v_kas_terima - v_kas_keluar),0) as nilaibku, 0 as saldoawal
+        from tmbkuskpdpengeluaran
+        where c_trx = #{jenis}
+        and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        <if test="keterangan == 'EDIT' ">
+            and i_bkuno &lt; #{nobku}
+        </if>
+
+        union all
+        -->
+
+        select nvl(sum(v_kas_keluar - v_kas_terima),0) as nilaibku, 0 as saldoawal
+        from tmbkuskpdpengeluaran
+        where c_trx = #{jenis}
+        and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and i_bkuno_ref = -1 <!--PG PAJAK SALDO AWAL-->
+        <if test="keterangan == 'EDIT' ">
+            and i_bkuno != #{nobku}
+        </if>
+
+        union all
+        select 0 as nilaibku, v_saldoawal as saldoawal
+        from tmjoursaldoawal
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        <if test="jenis == 'P1' ">
+            and (i_idbas = 11554 or i_idbas = 3904)
+        </if>
+
+        <if test="jenis == 'P2' ">
+            and (i_idbas = 11555 or i_idbas = 3905)
+        </if>
+
+        <if test="jenis == 'P3' ">
+            and (i_idbas = 11556 or i_idbas = 3906)
+        </if>
+
+        <if test="jenis == 'P4' ">
+            and (i_idbas = 11558 or i_idbas = 3908)
+        </if>
+
+        <if test="jenis == 'P5' ">
+            and (i_idbas = 11559 or i_idbas = 3909)
+        </if>
+
+        <if test="jenis == 'P6' ">
+            and (i_idbas = 11557 or i_idbas = 3907)
+        </if>
+
+        <if test="jenis == 'P7' ">
+            and (i_idbas = 11560 or i_idbas = 3910)
+        </if>
+
+        )
+
+    </select>
+
+    <select id="getListStBtl" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noSetor, tglValidasi, tglSts, noSts, noValidasi, nilaiSetor
+        FROM  (  SELECT   ROWNUM AS rn, a.* FROM (
+        select i_setor as noSetor, to_char(d_setor,'dd/mm/yyyy') as tglSts,
+        to_char(d_validasi,'dd/mm/yyyy') as tglValidasi,
+        i_sts as noSts,
+        i_validasi as noValidasi, sum(v_setor) as nilaiSetor
+        from tmsetor, tmsetorrinci
+        where tmsetor.i_id =  tmsetorrinci.i_idsetor
+        and (tmsetor.c_angg_tahun = #{tahun}  or to_char(d_validasi,'yyyy') = #{tahun}) <!-- ditambah 271117 oleh zainab-->
+        and tmsetor.i_idskpd = #{idskpd}
+        and c_beban = 'LS'
+        and c_jenis = 1
+        and i_validasi is not null
+        and c_setor_jukor = 0 <!-- ditambah 060118 oleh zainab, setoran jukor tidak dipilih-->
+        and not exists (select 1 from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and i_doc_bukti = tmsetor.i_validasi and i_bkuno != #{nobku})
+
+        <if test="nama != null and nama != '' ">
+            and upper(i_validasi) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(i_sts) like '%'||upper(#{kode})||'%'
+        </if>
+
+        group by i_setor, d_setor, i_sts, i_validasi, d_validasi
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListStBtl" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select i_setor as noSetor, d_setor as tglSetor, i_sts as noSts,
+        i_validasi as noValidasi, sum(v_setor) as nilaiSetor
+        from tmsetor, tmsetorrinci
+        where tmsetor.i_id =  tmsetorrinci.i_idsetor
+        and (tmsetor.c_angg_tahun = #{tahun}  or to_char(d_validasi,'yyyy') = #{tahun})
+        and tmsetor.i_idskpd = #{idskpd}
+        and c_beban = 'LS'
+        and c_jenis = 1
+        and i_validasi is not null
+        and c_setor_jukor = 0 <!-- ditambah 060118 oleh zainab, setoran jukor tidak dipilih-->
+        and not exists (select 1 from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and i_doc_bukti = tmsetor.i_validasi and i_bkuno != #{nobku})
+        <if test="nama != null and nama != '' ">
+            and upper(i_validasi) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(i_sts) like '%'||upper(#{kode})||'%'
+        </if>
+        group by i_setor, d_setor, i_sts, i_validasi
+        )
+
+    </select>
+
+    <select id="getListStBl" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noSetor, tglValidasi, tglSts, noSts, noValidasi, nilaiSetor, idSpd
+        FROM  (  SELECT   ROWNUM AS rn, a.* FROM (
+        select i_setor as noSetor, to_char(d_setor,'dd/mm/yyyy') as tglSts,
+        to_char(d_validasi,'dd/mm/yyyy') as tglValidasi,
+        i_sts as noSts, i_idspd as idSpd,
+        i_validasi as noValidasi, sum(v_setor) as nilaiSetor
+        from tmsetor, tmsetorrinci
+        where tmsetor.i_id =  tmsetorrinci.i_idsetor
+        and (tmsetor.c_angg_tahun = #{tahun}  or to_char(d_validasi,'yyyy') = #{tahun})
+        and tmsetor.i_idskpd = #{idskpd}
+        and c_beban = #{beban}
+        and c_jenis = 3
+        and i_validasi is not null
+        and c_setor_jukor = 0 <!-- ditambah 060118 oleh zainab, setoran jukor tidak dipilih-->
+        and not exists (select 1 from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and i_doc_bukti = tmsetor.i_validasi and i_bkuno != #{nobku})
+        <if test="nama != null and nama != '' ">
+            and upper(i_validasi) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(i_sts) like '%'||upper(#{kode})||'%'
+        </if>
+        group by i_setor, d_setor, i_sts, i_validasi, d_validasi, i_idspd
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListStBl" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select i_setor as noSetor, to_char(d_setor,'dd/mm/yyyy') as tglSts,
+        to_char(d_validasi,'dd/mm/yyyy') as tglValidasi,
+        i_sts as noSts, i_idspd as idSpd,
+        i_validasi as noValidasi, sum(v_setor) as nilaiSetor
+        from tmsetor, tmsetorrinci
+        where tmsetor.i_id =  tmsetorrinci.i_idsetor
+        and (tmsetor.c_angg_tahun = #{tahun}  or to_char(d_validasi,'yyyy') = #{tahun})
+        and tmsetor.i_idskpd = #{idskpd}
+        and c_beban = #{beban}
+        and c_jenis = 3
+        and i_validasi is not null
+        and c_setor_jukor = 0 <!-- ditambah 060118 oleh zainab, setoran jukor tidak dipilih-->
+        and not exists (select 1 from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and i_doc_bukti = tmsetor.i_validasi and i_bkuno != #{nobku})
+        <if test="nama != null and nama != '' ">
+            and upper(i_validasi) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(i_sts) like '%'||upper(#{kode})||'%'
+        </if>
+        group by i_setor, d_setor, i_sts, i_validasi, d_validasi, i_idspd
+        )
+
+    </select>
+
+    <select id="getAkunStBtl" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idBas, kodeakun, namaakun, nilaiSetor
+        FROM  (  SELECT   ROWNUM AS rn, a.* FROM (
+        select i_idbas as idBas, c_akun as kodeakun, n_akun as namaakun, v_setor as nilaiSetor
+        from tmsetor, tmsetorrinci,  trbas
+        where tmsetor.i_id =  tmsetorrinci.i_idsetor
+        and tmsetorrinci.i_idbas = trbas.i_id
+        and (tmsetor.c_angg_tahun = #{tahun}  or to_char(d_validasi,'yyyy') = #{tahun})
+        and tmsetor.i_idskpd = #{idskpd}
+        and c_beban = 'LS'
+        and c_jenis = 1
+        and i_validasi = #{novalidasi}
+        <!-- and i_setor = #{nosetor} -->
+        and i_validasi is not null
+        and not exists (select 1 from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun} and i_doc_bukti = tmsetor.i_validasi
+        and c_trx = 'ST' and i_bkuno != #{nobku})
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakAkunStBtl" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select i_idbas as idBas, c_akun as kodeakun, n_akun as namaakun, v_setor as nilaiSetor
+        from tmsetor, tmsetorrinci,  trbas
+        where tmsetor.i_id =  tmsetorrinci.i_idsetor
+        and tmsetorrinci.i_idbas = trbas.i_id
+        and (tmsetor.c_angg_tahun = #{tahun}  or to_char(d_validasi,'yyyy') = #{tahun})
+        and tmsetor.i_idskpd = #{idskpd}
+        and c_beban = 'LS'
+        and c_jenis = 1
+        and i_validasi = #{novalidasi}
+        <!-- and i_setor = #{nosetor} -->
+        and i_validasi is not null
+        and not exists (select 1 from tmbkuskpdpengeluaran where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun} and i_doc_bukti = tmsetor.i_validasi
+        and c_trx = 'ST' and i_bkuno != #{nobku})
+        )
+
+    </select>
+
+    <select id="getAkunStBl" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT idKegiatan, namaKeg, kodeKeg, idBas, kodeakun, namaakun, nilaiSetor
+        FROM  (  SELECT   ROWNUM AS rn, a.* FROM (
+        select i_idkegiatan as idKegiatan , n_kegiatan as namaKeg, v_setor as nilaiSetor,
+        c_kegiatan as kodeKeg, i_idbas as idBas, c_akun as kodeakun, n_akun as namaakun
+        from tmsetor, tmsetorrinci, tmdpakegiatan, trbas
+        where tmsetor.i_id =  tmsetorrinci.i_idsetor
+        and tmsetorrinci.i_idkegiatan = tmdpakegiatan.i_id
+        and tmsetorrinci.i_idbas = trbas.i_id
+        and (tmsetor.c_angg_tahun = #{tahun}  or to_char(d_validasi,'yyyy') = #{tahun})
+        and tmsetor.i_idskpd = #{idskpd}
+        and c_beban = #{beban}
+        and c_jenis = 3
+        and i_validasi = #{novalidasi}
+        <!-- and i_setor = #{nosetor} -->
+        and i_validasi is not null
+        and not exists (select 1 from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_trx = 'ST'
+        and c_angg_tahun = #{tahun} and i_doc_bukti = tmsetor.i_validasi and i_bkuno != #{nobku})
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakAkunStBl" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select i_idkegiatan as idKegiatan , n_kegiatan as namaKeg, v_setor as nilaiSetor,
+        c_kegiatan as kodeKeg, i_idbas as idBas, c_akun as kodeakun, n_akun as namaakun
+        from tmsetor, tmsetorrinci, tmdpakegiatan, trbas
+        where tmsetor.i_id =  tmsetorrinci.i_idsetor
+        and tmsetorrinci.i_idkegiatan = tmdpakegiatan.i_id
+        and tmsetorrinci.i_idbas = trbas.i_id
+        and (tmsetor.c_angg_tahun = #{tahun}  or to_char(d_validasi,'yyyy') = #{tahun})
+        and tmsetor.i_idskpd = #{idskpd}
+        and c_beban = #{beban}
+        and c_jenis = 3
+        and i_validasi = #{novalidasi}
+        <!-- and i_setor = #{nosetor} -->
+        and i_validasi is not null
+        and not exists (select 1 from tmbkuskpdpengeluaran where i_idskpd = #{idskpd} and c_trx = 'ST'
+        and c_angg_tahun = #{tahun} and i_doc_bukti = tmsetor.i_validasi and i_bkuno != #{nobku})
+        )
+
+    </select>
+
+    <select id="getListST" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noSetor, tglValidasi, tglSts, noSts, noValidasi, nilaiSetor, idSpd, jenis, beban, kodeSA
+        FROM  (  SELECT   ROWNUM AS rn, a.* FROM (
+        select i_setor as noSetor, to_char(d_setor,'dd/mm/yyyy') as tglSts,
+        to_char(d_validasi,'dd/mm/yyyy') as tglValidasi,
+        i_sts as noSts, i_idspd as idSpd,
+        i_validasi as noValidasi, sum(v_setor) as nilaiSetor,
+        c_jenis as jenis, c_beban as beban,  c_setor_sa as kodeSA
+        from tmsetor, tmsetorrinci
+        where tmsetor.i_id =  tmsetorrinci.i_idsetor
+        <!-- and tmsetor.c_angg_tahun = #{tahun} -->
+        and to_char(tmsetor.D_VALIDASI,'YYYY') = #{tahun} <!-- // YANG TAMPIL YANG DIVALIDASI DI TAHUN BERJALAN -->
+        <!--
+        <if test="tahun == '2018' ">
+            and tmsetor.i_idskpd = (select i_idskpd_lama from trskpdmapping2018 where i_idskpd_baru = #{idskpd})
+        </if>
+
+        <if test="tahun != '2018' ">
+            and tmsetor.i_idskpd = #{idskpd}
+        </if>
+        -->
+        and tmsetor.i_idskpd = #{idskpd}
+
+        <!-- and tmsetor.c_beban = #{beban}
+        and tmsetor.c_jenis = #{jenis} -->
+        and i_validasi is not null
+        and not exists (select 1 from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and i_doc_bukti = tmsetor.i_validasi
+        and i_bkuno != #{nobku} and c_trx = 'ST')
+        <if test="nama != null and nama != '' ">
+            and upper(i_validasi) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(i_sts) like '%'||upper(#{kode})||'%'
+        </if>
+        group by i_setor, d_setor, i_sts, i_validasi, d_validasi, i_idspd, c_jenis, c_beban, c_setor_sa
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListST" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select i_setor as noSetor, to_char(d_setor,'dd/mm/yyyy') as tglSts,
+        to_char(d_validasi,'dd/mm/yyyy') as tglValidasi,
+        i_sts as noSts, i_idspd as idSpd,
+        i_validasi as noValidasi, sum(v_setor) as nilaiSetor,
+        c_jenis as jenis, c_beban as beban
+        from tmsetor, tmsetorrinci
+        where tmsetor.i_id =  tmsetorrinci.i_idsetor
+        and to_char(tmsetor.D_VALIDASI,'YYYY') = #{tahun} <!-- // YANG TAMPIL YANG DIVALIDASI DI TAHUN BERJALAN -->
+        <!--
+        <if test="tahun == '2018' ">
+            and tmsetor.i_idskpd = (select i_idskpd_lama from trskpdmapping2018 where i_idskpd_baru = #{idskpd})
+        </if>
+
+        <if test="tahun != '2018' ">
+            and tmsetor.i_idskpd = #{idskpd}
+        </if>
+        -->
+        and tmsetor.i_idskpd = #{idskpd}
+
+        <!-- and tmsetor.c_beban = #{beban}
+        and tmsetor.c_jenis = #{jenis} -->
+        and i_validasi is not null
+        and not exists (select 1 from tmbkuskpdpengeluaran
+        where i_idskpd = #{idskpd} and c_angg_tahun = #{tahun} and i_doc_bukti = tmsetor.i_validasi
+        and i_bkuno != #{nobku} and c_trx = 'ST')
+        <if test="nama != null and nama != '' ">
+            and upper(i_validasi) like '%'||upper(#{nama})||'%'
+        </if>
+
+        <if test="kode != null and kode != '' ">
+            and upper(i_sts) like '%'||upper(#{kode})||'%'
+        </if>
+        group by i_setor, d_setor, i_sts, i_validasi, d_validasi, i_idspd, c_jenis, c_beban
+        )
+
+    </select>
+
+    <select id="getSaldoJasaGiro" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        <!--
+        select nvl(sum(v_kas_terima - v_kas_keluar),0) as nilaiSisa
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno != #{nobku}
+        and c_trx = 'JG'
+        -->
+
+        select nvl(sum(v_kas_terima - v_kas_keluar),0) as nilaiSisa from
+        (select v_kas_terima, 0 as v_kas_keluar   from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno != #{nobku}
+        and c_trx = 'JG'
+        union all
+        select 0 as  v_kas_terima, v_kas_keluar   from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno != #{nobku}
+        and c_trx = 'JG'
+        )
+    </select>
+
+    <insert id="insertBkuJasaGiro" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        I_BKUNO,
+        I_FILLING,
+        E_DOC_BUKTI,
+        E_RMKS,
+        C_CARA_BAYAR,
+        C_UANGPERSEDIAAN,
+        C_AKUN,
+        I_IDBAS,
+        C_BKU_KOREKSI,
+        C_WIL_SP2DPROSES,
+        <if test="jenisPembayaran == 'PG' ">
+            I_BKUNO_REF,
+        </if>
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        #{nilaiMasuk},
+        #{nilaiKeluar},
+        #{noBKU},
+        #{inboxFile},
+        #{uraian},
+        #{uraian},
+        #{kodePembayaran},
+        #{kodeUangPersediaan},
+        #{akunPn},
+        #{idBas},
+        #{kodeKoreksi},
+        #{kodeWilayah},
+        <if test="jenisPembayaran == 'PG' ">
+            #{noBkuRef},
+        </if>
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <update id="updateBkuJasaGiro" parameterType="spp.model.BukuKasUmum" >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        V_KAS_TERIMA = #{nilaiMasuk},
+        V_KAS_KELUAR = #{nilaiKeluar},
+        I_FILLING = #{inboxFile},
+        E_DOC_BUKTI = #{uraian},
+        E_RMKS = #{uraian},
+        <if test="jenisPembayaran == 'PG' ">
+            I_BKUNO_REF = #{noBkuRef},
+        </if>
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        I_ID = #{idBku}
+
+    </update>
+
+    <select id="getSaldoBpjs" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(sum(v_kas_terima - v_kas_keluar),0) as nilaiSisa from
+        (select v_kas_terima, 0 as v_kas_keluar   from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = 'BP'
+        and i_bkuno != #{nobku}
+        and i_idbas = #{idbas}
+        union all
+        select 0 as  v_kas_terima, v_kas_keluar   from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno != #{nobku}
+        and c_trx = 'BP'
+        and i_idbas = #{idbas}
+        )
+    </select>
+
+    <update id="updateBkuBpjs" parameterType="spp.model.BukuKasUmum" >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        V_KAS_TERIMA = #{nilaiMasuk},
+        V_KAS_KELUAR = #{nilaiKeluar},
+        I_FILLING = #{inboxFile},
+        E_DOC_BUKTI = #{uraian},
+        E_RMKS = #{uraian},
+        C_AKUN= #{akunPn},
+        I_IDBAS= #{idBas},
+        <if test="jenisPembayaran == 'PG' ">
+            I_BKUNO_REF = #{noBkuRef},
+        </if>
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        I_ID = #{idBku}
+
+    </update>
+
+    <select id="getKodeSA" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(sum(i_idkegiatan),0) as kodeSA, <!-- JIKA ST SALDO AWAL, IDKEG NULL -->
+        nvl(sum(v_kas_keluar),0) as nilaiBku, sum(i_id) as idBku
+        from tmbkuskpdpengeluaran
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno = #{nobku}
+    </select>
+
+    <select id="getListPnPajak" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT jenis, beban, noBKU, idKegiatan, kodeKeg, namaKeg, nilaiPajak, kodeUangPersediaan
+        FROM  (  SELECT   ROWNUM AS rn, a.* FROM (
+        select c_jenis as jenis, c_beban as beban, i_bkuno as noBKU, i_idkegiatan as idKegiatan, c_cara_bayar as kodeUangPersediaan,
+        tmdpakegiatan.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg, sum(v_kas_terima) as nilaiPajak
+        from tmbkuskpdpengeluaran left join  tmdpakegiatan
+        on  tmbkuskpdpengeluaran.i_idkegiatan =  tmdpakegiatan.i_id
+        where c_trx = #{jenis}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and V_KAS_TERIMA &gt; 0
+        and i_jour is not null
+        and C_BKU_KOREKSI = 0
+        and nvl(i_bkuno_ref,0) != -99
+
+        <if test="kode != null and kode != '' ">
+            and i_bkuno = #{kode}
+        </if>
+
+        <if test="kodekeg != null and kodekeg != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kodekeg})||'%'
+        </if>
+
+        and not exists (
+        select 1 from tmbkuskpdpengeluaran A
+        where tmbkuskpdpengeluaran.i_idskpd = A.i_idskpd
+        and tmbkuskpdpengeluaran.c_angg_tahun = A.c_angg_tahun
+        and tmbkuskpdpengeluaran.c_trx = A.c_trx
+        and tmbkuskpdpengeluaran.i_bkuno = A.i_bkuno_ref
+        )
+        group by c_beban, i_bkuno, tmdpakegiatan.c_kegiatan, tmdpakegiatan.n_kegiatan, i_idkegiatan, c_jenis, c_cara_bayar
+        order by i_bkuno
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        order by noBKU
+    </select>
+
+    <select id="getBanyakListPnPajak" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select c_beban as beban, i_bkuno as noBKU, i_idkegiatan as idKegiatan,
+        tmdpakegiatan.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg, sum(v_kas_terima) as nilaiPajak
+        from tmbkuskpdpengeluaran left join  tmdpakegiatan
+        on  tmbkuskpdpengeluaran.i_idkegiatan =  tmdpakegiatan.i_id
+        where c_trx = #{jenis}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and V_KAS_TERIMA &gt; 0
+        and i_jour is not null
+        and c_bku_koreksi = 0
+        and nvl(i_bkuno_ref,0) != -99
+
+        <if test="kode != null and kode != '' ">
+            and i_bkuno = #{kode}
+        </if>
+
+        <if test="kodekeg != null and kodekeg != '' ">
+            and upper(tmdpakegiatan.c_kegiatan) like '%'||upper(#{kodekeg})||'%'
+        </if>
+
+        and not exists (
+        select 1 from tmbkuskpdpengeluaran A
+        where tmbkuskpdpengeluaran.i_idskpd = A.i_idskpd
+        and tmbkuskpdpengeluaran.c_angg_tahun = A.c_angg_tahun
+        and tmbkuskpdpengeluaran.c_trx = A.c_trx
+        and tmbkuskpdpengeluaran.i_bkuno = A.i_bkuno_ref
+        )
+        group by c_beban, i_bkuno, tmdpakegiatan.c_kegiatan, tmdpakegiatan.n_kegiatan, i_idkegiatan
+        )
+
+    </select>
+
+    <select id="getListPgPajak" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBKU, idBas, kodeakun, namaakun, nilaiPajak
+        FROM  (  SELECT   ROWNUM AS rn, a.* FROM (
+        select i_bkuno as noBKU, i_idbas as idBas, tmbkuskpdpengeluaran.c_akun as kodeakun,
+        n_akun as namaakun, v_kas_terima as nilaiPajak
+        from tmbkuskpdpengeluaran, trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno = #{nobku}
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListPgPajak" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select i_bkuno as noBKU, i_idbas as idBas, tmbkuskpdpengeluaran.c_akun as kodeakun,
+        n_akun as namaakun, v_kas_terima as nilaiPajak
+        from tmbkuskpdpengeluaran, trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno = #{nobku}
+        )
+    </select>
+
+    <insert id="insertBkuPajakSA" parameterType="spp.model.BukuKasUmum"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMBKUSKPDPENGELUARAN (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        D_POSTING,
+        C_TRX,
+        I_DOC_BUKTI,
+        D_DOC_BUKTI,
+        V_KAS_TERIMA,
+        V_KAS_KELUAR,
+        C_JENIS,
+        C_BEBAN,
+        I_BKUNO,
+        I_FILLING,
+        E_DOC_BUKTI,
+        E_RMKS,
+        C_CARA_BAYAR,
+        C_UANGPERSEDIAAN,
+        I_BKUNO_REF,
+        C_BKU_KOREKSI,
+        C_WIL_SP2DPROSES,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+
+        )VALUES(
+        SEQ_TMBKUSKPDPENGELUARAN.NEXTVAL,
+        #{tahun},
+        #{idskpd},
+        #{tglPosting},
+        #{kodeTransaksi},
+        #{noDok},
+        #{tglDok},
+        #{nilaiMasuk},
+        #{nilaiKeluar},
+        #{jenis},
+        #{beban},
+        #{noBKU},
+        #{inboxFile},
+        #{uraian},
+        #{uraian},
+        #{kodePembayaran},
+        #{kodeUangPersediaan},
+        #{noBkuPj},
+        #{kodeKoreksi},
+        #{kodeWilayah},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+
+    <select id="getNilaiBkuPg" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(sum(v_kas_keluar-v_kas_terima),0) as nilaiPajak
+        from tmbkuskpdpengeluaran where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno = #{nobku}
+
+    </select>
+
+    <select id="getListPgPajakEdit" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBKU, idBas, kodeakun, namaakun, nilaiPajak
+        FROM  (  SELECT   ROWNUM AS rn, a.* FROM (
+        select i_bkuno_ref as noBKU, i_idbas as idBas, tmbkuskpdpengeluaran.c_akun as kodeakun,
+        n_akun as namaakun, v_kas_keluar as nilaiPajak
+        from tmbkuskpdpengeluaran, trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno = #{nobku}
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListPgPajakEdit" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select i_bkuno_ref as noBKU, i_idbas as idBas, tmbkuskpdpengeluaran.c_akun as kodeakun,
+        n_akun as namaakun, v_kas_keluar as nilaiPajak
+        from tmbkuskpdpengeluaran, trbas
+        where tmbkuskpdpengeluaran.i_idbas =  trbas.i_id
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno = #{nobku}
+        )
+    </select>
+
+    <update id="updateBkuNoRef" parameterType="spp.model.BukuKasUmum"   >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        i_bkuno_ref = #{noBKU}
+        WHERE
+        c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno = #{noBkuPj}
+        and c_trx = #{kodeTransaksi}
+
+    </update>
+
+    <update id="updateBkuPjPg" parameterType="spp.model.BukuKasUmum" >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        D_POSTING = #{tglPosting},
+        I_DOC_BUKTI = #{noDok},
+        D_DOC_BUKTI = #{tglDok},
+        I_FILLING = #{inboxFile},
+        E_DOC_BUKTI = #{uraian},
+        E_RMKS = #{uraian},
+        C_CARA_BAYAR = #{kodePembayaran},
+        C_UANGPERSEDIAAN = #{kodeUangPersediaan},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND I_BKUNO = #{noBKU}
+    </update>
+
+    <update id="updateNilaiPajak" parameterType="spp.model.BukuKasUmum" >
+        UPDATE TMBKUSKPDPENGELUARAN
+        SET
+        C_BEBAN = #{beban},
+        V_KAS_KELUAR = #{nilaiKeluar},
+        C_AKUN= #{kodeakun},
+        I_IDBAS= #{idBas},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE
+        I_ID = #{idBkuRef}
+
+    </update>
+
+    <select id="getRinciPjPn" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select  tmbkuskpdpengeluaran.i_id as idBku, i_bkuno,
+        (select i_id from tmbkuskpdpengeluaran A where c_angg_tahun =  #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno_ref = tmbkuskpdpengeluaran.i_bkuno
+        and i_idbas = tmbkuskpdpengeluaran.i_idbas ) as idBkuRef,
+        i_idbas as idBas, c_akun as kodeakun, i_idkegiatan as idKegiatan,
+        tmbkuskpdpengeluaran.c_kegiatan as kodeKeg, tmdpakegiatan.n_kegiatan as namaKeg,
+        v_kas_terima as nilaiMasuk, v_kas_keluar as nilaiKeluar, i_idspd as idSpd
+        from tmbkuskpdpengeluaran
+        left join tmdpakegiatan on tmdpakegiatan.i_id = tmbkuskpdpengeluaran.i_idkegiatan
+        where tmbkuskpdpengeluaran.c_angg_tahun = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and i_bkuno = #{nobku}
+
+    </select>
+
+    <select id="getRinciPjPg" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select distinct d_posting as tglPosting, i_bkuno as noBKU, i_filling as inboxFile,
+        c_cara_bayar as kodePembayaran, i_doc_bukti as noDok, d_doc_bukti as tglDok, e_doc_bukti as uraian
+        from tmbkuskpdpengeluaran
+        where c_trx = #{kodetrx}
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_bkuno = #{nobku}
+
+    </select>
+
+    <select id="getJenisBku" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select c_org_fungsiref as kodeKeg, e_org_fungsi as namaKeg
+        from trkoderef where c_org_fungsi = '10' and c_org_fungsiref != 'LL'
+        order by D_PGUN_REKAM
+    </select>
+
+    <select id="getListJGBP" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT noBKU, noDok, nilaiMasuk, idBas, kodeTransaksi
+        FROM  (  SELECT   ROWNUM AS rn, a.* FROM (
+        select i_bkuno as noBKU, i_doc_bukti as noDok, v_kas_terima as nilaiMasuk, i_idbas as idBas,
+        CASE c_trx
+        WHEN 'JG' THEN 'Jasa Giro'
+        WHEN 'BP' THEN
+        CASE i_idbas
+        WHEN 3912 THEN 'BPJS Ketenagakerjaan'
+        WHEN 3911 THEN 'BPJS  Kesehatan'
+        END
+        END AS kodeTransaksi
+        from TMBKUSKPDPENGELUARAN where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = #{kodetrx}
+        and v_kas_terima &gt; 0
+        and i_jour is not null
+        and not exists(select 1 from TMBKUSKPDPENGELUARAN A where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = #{kodetrx}
+        and A.i_bkuno_ref =  TMBKUSKPDPENGELUARAN.i_bkuno
+        and i_bkuno != #{nobku}
+        )
+        <if test="kode != null and kode != '' ">
+            and i_bkuno = #{kode}
+        </if>
+
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+
+    </select>
+
+    <select id="getBanyakListJGBP" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak  FROM (
+        select i_bkuno as noBKU, i_doc_bukti as noDok, v_kas_terima as nilaiMasuk, i_idbas as idBas,
+        CASE c_trx
+        WHEN 'JG' THEN 'Jasa Giro'
+        WHEN 'BP' THEN
+        CASE i_idbas
+        WHEN 3912 THEN 'BPJS Ketenagakerjaan'
+        WHEN 3911 THEN 'BPJS  Kesehatan'
+        END
+        END AS kodeTransaksi
+        from TMBKUSKPDPENGELUARAN where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = #{kodetrx}
+        and v_kas_terima &gt; 0
+        and i_jour is not null
+        and not exists(select 1 from TMBKUSKPDPENGELUARAN A where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = #{kodetrx}
+        and A.i_bkuno_ref =  TMBKUSKPDPENGELUARAN.i_bkuno
+        and i_bkuno != #{nobku}
+        )
+        <if test="kode != null and kode != '' ">
+            and i_bkuno = #{kode}
+        </if>
+
+        )
+
+    </select>
+
+    <select id="getSaldoAawalJGBP" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select nvl(sum(nilaisa-nilaibku),0) as nilaiSA from (
+        select v_saldoawal as nilaisa , 0 as nilaibku
+        from tmjoursaldoawal where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        <if test="kodetrx == 'JG' ">
+            and i_idbas = 3902
+        </if>
+        <if test="kodetrx == 'BP' ">
+            and i_idbas = #{idbas}
+        </if>
+
+        union all
+        select 0 as nilaisa, v_kas_keluar as nilaibku
+        from TMBKUSKPDPENGELUARAN where  c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and c_trx = #{kodetrx}
+        and i_bkuno != #{nobku}
+        <if test="kodetrx == 'BP' ">
+            and i_idbas = #{idbas}
+        </if>
+        and i_bkuno_ref = -1
+        )
+
+    </select>
+
+    <select id="getDataKBUD" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        SELECT I_NIP_KBUD AS nipPptk, N_KBUD as namaPptk
+        FROM TRDOKSP2DTT
+        WHERE C_WIL_SP2DPROSES = #{wilayah}
+
+    </select>
+
+
+</mapper>

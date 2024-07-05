@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.KegiatanMapper">
+    
+     <select id="getKegiatan" parameterType="java.util.Map"  resultType="spp.model.Kegiatan">
+        
+        SELECT idKegiatan, kodeKegiatan, namaKegiatan
+        FROM (SELECT   ROWNUM AS rn, a.*
+        FROM (SELECT distinct tmdpakegiatan.I_ID as idKegiatan,
+         tmdpakegiatan.C_KEGIATAN as kodeKegiatan, tmdpakegiatan.N_KEGIATAN as namaKegiatan
+         FROM tmdpabl, tmdpakegiatan, trprogram, trurusan, trbas, trskpd
+         WHERE tmdpabl.I_IDKEGIATAN = tmdpakegiatan.I_ID
+         AND tmdpakegiatan.I_IDPROGRAM = trprogram.i_id
+         AND trprogram.I_IDURUSAN = trurusan.i_id
+         AND tmdpabl.i_idbas = trbas.I_ID
+         AND tmdpakegiatan.I_IDSKPD = trskpd.i_id
+         AND TMDPAKEGIATAN.C_ANGG_TAHUN = #{tahun}
+         AND tmdpakegiatan.I_IDSKPD = #{idskpd}
+         AND  trbas.C_AKUN = #{kodeakun}
+        
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.N_KEGIATAN) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.C_KEGIATAN) like '%'||upper(#{kode})||'%'
+        </if>  
+           
+        ORDER BY 
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+               tmdpakegiatan.C_KEGIATAN
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                tmdpakegiatan.N_KEGIATAN
+            </when>
+            <otherwise>
+                tmdpakegiatan.C_KEGIATAN 
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' ">
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>                
+        ) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakKegiatan" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak
+        FROM   (SELECT distinct tmdpakegiatan.I_ID as idKegiatan,
+         tmdpakegiatan.C_KEGIATAN as kodeKegiatan, tmdpakegiatan.N_KEGIATAN as namaKegiatan
+         FROM tmdpabl, tmdpakegiatan, trprogram, trurusan, trbas, trskpd
+         WHERE tmdpabl.I_IDKEGIATAN = tmdpakegiatan.I_ID
+         AND tmdpakegiatan.I_IDPROGRAM = trprogram.i_id
+         AND trprogram.I_IDURUSAN = trurusan.i_id
+         AND tmdpabl.i_idbas = trbas.I_ID
+         AND tmdpakegiatan.I_IDSKPD = trskpd.i_id
+         AND TMDPAKEGIATAN.C_ANGG_TAHUN = #{tahun}
+         AND tmdpakegiatan.I_IDSKPD = #{idskpd}
+         AND trbas.C_AKUN = #{kodeakun}
+        
+        <if test="nama != null and nama != '' ">
+            and upper(tmdpakegiatan.N_KEGIATAN) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        <if test="kode != null and kode != '' ">
+            and upper(tmdpakegiatan.C_KEGIATAN) like '%'||upper(#{kode})||'%'
+        </if>   
+         )
+    </select>
+    
+    
+    
+</mapper>

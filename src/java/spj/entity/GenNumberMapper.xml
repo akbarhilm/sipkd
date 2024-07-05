@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.GenNumberMapper">
+    <select id="getSppNo" parameterType="java.util.Map"
+            resultType="java.lang.String">
+       SELECT   NVL (MAX (i_sppno), 0) + 1 AS no_sppno
+  FROM   tmspp
+ WHERE   c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+    </select>
+    <select id="getSpmNo" parameterType="java.util.Map"
+           resultType="java.lang.String">
+      SELECT   NVL (MAX (i_spmno), 0) + 1 AS no_spmno
+  FROM   tmspm
+ WHERE   c_angg_tahun =  #{tahun} AND i_idskpd =  #{idskpd}
+    </select>
+    <select id="getSppdNo" parameterType="java.util.Map"
+            resultType="java.lang.String">
+     SELECT   NVL (MAX (i_sp2dno), 0) + 1 AS no_sp2dno
+  FROM   tmsp2d
+ WHERE   c_angg_tahun =  #{tahun} AND C_WIL_SP2DPROSES =  #{wilsp2d}
+    </select>
+     <select id="getSpjNo" parameterType="java.util.Map"
+            resultType="java.lang.String">
+     SELECT   NVL (MAX (i_spjno), 0) + 1 AS no_spjno
+  FROM   tmspj
+ WHERE   c_angg_tahun = #{tahun} 
+         AND i_idskpd = #{idskpd}
+    </select>
+    <select id="getNPDNo" parameterType="java.util.Map"
+            resultType="java.lang.String">
+    SELECT   NVL (MAX (i_npdno), 0) + 1 AS no_spjno
+  FROM   tmnpd
+ WHERE   c_angg_tahun = #{tahun} 
+  AND i_idskpd = #{idskpd}
+    </select>
+    <select id="getBASTNo" parameterType="java.util.Map"
+            resultType="java.lang.String">
+   SELECT   NVL (MAX (T.I_BASTNO), 0) + 1
+  FROM   TMBAST T
+ WHERE   C_ANGG_TAHUN = #{tahun} 
+  AND I_IDSKPD = #{idskpd}
+    </select>
+     <select id="getSETORNo" parameterType="java.util.Map"
+            resultType="java.lang.String">
+  SELECT   NVL (MAX (T.I_SETOR), 0) + 1
+  FROM   TMSETOR T
+ WHERE   C_ANGG_TAHUN = #{tahun} AND I_IDSKPD = #{idskpd}
+    </select>
+    
+</mapper>

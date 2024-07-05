@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.JournalSp2dMapper">
+    
+    <select id="getWilayah"  resultType="spp.model.JournalSp2d">
+        SELECT c_wilayah as kodewil, c_wilayah || ' / ' || N_wilayah as ketwilayah  
+        from TRWILAYAH  where c_wilayah > 0  order by c_wilayah
+    </select>
+    
+    <select id="getTanggal" parameterType="java.util.Map" resultType="spp.model.JournalSp2d">  
+        SELECT DISTINCT (to_char( tmsp2d.D_SP2D_SAH,'dd') || '-' || bulan  (to_char( tmsp2d.D_SP2D_SAH,'MM')) || '-' || to_char( tmsp2d.D_SP2D_SAH,'yyyy'))  as kettgl, 
+        to_char(tmsp2d.D_SP2D_SAH,'YYYYMMDD') AS kodetgl 
+        FROM  tmsp2d, trskpd, tmspp
+        WHERE  
+        tmspp.I_id = tmsp2d.i_idspp
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmsp2d.i_jour IS NULL 
+        AND tmsp2d.C_SP2D_SAH ='1'
+        AND tmsp2d.C_WIL_SP2DPROSES =  #{wilayah}  
+        AND tmsp2d.c_angg_tahun = #{tahun}
+        order by kodetgl
+    </select> 
+   
+    <select id="getTanggalSkpd" parameterType="java.util.Map" resultType="spp.model.JournalSp2d">  
+        SELECT DISTINCT (to_char( tmsp2d.D_SP2D_SAH,'dd') || '-' || bulan  (to_char( tmsp2d.D_SP2D_SAH,'MM')) || '-' || to_char( tmsp2d.D_SP2D_SAH,'yyyy'))  as kettgl, 
+        to_char(tmsp2d.D_SP2D_SAH,'YYYYMMDD') AS kodetgl 
+        FROM  tmsp2d, trskpd, tmspp
+        WHERE  
+        tmspp.I_id = tmsp2d.i_idspp
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmsp2d.i_jour IS NULL 
+        AND tmsp2d.C_SP2D_SAH ='1'
+        AND tmsp2d.C_WIL_SP2DPROSES =  #{wilayah}  
+        AND tmsp2d.c_angg_tahun = #{tahun}
+        AND tmsp2d.i_idskpd = #{idskpd}
+        order by kodetgl
+    </select>    
+    
+    <select id="getListJurnal" parameterType="java.util.Map"  resultType="spp.model.JournalSp2d">
+        
+        SELECT idsp2d, nosp2d, skpdket,kode ,nilai
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT tmsp2d.i_id as idsp2d,
+            tmsp2d.I_SP2DNO as nosp2d, 
+            trskpd.c_skpd || ' / ' || trskpd.N_SKPD as skpdket, 
+            (CASE  
+                WHEN  tmspp.C_JENIS = '4' THEN '1-BIAYA (PPKD)'                                   
+                WHEN  tmspp.C_JENIS = '2' THEN '2-BANTUAN (PPKD)'                                 
+                WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level='3'   THEN '3-BTL-LS (PPKD)'    
+                WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN '4-BTL-LS (SKPD)'     
+                WHEN  tmspp.C_JENIS ='3' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN '5-BL-LS (SKPD)'     
+                WHEN  tmspp.C_JENIS ='3' AND tmspp.C_BEBAN &lt;&gt; 'LS'  THEN '6-BL-UPGUTU (SKPD)'  
+                WHEN  tmspp.C_UANGMUKA ='1'THEN  '7-Uang Muka Kerja (PPKD)'                              
+                ELSE '99'  
+                END ) AS kode,
+            (CASE  
+                WHEN  tmspp.C_JENIS = '4' THEN (select sum(v_spp) from tmspprincibiaya where i_idspp = tmspp.I_id) 
+                WHEN  tmspp.C_JENIS = '2' THEN (select sum(v_spp) from tmspprincibtlbantuan where i_idspp = tmspp.I_id)                                 
+                WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level='3'   THEN (select sum(v_spp) from tmspprincibtl where i_idspp = tmspp.I_id)     
+                WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN (select sum(v_spp) from tmspprincibtl where i_idspp = tmspp.I_id)      
+                WHEN  tmspp.C_JENIS ='3' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id)      
+                WHEN  tmspp.C_JENIS ='3' AND tmspp.C_BEBAN &lt;&gt; 'LS'      THEN (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id) 
+                WHEN  tmspp.C_UANGMUKA ='1'THEN  (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id)  
+                ELSE  0               
+            END )   AS nilai 
+            FROM  tmsp2d, trskpd, tmspp
+            WHERE  tmspp.I_id = tmsp2d.i_idspp
+            AND tmspp.i_idskpd = trskpd.i_id
+            AND tmsp2d.i_jour IS NULL 
+            AND tmsp2d.C_SP2D_SAH ='1'
+            AND tmsp2d.c_angg_tahun = #{tahun}
+            AND tmsp2d.C_WIL_SP2DPROSES = #{wilayah} 
+            AND to_char(tmsp2d.D_SP2D_SAH,'YYYYMMDD') = #{tglsah} 
+            
+            ORDER BY tmsp2d.D_SP2D_SAH, tmsp2d.i_id
+        
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakListJournal" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak
+        FROM  (
+        SELECT tmsp2d.i_id as idsp2d,
+        tmsp2d.I_SP2DNO as nosp2d, 
+        trskpd.c_skpd || ' / ' || trskpd.N_SKPD as skpdket, 
+        (CASE  
+            WHEN  tmspp.C_JENIS = '4' THEN '1-BIAYA (PPKD)'                                  
+            WHEN  tmspp.C_JENIS = '2' THEN '2-BANTUAN (PPKD)'                                 
+            WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level='3'   THEN '3-BTL-LS (PPKD)'     
+            WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN '4-BTL-LS (SKPD)'     
+            WHEN  tmspp.C_JENIS ='3' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN '5-BL-LS (SKPD)'      
+            WHEN  tmspp.C_JENIS ='3' AND tmspp.C_BEBAN &lt;&gt; 'LS'      THEN '6-BL-UPGUTU (SKPD)'  
+            WHEN  tmspp.C_UANGMUKA ='1'THEN  '7-Uang Muka Kerja (PPKD)'                              
+            ELSE '99'  
+            END )   AS kode ,
+        (CASE  
+            WHEN  tmspp.C_JENIS = '4' THEN (select sum(v_spp) from tmspprincibiaya where i_idspp = tmspp.I_id)  
+            WHEN  tmspp.C_JENIS = '2' THEN (select sum(v_spp) from tmspprincibtlbantuan where i_idspp = tmspp.I_id)                                
+            WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level='3'   THEN (select sum(v_spp) from tmspprincibtl where i_idspp = tmspp.I_id)      
+            WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN (select sum(v_spp) from tmspprincibtl where i_idspp = tmspp.I_id)       
+            WHEN  tmspp.C_JENIS ='3' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id)       
+            WHEN  tmspp.C_JENIS ='3' AND tmspp.C_BEBAN &lt;&gt; 'LS'      THEN (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id)  
+            WHEN  tmspp.C_UANGMUKA ='1'THEN  (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id) -- 7-UMkerja  
+            ELSE  0               
+        END )   AS nilai 
+        FROM  tmsp2d, trskpd, tmspp
+        WHERE  tmspp.I_id = tmsp2d.i_idspp
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmsp2d.i_jour IS NULL 
+        AND tmsp2d.C_SP2D_SAH ='1'
+        AND tmsp2d.c_angg_tahun = #{tahun}
+        AND tmsp2d.C_WIL_SP2DPROSES = #{wilayah} 
+        AND to_char(tmsp2d.D_SP2D_SAH,'YYYYMMDD') = #{tglsah} 
+        ORDER BY tmsp2d.D_SP2D_SAH, tmsp2d.i_id
+        )
+        
+    </select>
+    
+    <select id="getListJurnalSkpd" parameterType="java.util.Map"  resultType="spp.model.JournalSp2d">
+        
+        SELECT idsp2d, nosp2d, skpdket,kode ,nilai
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT tmsp2d.i_id as idsp2d,
+            tmsp2d.I_SP2DNO as nosp2d, 
+            trskpd.c_skpd || ' / ' || trskpd.N_SKPD as skpdket, 
+            (CASE  
+                WHEN  tmspp.C_JENIS = '4' THEN '1-BIAYA (PPKD)'                                   
+                WHEN  tmspp.C_JENIS = '2' THEN '2-BANTUAN (PPKD)'                                 
+                WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level='3'   THEN '3-BTL-LS (PPKD)'    
+                WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN '4-BTL-LS (SKPD)'     
+                WHEN  tmspp.C_JENIS ='3' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN '5-BL-LS (SKPD)'     
+                WHEN  tmspp.C_JENIS ='3' AND tmspp.C_BEBAN &lt;&gt; 'LS'  THEN '6-BL-UPGUTU (SKPD)'  
+                WHEN  tmspp.C_UANGMUKA ='1'THEN  '7-Uang Muka Kerja (PPKD)'                              
+                ELSE '99'  
+                END ) AS kode,
+            (CASE  
+                WHEN  tmspp.C_JENIS = '4' THEN (select sum(v_spp) from tmspprincibiaya where i_idspp = tmspp.I_id) 
+                WHEN  tmspp.C_JENIS = '2' THEN (select sum(v_spp) from tmspprincibtlbantuan where i_idspp = tmspp.I_id)                                 
+                WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level='3'   THEN (select sum(v_spp) from tmspprincibtl where i_idspp = tmspp.I_id)     
+                WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN (select sum(v_spp) from tmspprincibtl where i_idspp = tmspp.I_id)      
+                WHEN  tmspp.C_JENIS ='3' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id)      
+                WHEN  tmspp.C_JENIS ='3' AND tmspp.C_BEBAN &lt;&gt; 'LS'      THEN (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id) 
+                WHEN  tmspp.C_UANGMUKA ='1'THEN  (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id)  
+                ELSE  0               
+            END )   AS nilai 
+            FROM  tmsp2d, trskpd, tmspp
+            WHERE  tmspp.I_id = tmsp2d.i_idspp
+            AND tmspp.i_idskpd = trskpd.i_id
+            AND tmsp2d.i_jour IS NULL 
+            AND tmsp2d.C_SP2D_SAH ='1'
+            AND tmsp2d.c_angg_tahun = #{tahun}
+            AND tmsp2d.C_WIL_SP2DPROSES = #{wilayah} 
+            AND to_char(tmsp2d.D_SP2D_SAH,'YYYYMMDD') = #{tglsah} 
+            AND tmsp2d.i_idskpd = #{idskpd}
+        ORDER BY tmsp2d.D_SP2D_SAH, tmsp2d.i_id
+        
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakListJournalSkpd" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak
+        FROM  (
+        SELECT tmsp2d.i_id as idsp2d,
+        tmsp2d.I_SP2DNO as nosp2d, 
+        trskpd.c_skpd || ' / ' || trskpd.N_SKPD as skpdket, 
+        (CASE  
+            WHEN  tmspp.C_JENIS = '4' THEN '1-BIAYA (PPKD)'                                  
+            WHEN  tmspp.C_JENIS = '2' THEN '2-BANTUAN (PPKD)'                                 
+            WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level='3'   THEN '3-BTL-LS (PPKD)'     
+            WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN '4-BTL-LS (SKPD)'     
+            WHEN  tmspp.C_JENIS ='3' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN '5-BL-LS (SKPD)'      
+            WHEN  tmspp.C_JENIS ='3' AND tmspp.C_BEBAN &lt;&gt; 'LS'      THEN '6-BL-UPGUTU (SKPD)'  
+            WHEN  tmspp.C_UANGMUKA ='1'THEN  '7-Uang Muka Kerja (PPKD)'                              
+            ELSE '99'  
+            END )   AS kode ,
+        (CASE  
+            WHEN  tmspp.C_JENIS = '4' THEN (select sum(v_spp) from tmspprincibiaya where i_idspp = tmspp.I_id)  
+            WHEN  tmspp.C_JENIS = '2' THEN (select sum(v_spp) from tmspprincibtlbantuan where i_idspp = tmspp.I_id)                                
+            WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level='3'   THEN (select sum(v_spp) from tmspprincibtl where i_idspp = tmspp.I_id)      
+            WHEN  tmspp.C_JENIS ='1' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN (select sum(v_spp) from tmspprincibtl where i_idspp = tmspp.I_id)       
+            WHEN  tmspp.C_JENIS ='3' AND trskpd.c_skpd_level &lt;&gt; '3'  THEN (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id)       
+            WHEN  tmspp.C_JENIS ='3' AND tmspp.C_BEBAN &lt;&gt; 'LS'      THEN (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id)  
+            WHEN  tmspp.C_UANGMUKA ='1'THEN  (select sum(v_spp) from tmspprincibl where i_idspp = tmspp.I_id) -- 7-UMkerja  
+            ELSE  0               
+        END )   AS nilai 
+        FROM  tmsp2d, trskpd, tmspp
+        WHERE  tmspp.I_id = tmsp2d.i_idspp
+        AND tmspp.i_idskpd = trskpd.i_id
+        AND tmsp2d.i_jour IS NULL 
+        AND tmsp2d.C_SP2D_SAH ='1'
+        AND tmsp2d.c_angg_tahun = #{tahun}
+        AND tmsp2d.C_WIL_SP2DPROSES = #{wilayah} 
+        AND to_char(tmsp2d.D_SP2D_SAH,'YYYYMMDD') = #{tglsah} 
+        AND tmsp2d.i_idskpd = #{idskpd}
+        ORDER BY tmsp2d.D_SP2D_SAH, tmsp2d.i_id
+        )
+        
+    </select>
+    
+    <insert id="insertJournalSp2d" statementType="CALLABLE" parameterType="spp.model.JournalSp2d"> 
+    {CALL proc_j_proses_SP2D(#{tahun}, #{wilayah}, #{tglsah}, #{idEntry})}
+    </insert>
+    
+</mapper>

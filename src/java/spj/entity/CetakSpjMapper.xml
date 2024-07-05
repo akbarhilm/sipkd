@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spj.entity.CetakSpjMapper">
+    
+    <select id="getSpjCetakBl" parameterType="java.util.Map"  resultType="spp.model.Spj">
+       SELECT  idSpjsah,
+        idSpj,
+        tahun,
+        idskpd,
+        noSpj,
+        bulan,
+        nilaiSpjUp,
+        nilaiSpjTu,
+        nilaiPaguUp,
+        nihil,
+        ketSpj,
+        statusCetak,
+        tglCetak,
+        nipPenggunaAnggaran,
+        namaPenggunaAnggaran,
+        nrkPenggunaAnggaran,
+        nipVerifikator,
+        nrkVerifikator,
+        namaVerifikator
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+               
+        SELECT  nvl(tmspjsah.i_id,-1) AS idSpjsah,tmspj.i_id AS idSpj,
+        tmspj.c_angg_tahun AS tahun,
+        tmspj.i_idskpd AS idskpd,
+        tmspj.i_spjno AS noSpj,
+        tmspj.c_spj_bulan AS bulan,
+        tmspj.v_spj_up AS nilaiSpjUp,
+        tmspj.v_spj_tu AS nilaiSpjTu,
+        (CASE c_spj_nihil
+        WHEN '0'
+        THEN 'ADA SPJ'
+        WHEN '1'
+        THEN 'NIHIL'
+        WHEN '2'
+        THEN 'NIHIL-NIHIL'
+        ELSE 'TANPA STATUS'
+        END
+        ) AS nihil,
+        e_spj AS ketSpj, TMSPJCETAK.C_STATUS_CETAK as statusCetak,
+        to_char(TMSPJCETAK.D_SPJ_CETAK,'dd-mm-yyyy') as  tglCetak,
+        TMDPA.I_NIP_PA as nipPenggunaAnggaran,
+        TMDPA.N_PA as namaPenggunaAnggaran,
+        TMDPA.I_NRK_PA as nrkPenggunaAnggaran,
+        TMDPA.I_NIP_PKBLJ as nipVerifikator,
+        TMDPA.I_NRK_PPKBLJ as nrkVerifikator,
+        TRSPPPAGUUP.V_SPP AS nilaiPaguUp,
+        TMDPA.N_PKBLJ as namaVerifikator
+        FROM TMDPA, TMSPJ
+        left join
+        TMSPJCETAK
+        ON TMSPJCETAK.I_ID = TMSPJ.I_ID
+        LEFT JOIN
+        TRSPPPAGUUP
+        on TRSPPPAGUUP.i_idskpd = TMSPJ.i_idskpd
+        LEFT JOIN
+        TMSPJSAH
+        on TMSPJ.i_id = TMSPJSAH.i_id
+        WHERE tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd =  #{idskpd}
+        AND tmdpa.i_idskpd = tmspj.i_idskpd
+        AND tmdpa.c_angg_tahun = tmspj.c_angg_tahun
+        )a
+        )
+        vwxyz
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        ORDER BY noSpj, bulan
+        
+    </select>
+    <select id="getBanyakgetSpjCetakBl" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT tmspj.i_id AS ID, c_angg_tahun AS tahun, i_idskpd AS idskpd,
+        i_spjno AS nospj, c_spj_bulan, v_spj_up, v_spj_tu,
+        c_spj_nihil AS nihil, e_spj, TMSPJCETAK.C_STATUS_CETAK as statusCetak, to_char(TMSPJCETAK.D_SPJ_CETAK,'dd-mm-yyyy') as  tglCetak
+        FROM TMSPJ 
+        left join 
+        TMSPJCETAK 
+        ON TMSPJCETAK.I_ID = TMSPJ.I_ID
+        WHERE c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        AND NOT EXISTS (SELECT 1
+        FROM TMSPJSAH
+        WHERE TMSPJ.i_id = TMSPJSAH.i_id)
+        )
+    </select>
+    
+     <select id="getlistspjsah" parameterType="java.util.Map"  resultType="spp.model.Spj">
+        SELECT  idSpj, 
+        tahun, 
+        idskpd,
+        noSpj, 
+        bulan,
+        nilaiSpjUp, 
+        nilaiSpjTu,
+        nihil, 
+        ketSpj, 
+        statusCetak, 
+        tglCetak,
+        nipPenggunaAnggaran,
+        namaPenggunaAnggaran,
+        nrkPenggunaAnggaran,
+        nipVerifikator,
+        nrkVerifikator,
+        namaVerifikator
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (
+        SELECT tmspj.i_id AS idSpj, 
+        tmspj.c_angg_tahun AS tahun, 
+        tmspj.i_idskpd AS idskpd,
+        tmspj.i_spjno AS noSpj, 
+        tmspj.c_spj_bulan AS bulan,
+        tmspj.v_spj_up AS nilaiSpjUp, 
+        tmspj.v_spj_tu AS nilaiSpjTu,
+        (CASE c_spj_nihil
+        WHEN '0'
+        THEN 'ADA SPJ'
+        WHEN '1'
+        THEN 'NIHIL'
+        WHEN '2'
+        THEN 'NIHIL-NIHIL'
+        ELSE 'TANPA STATUS'
+        END
+        ) AS nihil, 
+        e_spj AS ketSpj, TMSPJCETAK.C_STATUS_CETAK as statusCetak, 
+        to_char(TMSPJCETAK.D_SPJ_CETAK,'dd-mm-yyyy') as  tglCetak,
+        TMDPA.I_NIP_PA as nipPenggunaAnggaran,
+        TMDPA.N_PA as namaPenggunaAnggaran,
+        TMDPA.I_NRK_PA as nrkPenggunaAnggaran,
+        TMDPA.I_NIP_PPKBLJ as nipVerifikator,
+        TMDPA.I_NRK_PPKBLJ as nrkVerifikator,
+        TMDPA.N_PPKBLJ as namaVerifikator
+        FROM TMDPA, TMSPJ 
+        left join 
+        TMSPJCETAK 
+        ON TMSPJCETAK.I_ID = TMSPJ.I_ID
+        WHERE tmspj.c_angg_tahun = #{tahun}
+        AND tmspj.i_idskpd = #{idskpd}
+        AND tmdpa.i_idskpd = tmspj.i_idskpd
+        AND TMSPJCETAK.c_status_cetak != '0' 
+        AND tmdpa.c_angg_tahun = tmspj.c_angg_tahun
+        AND NOT EXISTS (SELECT 1
+        FROM TMSPJSAH
+        WHERE TMSPJ.i_id = TMSPJSAH.i_id)
+        )a)
+        vwxyz
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getbanyakspjsah" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT tmspj.i_id AS ID, c_angg_tahun AS tahun, i_idskpd AS idskpd,
+        i_spjno AS nospj, c_spj_bulan, v_spj_up, v_spj_tu,
+        c_spj_nihil AS nihil, e_spj, TMSPJCETAK.C_STATUS_CETAK as statusCetak, to_char(TMSPJCETAK.D_SPJ_CETAK,'dd-mm-yyyy') as  tglCetak
+        FROM TMSPJ 
+        left join 
+        TMSPJCETAK 
+        ON TMSPJCETAK.I_ID = TMSPJ.I_ID
+        WHERE c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        AND TMSPJCETAK.c_status_cetak != '0'  
+        AND NOT EXISTS (SELECT 1
+        FROM TMSPJSAH
+        WHERE TMSPJ.i_id = TMSPJSAH.i_id)
+        )
+    </select>
+    
+    
+     <insert id="insertspjsah" parameterType="java.util.Map"   >
+        INSERT INTO  TMSPJSAH  (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM,D_SPJ_SAH,V_SPJ) 
+        VALUES (#{idspd},#{userid},#{tglentry} ,#{tglc},#{nju})
+    </insert>
+    
+    
+    
+    <select id="getHariKerjaSpj"   parameterType="java.sql.Date" resultType="spp.model.HariKerja">
+        SELECT   T.D_REKAM AS tglRekam,
+        T.D_APPROVE AS tglApprove,
+        T.D_CETAK AS tglCetak,
+        T.D_SAH AS tglSah
+        FROM   TRHARIKERJA T
+        WHERE   C_DOK = 'SPJ' AND D_HARI_KERJA = #{value}
+    </select>
+    <insert id="insertSpjCetak" parameterType="java.util.Map"   >
+        INSERT INTO  TMSPJCETAK  (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM,A_JASPER_FILE, A_SPJFILE_PDF, 
+        C_STATUS_CETAK,D_SPJ_CETAK,I_NIP_PA,N_PA,I_NRK_PA,I_NIP_PPK,I_NRK_PPK,N_PPK) 
+        VALUES (#{idspj},#{userid},#{tglentry} , #{filejasper},#{filepdf},'1',#{tglcetak},#{nipPenggunaAnggaran},
+        #{namaPenggunaAnggaran},#{nrkPenggunaAnggaran},#{nipVerifikator},#{nrkVerifikator},#{namaVerifikator}
+        )
+    </insert>
+    <delete id="deleteSpjCetak" parameterType="java.lang.Integer"    >
+        delete TMSPJCETAK    WHERE   I_ID = #{value}  
+    </delete>  
+    
+     <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF 
+    </select>
+    
+     <select id="getspjsahbyidspj"  parameterType="java.lang.Integer" resultType="java.util.Map" >
+        SELECT   T.I_ID,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.D_SPJ_SAH,
+        T.V_SPJ
+        FROM    TMSPJSAH T
+        WHERE   T.I_ID =  #{nospd}
+    </select>
+    
+</mapper>

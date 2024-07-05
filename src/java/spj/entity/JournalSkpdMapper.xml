@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.JournalSkpdMapper">
+    
+   <select id="getUnit"  resultType="spp.model.JournalSkpd">
+        select i_id as kodeSkpd, n_skpd as namaSkpd from trskpd where c_aktif = 1 order by namaSkpd
+    </select>
+    
+    <select id="getListJurnal" parameterType="java.util.Map"  resultType="spp.model.JournalSkpd">
+        
+        SELECT idBas, kodeAkun, namaAkun,nilaiDebet,nilaiKredit
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  select  J.i_idbas as idBas, J.v_saldoawal as nilaiSaldo,
+        B.c_akun as kodeAkun, 
+        B.n_akun as namaAkun,
+        J.v_saldoawal_debet as nilaiDebet,
+        J.v_saldoawal_kredit as nilaiKredit
+        FROM trskpd S
+        join tmjoursaldoawal J
+        on S.i_id = J.i_idskpd
+        join trbas B
+        on B.I_ID = J.i_idbas
+        WHERE J.i_idskpd = #{idskpd} and  J.c_angg_tahun = #{tahun}
+        ORDER BY B.c_akun
+        <!--
+        ORDER BY 
+        <choose>
+            <when test="iSortCol_0 == 0 ">
+                trbas.i_id
+            </when>
+            <when test="iSortCol_0 == 1 ">
+               c_akun
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                trbas.n_akun
+            </when>
+            <otherwise>
+                trbas.c_akun  
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' ">
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>   
+        -->             
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakListJournal" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak
+        FROM  (
+            select  J.i_idbas as idBas,
+            B.c_akun as kodeAkun, 
+            B.n_akun as namaAkun,
+            J.v_saldoawal_debet as nilaiDebet,
+            J.v_saldoawal_kredit as nilaiKredit
+            FROM trskpd S
+            join tmjoursaldoawal J
+            on S.i_id = J.i_idskpd
+            join trbas B
+            on B.I_ID = J.i_idbas
+            WHERE J.i_idskpd = #{idskpd} and  J.c_angg_tahun = #{tahun}
+            and (B.c_akun like ('1%')  or B.c_akun like ('2%') or B.c_akun like ('3%'))
+        )
+        
+    </select>
+    
+    <select id="getTotal" parameterType="java.util.Map"  resultType="spp.model.JournalSkpd">
+        select sum(tmjoursaldoawal.v_saldoawal_debet) as totalDebet,
+        sum(tmjoursaldoawal.v_saldoawal_kredit) as totalKredit
+        FROM  tmjoursaldoawal,trbas
+        WHERE 
+        tmjoursaldoawal.i_idbas = trbas.i_id and
+        tmjoursaldoawal.i_idskpd = #{idskpd} 
+        and  tmjoursaldoawal.c_angg_tahun = #{tahun}
+        and (trbas.c_akun like ('1%')  or trbas.c_akun like ('2%') or trbas.c_akun like ('3%'))
+    </select>
+    
+    <select id="getNamaAkun" parameterType="java.lang.String"  resultType="spp.model.JournalSkpd">
+        select n_akun as namaAkun, i_id as idBas
+        from trbas where c_akun = #{value}
+    </select>
+    
+    <insert id="insertJourSaldoAwal" parameterType="spp.model.JournalSkpd" >
+        INSERT INTO TMJOURSALDOAWAL (
+        C_ANGG_TAHUN, 
+        I_IDSKPD, 
+        I_IDBAS, 
+        V_SALDOAWAL, 
+        V_SALDOAWAL_DEBET,
+        V_SALDOAWAL_KREDIT,
+        I_PGUN,
+        D_REKAM 
+        ) 
+        VALUES ( 
+        #{tahun},
+        #{idskpd},
+        #{idBas},
+        #{nilaiSaldo},
+        #{nilaiDebet},
+        #{nilaiKredit},
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    
+    <update id="updateJourSaldoAwal" parameterType="spp.model.JournalSkpd"   >
+        UPDATE TMJOURSALDOAWAL
+        SET
+        V_SALDOAWAL = #{nilaiSaldo},
+        V_SALDOAWAL_DEBET = #{nilaiDebet},
+        V_SALDOAWAL_KREDIT =  #{nilaiKredit},
+        I_PGUN = #{idEntry},
+        D_REKAM = sysdate
+        WHERE  
+        C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        AND I_IDBAS = #{idBas}
+    </update>
+    
+    <delete id="deleteJourSaldoAwal" parameterType="spp.model.JournalSkpd"  >
+        DELETE TMJOURSALDOAWAL 
+        WHERE 
+        I_IDSKPD = #{idskpd}
+        
+    </delete>  
+    
+    
+</mapper>

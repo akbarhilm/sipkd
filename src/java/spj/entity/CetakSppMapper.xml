@@ -1,0 +1,1387 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spj.entity.CetakSppMapper">
+    
+    <select id="getsp2dsahbyidsp2d"  parameterType="java.lang.Integer" resultType="java.util.Map" >
+        SELECT   T.I_ID,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.D_SP2D_SAH,
+        T.V_SP2D
+        FROM    TMSP2D T
+        WHERE   T.I_ID =  #{nospd}
+    </select>
+    
+    
+    <select id="getspjsahbyidspj"  parameterType="java.lang.Integer" resultType="java.util.Map" >
+        SELECT   T.I_ID,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.D_SPJ_SAH,
+        T.V_SPJ
+        FROM    TMSPJSAH T
+        WHERE   T.I_ID =  #{nospd}
+    </select>
+    
+    <select id="getlistsp2dcetak" parameterType="java.util.Map"  resultType="spp.model.SppUp">
+        SELECT   id,
+        idskpd,
+        nospp,
+        nospm as "spmUp.noSpm",
+        tglspm as "spmUp.tglSpm",
+        noSp2d as "sp2d.nomorSp2d",
+        tglSp2d as "sp2d.tglSp2d",
+        potblum as "sp2d.kodeCetakPotongan",
+        potbtl,
+        potbl,
+        kodeBeban,
+        kodeJenis,
+        namaPptk,
+        nipPptk,
+        tahun,
+        status_cetak as "sp2d.kodeCetak" ,
+        nilaisp2d as "sp2d.nilaiSp2d"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   Z.i_idsp2d AS id,
+        Z.i_idskpd AS idskpd,
+        Z.i_sppno AS nospp,
+        Z.i_spmno AS nospm,
+        Z.i_sp2dno AS nosp2d,
+        Z.d_spmno AS tglspm,
+        Z.PPTK AS namaPptk,
+        Z.NPPTK AS nipPptk,
+        Z.d_sp2dno AS tglsp2d,
+        Z.pot_bl_UM AS potblum,
+        Z.pot_btl AS potbtl,
+        Z.POT_bl AS potbl,
+        Z.c_beban AS kodeBeban,
+        Z.C_ANGG_TAHUN AS tahun,
+        (CASE z.c_jenis
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        END)
+        AS kodeJenis,
+        status_cetak,
+        status_cetakpotongan,
+        z.nilaisp2d as nilaisp2d
+        FROM   (SELECT   tmspp.c_angg_tahun,
+        tmspm.i_idskpd AS i_idskpd,
+        tmspm.i_id AS i_idspm,
+        tmspm.i_idspp AS i_idspp,
+        tmsp2d.i_id AS i_idsp2d,
+        tmspm.i_spmno,
+        tmspm.d_spmno,
+        tmsp2d.i_sp2dno,
+        tmsp2d.d_sp2dno,
+        tmspp.i_sppno,
+        tmspp.c_beban,
+        tmsp2d.N_KBUD AS PPTK,
+        tmsp2d.I_NIP_KBUD as NPPTK,
+        tmspm.C_UANGMUKA as pot_bl_UM,
+        tmspm.C_POTAYAT as pot_btl,
+        tmspm.C_POTNONAYAT AS POT_bl,
+        tmspp.c_jenis,
+        (CASE NVL (tmsp2d.c_sp2d_cetak, '0')
+        WHEN '0' THEN 'BELUM CETAK'
+        WHEN '1' THEN 'CETAK'
+        ELSE 'TANPA STATUS'
+        END)
+        AS status_cetak,
+        (CASE NVL (tmsp2d.c_sp2d_cetakpot,
+        '0')
+        WHEN '0'
+        THEN
+        'BELUM CETAK'
+        WHEN '1'
+        THEN
+        'CETAK'
+        ELSE
+        'TANPA STATUS'
+        END)
+        AS status_cetakpotongan,
+        tmsp2d.v_sp2d as nilaisp2d
+                                      
+        FROM   TMSPP,
+        tmspm,
+        tmsp2d,
+        tmspmcetak
+        WHERE       tmspm.i_idspp = tmspp.i_id
+        AND tmspm.i_id = tmsp2d.i_idspm
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmsp2d.c_sp2d_sah != '1'
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}) Z
+        )
+        a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+  
+    
+    <select id="getbanyaksp2dcetak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT ( distinct i_idsp2d) AS banyak
+        from
+        ( SELECT tmsp2d.i_id AS i_idsp2d
+        FROM   TMSPP, tmspm,tmsp2d,tmspmcetak
+        WHERE       tmspm.i_idspp = tmspp.i_id
+        AND tmspm.i_id = tmsp2d.i_idspm
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmsp2d.c_sp2d_sah != '1'
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}
+        )
+    </select> 
+    
+    <select id="getlistsp2dsah" parameterType="java.util.Map"  resultType="spp.model.SppUp">
+        SELECT   id,
+        idskpd,
+        nospp,
+        nospm as "spmUp.noSpm",
+        tglspm as "spmUp.tglSpm",
+        noSp2d as "sp2d.nomorSp2d",
+        tglSp2d as "sp2d.tglSp2d",
+        potblum as "sp2d.kodeCetakPotongan",
+        potbtl,
+        potbl,
+        kodeBeban,
+        kodeJenis,
+        namaPptk,
+        nipPptk,
+        tahun,
+        status_cetak as "sp2d.kodeCetak" ,
+        nilaisp2d as "sp2d.nilaiSp2d"
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   Z.i_idsp2d AS id,
+        Z.i_idskpd AS idskpd,
+        Z.i_sppno AS nospp,
+        Z.i_spmno AS nospm,
+        Z.i_sp2dno AS nosp2d,
+        Z.d_spmno AS tglspm,
+        Z.PPTK AS namaPptk,
+        Z.NPPTK AS nipPptk,
+        Z.d_sp2dno AS tglsp2d,
+        Z.pot_bl_UM AS potblum,
+        Z.pot_btl AS potbtl,
+        Z.POT_bl AS potbl,
+        Z.c_beban AS kodeBeban,
+        Z.C_ANGG_TAHUN AS tahun,
+        (CASE z.c_jenis
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        END)
+        AS kodeJenis,
+        status_cetak,
+        status_cetakpotongan,
+        z.nilaisp2d as nilaisp2d
+        FROM   (SELECT   tmspp.c_angg_tahun,
+        tmspm.i_idskpd AS i_idskpd,
+        tmspm.i_id AS i_idspm,
+        tmspm.i_idspp AS i_idspp,
+        tmsp2d.i_id AS i_idsp2d,
+        tmspm.i_spmno,
+        tmspm.d_spmno,
+        tmsp2d.i_sp2dno,
+        tmsp2d.d_sp2dno,
+        tmspp.i_sppno,
+        tmspp.c_beban,
+        tmsp2d.N_KBUD AS PPTK,
+        tmsp2d.I_NIP_KBUD as NPPTK,
+        tmspm.C_UANGMUKA as pot_bl_UM,
+        tmspm.C_POTAYAT as pot_btl,
+        tmspm.C_POTNONAYAT AS POT_bl,
+        tmspp.c_jenis,
+        (CASE NVL (tmsp2d.c_sp2d_cetak, '0')
+        <!--WHEN '0' THEN 'BELUM CETAK'-->
+        WHEN '1' THEN 'CETAK'
+        ELSE 'TANPA STATUS'
+        END)
+        AS status_cetak,
+        (CASE NVL (tmsp2d.c_sp2d_cetakpot,
+        '0')
+        WHEN '0'
+        THEN
+        'BELUM CETAK'
+        WHEN '1'
+        THEN
+        'CETAK'
+        ELSE
+        'TANPA STATUS'
+        END)
+        AS status_cetakpotongan,
+        tmsp2d.v_sp2d as nilaisp2d
+                                      
+        FROM   TMSPP,
+        tmspm,
+        tmsp2d,
+        tmspmcetak
+        WHERE       tmspm.i_idspp = tmspp.i_id
+        AND tmspm.i_id = tmsp2d.i_idspm
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmsp2d.c_sp2d_sah != '1'
+        AND tmsp2d.c_sp2d_cetak != '0'
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}) Z
+        )
+        a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+  
+    
+    <select id="getbanyaksp2dsah" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT ( distinct i_idsp2d) AS banyak
+        from
+        ( SELECT tmsp2d.i_id AS i_idsp2d
+        FROM   TMSPP, tmspm,tmsp2d,tmspmcetak
+        WHERE       tmspm.i_idspp = tmspp.i_id
+        AND tmspm.i_id = tmsp2d.i_idspm
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmsp2d.c_sp2d_sah != '1'
+        AND tmsp2d.c_sp2d_cetak != '0'
+        AND tmspm.c_angg_tahun = #{tahun}
+        AND tmspm.i_idskpd = #{idskpd}
+        )
+    </select> 
+          
+    <update id="updatesp2dcetak" parameterType="java.util.Map" >
+       
+        UPDATE TMSP2D
+        SET   
+        I_PGUN_CETAK = #{userid},
+        D_PGUN_CETAK = #{tgluserid},     
+        A_JASPER_FILE = #{filejasper},
+        D_SP2D_CETAK = #{tglc},
+        c_sp2d_cetak = '1',
+        c_sp2d_cetakpot = '1'
+        WHERE  I_ID = #{id}
+        
+    </update>
+    
+    
+    <update id="updatesp2dsah" parameterType="java.util.Map" >
+       
+        UPDATE TMSP2D
+        SET 
+        I_PGUN_SAH = #{userid},
+        D_PGUN_SAH = #{tgluserid},         
+        D_SP2D_SAH = #{tglc},
+        c_sp2d_sah = '1'
+        WHERE  I_ID = #{idspd}
+        
+    </update>
+    
+    <update id="deletesp2dcetak" parameterType="java.util.Map" >
+       
+        UPDATE TMSP2D
+        SET          
+        A_JASPER_FILE ='',
+        D_SP2D_CETAK = '',
+        c_sp2d_cetak = '0',
+        c_sp2d_cetakpot = '0'
+        WHERE  I_ID = #{id}
+        
+    </update>
+          
+    <select id="getlistsppcetak" parameterType="java.util.Map"  resultType="spp.model.SppUp">
+        SELECT   id,
+        idskpd,
+        nospp,
+        namaPptk,
+        nipPptk,
+        kodeBeban,
+        tahun,
+        status,
+        kodeJenis,
+        nilaispp
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   Z.i_id AS id,
+        Z.i_idskpd AS idskpd,
+        Z.i_sppno AS nospp,
+        Z.PPTK AS namaPptk,
+        Z.NPPTK AS nipPptk,
+        Z.c_beban AS kodeBeban,
+        Z.C_ANGG_TAHUN AS tahun,
+        Z.status,
+        (CASE Z.C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        ELSE 'SALAH'
+        END)
+        AS kodeJenis,
+        SUM (Z.v_spp) AS nilaispp
+        FROM   (SELECT   tmspp.i_id,
+        tmspp.i_idskpd,
+        tmspp.i_sppno,
+        tmspp.N_PPTK AS PPTK,
+        tmspp.I_PPTK_NIP as NPPTK,
+        tmspp.c_beban,
+        tmspp.C_ANGG_TAHUN,
+        tmspp.C_JENIS,
+        'CETAK' AS STATUS,
+        tmspprincibl.v_spp
+        FROM   tmspp, tmspprincibl, tmsppcetak
+        WHERE       tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspp.C_ANGG_TAHUN = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspm
+        WHERE   tmspp.i_id =
+        tmspm.i_idspp)
+        UNION ALL
+        SELECT   tmspp.i_id,
+        tmspp.i_idskpd,
+        tmspp.i_sppno,
+        tmspp.N_PPTK AS PPTK,
+        tmspp.I_PPTK_NIP as NPPTK,
+        tmspp.c_beban,
+        tmspp.C_ANGG_TAHUN,
+        tmspp.C_JENIS,
+        'PENGAJUAN' AS STATUS,
+        tmspprincibl.v_spp
+        FROM   tmspp, tmspprincibl
+        WHERE       tmspp.i_id = tmspprincibl.i_idspp
+        AND tmspp.C_ANGG_TAHUN = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsppcetak
+        WHERE   tmspp.i_id =
+        tmsppcetak.i_id)
+        UNION ALL
+        SELECT   tmspp.i_id,
+        tmspp.i_idskpd,
+        tmspp.i_sppno,
+        tmspp.N_PPTK AS PPTKtk,
+        tmspp.I_PPTK_NIP as NPPTK,
+        tmspp.c_beban,
+        tmspp.C_ANGG_TAHUN,
+        tmspp.C_JENIS,
+        'CETAK' AS STATUS,
+        tmspprincibtl.v_spp
+        FROM   tmspp, tmspprincibtl, tmsppcetak
+        WHERE       tmspp.i_id = tmspprincibtl.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspp.C_ANGG_TAHUN = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspm
+        WHERE   tmspp.i_id =
+        tmspm.i_idspp)
+        UNION ALL
+        SELECT   tmspp.i_id,
+        tmspp.i_idskpd,
+        tmspp.i_sppno,
+        tmspp.N_PPTK AS PPTK,
+        tmspp.I_PPTK_NIP as NPPTK,
+        tmspp.c_beban,
+        tmspp.C_ANGG_TAHUN,
+        tmspp.C_JENIS,
+        'PENGAJUAN' AS STATUS,
+        tmspprincibtl.v_spp
+        FROM   tmspp, tmspprincibtl
+        WHERE       tmspp.i_id = tmspprincibtl.i_idspp
+        AND tmspp.C_ANGG_TAHUN = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsppcetak
+        WHERE   tmspp.i_id =
+        tmsppcetak.i_id)
+        UNION ALL
+        SELECT   tmspp.i_id,
+        tmspp.i_idskpd,
+        tmspp.i_sppno,
+        tmspp.N_PPTK AS PPTK,
+        tmspp.I_PPTK_NIP as NPPTK,
+        tmspp.c_beban,
+        tmspp.C_ANGG_TAHUN,
+        tmspp.C_JENIS,
+        'CETAK' AS STATUS,
+        tmspprincibtlbantuan.v_spp
+        FROM   tmspp,
+        tmspprincibtlbantuan,
+        tmsppcetak
+        WHERE   tmspp.i_id =
+        tmspprincibtlbantuan.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspp.C_ANGG_TAHUN = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspm
+        WHERE   tmspp.i_id =
+        tmspm.i_idspp) 
+        UNION ALL
+        SELECT   tmspp.i_id,
+        tmspp.i_idskpd,
+        tmspp.i_sppno,
+        tmspp.N_PPTK AS PPTK,
+        tmspp.I_PPTK_NIP as NPPTK,
+        tmspp.c_beban,
+        tmspp.C_ANGG_TAHUN,
+        tmspp.C_JENIS,
+        'PENGAJUAN' AS STATUS,
+        tmspprincibtlbantuan.v_spp
+        FROM   tmspp, tmspprincibtlbantuan
+        WHERE   tmspp.i_id =
+        tmspprincibtlbantuan.i_idspp
+        AND tmspp.C_ANGG_TAHUN = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsppcetak
+        WHERE   tmspp.i_id =
+        tmsppcetak.i_id)
+        UNION ALL
+        SELECT   tmspp.i_id,
+        tmspp.i_idskpd,
+        tmspp.i_sppno,
+        tmspp.N_PPTK AS PPTK,
+        tmspp.I_PPTK_NIP as NPPTK,
+        tmspp.c_beban,
+        tmspp.C_ANGG_TAHUN,
+        tmspp.C_JENIS,
+        'CETAK' AS STATUS,
+        tmspprincibiaya.v_spp
+        FROM   tmspp, tmspprincibiaya, tmsppcetak
+        WHERE   tmspp.i_id = tmspprincibiaya.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspp.C_ANGG_TAHUN = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspm
+        WHERE   tmspp.i_id =
+        tmspm.i_idspp)
+        UNION ALL
+        SELECT   tmspp.i_id,
+        tmspp.i_idskpd,
+        tmspp.i_sppno,
+        tmspp.N_PPTK AS PPTK,
+        tmspp.I_PPTK_NIP as NPPTK,
+        tmspp.c_beban,
+        tmspp.C_ANGG_TAHUN,
+        tmspp.C_JENIS,
+        'PENGAJUAN' AS STATUS,
+        tmspprincibiaya.v_spp
+        FROM   tmspp, tmspprincibiaya
+        WHERE   tmspp.i_id = tmspprincibiaya.i_idspp
+        AND tmspp.C_ANGG_TAHUN = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsppcetak
+        WHERE   tmspp.i_id =
+        tmsppcetak.i_id)) Z
+        GROUP BY   i_id,
+        i_idskpd,
+        i_sppno,
+        PPTK,
+        NPPTK,
+        c_beban,
+        C_JENIS,
+        STATUS,
+        C_ANGG_TAHUN) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+ 
+    </select>
+    <select id="getbanyaksppcetak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT ( distinct i_id) AS banyak
+        from
+        ( 
+        select tmspp.i_id 
+        from tmspp, tmspprincibl, tmsppcetak
+        where tmspp.i_id = tmspprincibl.i_idspp
+        and tmspp.i_id = tmsppcetak.i_id
+        and tmspp.C_ANGG_TAHUN =#{tahun}
+        and tmspp.i_idskpd =#{idskpd}
+        and not exists (select 1 from  tmspm
+        where tmspp.i_id = tmspm.i_idspp)
+        union all
+        select tmspp.i_id from tmspp, tmspprincibl
+        where tmspp.i_id = tmspprincibl.i_idspp
+        and tmspp.C_ANGG_TAHUN =#{tahun}
+        and tmspp.i_idskpd =#{idskpd}
+        and not exists (select 1 from  tmsppcetak
+        where tmspp.i_id = tmsppcetak.i_id)
+        union all
+        select tmspp.i_id 
+        from tmspp, tmspprincibtl,  tmsppcetak
+        where tmspp.i_id = tmspprincibtl.i_idspp
+        and tmspp.i_id = tmsppcetak.i_id
+        and tmspp.C_ANGG_TAHUN =#{tahun}
+        and tmspp.i_idskpd =#{idskpd}
+        and not exists (select 1 from  tmspm
+        where tmspp.i_id = tmspm.i_idspp)
+        union all
+        select tmspp.i_id from tmspp, tmspprincibtl
+        where tmspp.i_id = tmspprincibtl.i_idspp
+        and tmspp.C_ANGG_TAHUN =#{tahun}
+        and tmspp.i_idskpd =#{idskpd}
+        and not exists (select 1 from  tmsppcetak
+        where tmspp.i_id = tmsppcetak.i_id)
+        union all
+        select tmspp.i_id 
+        from tmspp, tmspprincibtlbantuan,  tmsppcetak
+        where tmspp.i_id = tmspprincibtlbantuan.i_idspp
+        and tmspp.i_id = tmsppcetak.i_id
+        and tmspp.C_ANGG_TAHUN =#{tahun}
+        and tmspp.i_idskpd =#{idskpd}
+        and not exists (select 1 from  tmspm
+        where tmspp.i_id = tmspm.i_idspp)
+        union all
+        select tmspp.i_id  from tmspp, tmspprincibtlbantuan
+        where tmspp.i_id = tmspprincibtlbantuan.i_idspp
+        and tmspp.C_ANGG_TAHUN =#{tahun}
+        and tmspp.i_idskpd =#{idskpd}
+        and not exists (select 1 from  tmsppcetak
+        where tmspp.i_id = tmsppcetak.i_id)
+        union all
+        select tmspp.i_id
+        from tmspp, tmspprincibiaya , tmsppcetak
+        where tmspp.i_id = tmspprincibiaya.i_idspp
+        and tmspp.i_id = tmsppcetak.i_id
+        and tmspp.C_ANGG_TAHUN =#{tahun}
+        and tmspp.i_idskpd =#{idskpd}
+        and not exists (select 1 from  tmspm
+        where tmspp.i_id = tmspm.i_idspp)
+        union all
+        select tmspp.i_id  
+        from tmspp, tmspprincibiaya
+        where tmspp.i_id = tmspprincibiaya.i_idspp
+        and tmspp.C_ANGG_TAHUN =#{tahun}
+        and tmspp.i_idskpd =#{idskpd}
+        and not exists (select 1 from  tmsppcetak
+        where tmspp.i_id = tmsppcetak.i_id)
+        )
+
+    </select> 
+    
+    <select id="getbanyaksppcetakbtl3" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count (*)
+        from tmspprincibtl,trbas
+        where  tmspprincibtl.i_idspp = #{value}
+        and tmspprincibtl.i_idbas = trbas.i_id
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.8')
+        and TMSPPRINCIBTL.V_SPP &gt; 0 
+
+    </select> 
+    
+    <delete id="deletesppcetak" parameterType="java.lang.Integer"    >
+        delete TMSPPCETAK    WHERE   I_ID = #{value}  
+    </delete>
+    
+    <delete id="deletespmcetak" parameterType="java.lang.Integer"    >
+        delete TMSPMCETAK    WHERE   I_ID = #{value}  
+    </delete>
+    
+    
+    <delete id="deletesetorcetak" parameterType="java.lang.Integer"    >
+        delete TMSETORCETAK    WHERE   I_ID = #{value}  
+    </delete>
+    
+    <delete id="deletenpdcetak" parameterType="java.lang.Integer"    >
+        delete TMNPDCETAK    WHERE   I_ID = #{value}  
+    </delete>
+    
+    <insert id="insertsppcetak" parameterType="java.util.Map"   >
+             
+        INSERT INTO  TMSPPCETAK  (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM,A_JASPER_FILE, A_SPPFILE_PDF, 
+        C_STATUS_CETAK,N_PK,I_NIP_PK,D_SPP_CETAK) 
+        VALUES (#{id},#{userid},#{tglentry} , #{filejasper},#{filepdf},'1',
+        #{namaPptk},#{nipPptk},#{tglc} )
+        
+  
+    </insert>
+    <insert id="insertsppsah" parameterType="java.util.Map"   >
+        INSERT INTO  TMSPPSAH (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM, 
+        D_SPP_SAH) 
+        VALUES (#{id},#{userid} ,#{tglentry} ,#{tglsah} )
+    </insert>
+    <select id="getlistsppsah" parameterType="java.util.Map"  resultType="spp.model.SppUp">
+        SELECT   I_ID AS id,
+        D_SPP_SAH AS tglSppSah,
+        A_SPPFILE_PDF AS fileCetakSpp,
+        C_STATUS_CETAK AS statusCetak,
+        A_JASPER_FILE AS fileCetakSpp,
+        I_IDSPPTTD AS "dokTtd.id",
+        I_NIP AS "dokTtd.nip",
+        N_PEG AS "dokTtd.nama",
+        N_JABATAN AS "dokTtd.namaJabatan",
+        I_SPPNO AS noSpp,
+        I_IDSKPD AS "skpd.idSkpd",
+        N_SKPD AS "skpd.namaSkpd",
+        C_SKPD AS "skpd.kodeSkpd",
+        C_ANGG_TAHUN AS tahun,
+        C_BULAN AS bulan,
+        C_BEBAN AS kodeBeban,
+        C_JENIS AS kodeJenis,
+        status,
+        nilaiSpp
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   T.I_ID,
+        s.D_SPP_SAH,
+        T.A_SPPFILE_PDF,
+        T.C_STATUS_CETAK,
+        T.A_JASPER_FILE,
+        T.I_IDSPPTTD,
+        TTD.I_NIP,
+        TTD.N_PEG,
+        TTD.N_JABATAN,
+        P.I_SPPNO,
+        P.I_IDSKPD,
+        P.C_ANGG_TAHUN,
+        P.C_BULAN,
+        P.C_BEBAN,
+        P.C_JENIS,
+        D.N_SKPD,
+        D.C_SKPD,
+        'VALIDASI' AS status,
+        CASE
+        WHEN P.C_BEBAN = 'UP'
+        THEN
+        (SELECT   SUM (V_SPP)
+        FROM   TMSPPRINCIBL
+        WHERE   I_IDSPP = p.I_ID)
+        END
+        AS nilaiSpp
+        FROM               TMSPPCETAK T
+        INNER JOIN
+        tmspp p
+        ON P.I_ID = T.I_ID
+        INNER JOIN
+        trdokttd ttd
+        ON TTD.I_ID = T.I_IDSPPTTD
+        INNER JOIN
+        tmsppsah s
+        ON s.I_ID = T.I_ID
+        LEFT JOIN
+        trskpd d
+        ON D.I_ID = P.I_IDSKPD
+        WHERE   P.I_IDSKPD = #{idskpd} and P.C_ANGG_TAHUN = #{tahun}
+        UNION ALL
+        SELECT   T.I_ID,
+        null as D_SPP_SAH,
+        T.A_SPPFILE_PDF,
+        T.C_STATUS_CETAK,
+        T.A_JASPER_FILE,
+        T.I_IDSPPTTD,
+        TTD.I_NIP,
+        TTD.N_PEG,
+        TTD.N_JABATAN,
+        P.I_SPPNO,
+        P.I_IDSKPD,
+        P.C_ANGG_TAHUN,
+        P.C_BULAN,
+        P.C_BEBAN,
+        P.C_JENIS,
+        D.N_SKPD,
+        D.C_SKPD,
+        'CETAK' AS status,
+        CASE
+        WHEN P.C_BEBAN = 'UP'
+        THEN
+        (SELECT   SUM (V_SPP)
+        FROM   TMSPPRINCIBL
+        WHERE   I_IDSPP = p.I_ID)
+        END
+        AS nilaiSpp
+        FROM            TMSPPCETAK T
+        INNER JOIN
+        tmspp p
+        ON P.I_ID = T.I_ID
+        INNER JOIN
+        trdokttd ttd
+        ON TTD.I_ID = T.I_IDSPPTTD
+        LEFT JOIN
+        trskpd d
+        ON D.I_ID = P.I_IDSKPD
+        WHERE      P.I_IDSKPD = #{idskpd} and P.C_ANGG_TAHUN = #{tahun}
+        AND p.I_ID NOT IN (SELECT   CTK.I_ID
+        FROM   TMSPPSAH ctk)) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}                             
+    </select>
+    <select id="getbanyaksppsah" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (ID)
+        FROM   (SELECT   (S.I_ID) AS ID
+        FROM      TMSPPSAH S
+        LEFT JOIN
+        tmspp p
+        ON P.I_ID = S.I_ID
+        WHERE   P.I_IDSKPD = #{idskpd} and P.C_ANGG_TAHUN = #{tahun}
+        UNION ALL
+        SELECT   (S.I_ID) AS ID
+        FROM      TMSPPCETAK S
+        LEFT JOIN
+        tmspp p
+        ON P.I_ID = S.I_ID
+        WHERE  P.I_IDSKPD = #{idskpd} and P.C_ANGG_TAHUN = #{tahun} )
+    </select> 
+    <select id="getharikerjaspp"   parameterType="java.sql.Date" resultType="spp.model.HariKerja">
+        SELECT   T.D_REKAM AS tglRekam,
+        T.D_APPROVE AS tglApprove,
+        T.D_CETAK AS tglCetak,
+        T.D_SAH AS tglSah
+        FROM   TRHARIKERJA T
+        WHERE   C_DOK = 'SPP' AND D_HARI_KERJA = #{value}
+    </select>
+    <insert id="insertspmcetak" parameterType="java.util.Map"   >
+        INSERT INTO  TMSPMCETAK  (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM,A_JASPER_FILE, A_SPPFILE_PDF, 
+        C_STATUS_CETAK,N_PK,I_NIP_PK,I_NIP_PA,N_PA,D_SPM_CETAK) 
+        VALUES (#{id},#{userid},#{tglentry} , #{filejasper},#{filepdf},'1',
+        #{namaPa},#{nipPa},#{nipPptk},#{namaPptk},#{tglc} )
+    </insert>
+    <select id="getlistspmcetak" parameterType="java.util.Map"  resultType="spp.model.SppUp"> 
+        <!-- tmspp.I_PPTK_NIP as NPPTK, -->       
+        SELECT   id,
+        idskpd,
+        noSpm AS "spmUp.noSpm",
+        namaPptk,
+        nipPptk,
+        kodeBeban,
+        tahun,
+        status,
+        kodeJenis,
+        namaBendahara,nipBendahara,
+        nilaiSpp 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   Z.i_id AS id,
+        Z.i_idskpd AS idskpd,
+        Z.i_spmno AS noSpm,
+        Z.PPTK AS namaBendahara,
+        Z.NPPTK AS nipBendahara,
+        Z.n_pa AS namaPptk,
+        Z.ni_pa AS nipPptk,
+        Z.nk_pa AS nrkPa,
+        Z.c_beban AS kodeBeban,
+        Z.C_ANGG_TAHUN AS tahun,
+        Z.status,
+        (CASE Z.C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        ELSE 'SALAH'
+        END)
+        AS kodeJenis,
+        SUM (Z.v_spp) AS nilaiSpp
+        FROM   (SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.i_spmno,
+        tmspp.n_pptk AS pptk,
+        tmspp.I_PPTK_NIP as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        'CETAK' AS status,
+        tmspprincibl.v_spp
+        FROM   tmspm,
+        tmspprincibl,
+        tmspmcetak,
+        tmspp,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibl.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.i_spmno,
+        tmspp.n_pptk AS pptk,
+        tmspp.I_PPTK_NIP as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        'PENGAJUAN' AS status,
+        tmspprincibl.v_spp
+        FROM   tmspm,
+        tmspprincibl,
+        tmspp,
+        tmsppcetak,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibl.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.i_spmno,
+        tmspp.n_pptk AS pptk,
+        tmspp.I_PPTK_NIP as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        'CETAK' AS status,
+        tmspprincibtl.v_spp
+        FROM   tmspm,
+        tmspprincibtl,
+        tmspmcetak,
+        tmspp,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibtl.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.i_spmno,
+        tmspp.n_pptk AS pptk,
+        tmspp.I_PPTK_NIP as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        'PENGAJUAN' AS status,
+        tmspprincibtl.v_spp
+        FROM   tmspm,
+        tmspprincibtl,
+        tmspp,
+        tmsppcetak,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibtl.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.i_spmno,
+        tmspp.n_pptk AS pptk,
+        tmspp.I_PPTK_NIP as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        'CETAK' AS status,
+        tmspprincibtlbantuan.v_spp
+        FROM   tmspm,
+        tmspprincibtlbantuan,
+        tmspmcetak,
+        tmspp,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibtlbantuan.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.i_spmno,
+        tmspp.n_pptk AS pptk,
+        tmspp.I_PPTK_NIP as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        'PENGAJUAN' AS status,
+        tmspprincibtlbantuan.v_spp
+        FROM   tmspm,
+        tmspprincibtlbantuan,
+        tmspp,
+        tmsppcetak,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibtlbantuan.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.i_spmno,
+        tmspp.n_pptk AS pptk,
+        tmspp.I_PPTK_NIP as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        'CETAK' AS status,
+        tmspprincibiaya.v_spp
+        FROM   tmspm,
+        tmspprincibiaya,
+        tmspmcetak,
+        tmspp,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibiaya.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.i_spmno,
+        tmspp.n_pptk AS pptk,
+        tmspp.I_PPTK_NIP as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        'PENGAJUAN' AS status,
+        tmspprincibiaya.v_spp
+        FROM   tmspm,
+        tmspprincibiaya,
+        tmspp,
+        tmsppcetak,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibiaya.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)) Z
+        GROUP BY   i_id,
+        i_idskpd,
+        i_spmno,
+        PPTK,
+        NPPTK,
+        n_pa,ni_pa,nk_pa,
+        c_beban,
+        C_JENIS,
+        STATUS,
+        C_ANGG_TAHUN) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getbanyakspmcetak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        /* Formatted on 12/4/2014 4:24:38 PM (QP5 v5.114.809.3010) */
+        SELECT   COUNT ( distinct i_id) AS banyak
+                    
+        FROM   (SELECT   tmspm.i_id
+                               
+        FROM   tmspm,
+        tmspprincibl,
+        tmspmcetak,
+        tmspp
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibl.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id
+                              
+        FROM   tmspm,
+        tmspprincibl,
+        tmspp,
+        tmsppcetak
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibl.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        UNION ALL
+        SELECT   tmspm.i_id
+                              
+        FROM   tmspm,
+        tmspprincibtl,
+        tmspmcetak,
+        tmspp
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibtl.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id
+                               
+        FROM   tmspm,
+        tmspprincibtl,
+        tmspp,
+        tmsppcetak
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibtl.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        UNION ALL
+        SELECT   tmspm.i_id
+                              
+        FROM   tmspm,
+        tmspprincibtlbantuan,
+        tmspmcetak,
+        tmspp
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibtlbantuan.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id
+        FROM   tmspm,
+        tmspprincibtlbantuan,
+        tmspp,
+        tmsppcetak
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibtlbantuan.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        UNION ALL
+        SELECT   tmspm.i_id
+        FROM   tmspm,
+        tmspprincibiaya,
+        tmspmcetak,
+        tmspp
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibiaya.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id
+        FROM   tmspm,
+        tmspprincibiaya,
+        tmspp,
+        tmsppcetak
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibiaya.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id))
+          
+
+    </select> 
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF 
+    </select>
+    
+    <!--   <select id="getlevel"   parameterType="java.util.Map" resultType="java.lang.String">
+        select C_SKPD_LEVEL
+        from   TRSKPD 
+        where c_aktif = '1' 
+    </select>-->
+    
+    
+    
+    <select id="getlistsetorcetak" parameterType="java.util.Map"  resultType="spp.model.Setor">
+        SELECT   id,
+        idskpd,
+        noSetor,
+        tglSetor,
+        tahunSetor,
+        kodeSetor,
+        kodeBeban,
+        kodeJenis,
+        dokSetor,
+        nilaiSetor,
+        status,
+        namaPptk,
+        nipPptk,
+        tahun
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   TMSETOR.I_ID AS id,
+        C_ANGG_TAHUN AS tahun,
+        I_IDSKPD AS idskpd,
+        I_SETOR AS NoSetor,
+        D_SETOR AS tglSetor,
+        C_SETOR AS kodeSetor,
+        C_TAHUN_SETOR AS tahunSetor,
+        C_BEBAN AS kodeBeban,
+        (CASE C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        ELSE 'TIDAK ADA'
+        END)
+        AS kodeJenis,
+        E_SETOR AS dokSetor,
+         (CASE NVL (TMSETORCETAK.c_status_cetak, 0)
+        WHEN 0 THEN 'BELUM CETAK'
+        WHEN 1 THEN 'CETAK'
+        ELSE 'TANPA STATUS'
+        END)
+        AS status,
+        (SELECT   SUM (V_SETOR)
+        FROM   TMSETORRINCI
+        WHERE   TMSETOR.I_ID = TMSETORRINCI.I_IDSETOR)
+        AS NilaiSetor,
+        TMDPA.I_NIP_PA AS nipPptk,
+        TMDPA.N_PA AS namaPptk,
+        TMSETORCETAK.I_ID CETAK
+        FROM         TMSETOR
+        LEFT JOIN
+        TMSETORCETAK
+        ON TMSETOR.I_ID = TMSETORCETAK.I_ID
+        LEFT JOIN
+        tmdpa
+        ON TMSETOR.I_IDSKPD = tmdpa.I_IDSKPD
+        WHERE       I_IDPNRM IS NULL
+        AND tmdpa.I_IDSKPD = tmsetor.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmsetor.C_ANGG_TAHUN
+        AND C_ANGG_TAHUN = #{tahun}
+        AND I_IDSKPD = #{idskpd}
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getbanyaksetorcetak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from (
+        SELECT TMSETOR.I_ID as id, C_ANGG_TAHUN as tahun, I_IDSKPD as idskpd,
+        I_SETOR as NoSetor, D_SETOR as tglSetor, C_SETOR as kodeSetor,
+        C_TAHUN_SETOR as tahunSetor, C_BEBAN as kodeBeban, 
+        (CASE C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        ELSE 'TIDAK ADA'
+        END)
+        AS kodeJenis,
+        E_SETOR as dokSetor,
+        (CASE NVL (TMSETORCETAK.c_status_cetak, 0)
+        WHEN 0 THEN 'BELUM CETAK'
+        WHEN 1 THEN 'CETAK'
+        ELSE 'TANPA STATUS'
+        END)
+        AS status,
+        (select sum(V_SETOR)  from TMSETORRINCI WHERE TMSETOR.I_ID = TMSETORRINCI.I_IDSETOR) as NilaiSetor  , 
+        TMSETORCETAK.I_ID CETAK
+        FROM TMSETOR
+        LEFT JOIN TMSETORCETAK  ON TMSETOR.I_ID = TMSETORCETAK.I_ID
+        WHERE I_IDPNRM IS NULL
+        AND C_ANGG_TAHUN =#{tahun}
+        AND I_IDSKPD = #{idskpd}
+        )
+    </select>
+    
+    
+    <insert id="insertsetorcetak" parameterType="java.util.Map"   >
+             
+        INSERT INTO  TMSETORCETAK  (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM,A_JASPER_FILE, A_SETORFILE_PDF, 
+        C_STATUS_CETAK,N_PK,I_NIP_PK,D_SETOR_CETAK) 
+        VALUES (#{id},#{userid},#{tglentry} , #{filejasper},#{filepdf},'1',
+        #{namaPptk},#{nipPptk},#{tglc} )
+        
+  
+    </insert>
+    
+    
+    
+     <select id="getlistnpdcetak" parameterType="java.util.Map"  resultType="spp.model.Npd">
+        SELECT    idNpd,
+                  idskpd,
+                  noNpd,
+                  tanggalNpd,
+                  idKegiatan as "kegiatan.idKegiatan",
+                  ketNpd,
+                  status,
+                  namaPptk,
+                  nipPptk,
+                  nilaiNpd,
+                  tahun
+  FROM   (SELECT   ROWNUM AS rn, a.*
+            FROM   (SELECT   
+                             TMNPD.I_ID AS idNpd,
+                             C_ANGG_TAHUN AS tahun,
+                             I_IDSKPD AS idskpd,
+                             I_NPDNO AS NoNpd,
+                             D_NPDNO AS tanggalNpd,
+                             N_PPTK AS namaPptk,
+                             I_PPTK_NIP as nipPptk,
+                             I_IDKEGIATAN AS idKegiatan,
+                             E_NPD AS ketNpd,
+                             (CASE NVL (TMNPDCETAK.c_status_cetak, 0)
+                                 WHEN 0 THEN 'BELUM CETAK'
+                                 WHEN 1 THEN 'CETAK'
+                                 ELSE 'TANPA STATUS'
+                              END)
+                                AS status,
+                             (SELECT   SUM (V_NPD)
+                                FROM   TMNPDRINCI
+                               WHERE   TMNPD.I_ID = TMNPDRINCI.I_IDNPD)
+                                AS nilaiNpd,
+                          <!--   TMDPA.I_NIP_PA AS nipPptk,
+                             TMDPA.N_PA AS namaPptk,-->
+                             TMNPDCETAK.I_ID CETAK,
+                             TMNPDCETAK.C_TERIMA
+                      FROM         TMNPD
+                                LEFT JOIN
+                                   TMNPDCETAK
+                                ON TMNPD.I_ID = TMNPDCETAK.I_ID
+                        <!--     LEFT JOIN
+                                tmdpa
+                             ON TMNPD.I_IDSKPD = tmdpa.I_IDSKPD-->
+                     WHERE       C_ANGG_TAHUN = #{tahun}
+                             AND I_IDSKPD = #{idskpd}
+                          <!--   AND tmdpa.I_IDSKPD = TMNPD.I_IDSKPD
+                             AND tmdpa.C_ANGG_TAHUN = TMNPD.C_ANGG_TAHUN-->) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getbanyaknpdcetak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+       select count(*) as banyak from (
+ SELECT   
+                             TMNPD.I_ID AS idNpd,
+                             C_ANGG_TAHUN AS tahun,
+                             I_IDSKPD AS idskpd,
+                             I_NPDNO AS NoNpd,
+                             D_NPDNO AS tanggalNpd,
+                              N_PPTK AS namaPptk,
+                             I_PPTK_NIP as nipPptk,
+                             I_IDKEGIATAN AS idKegiatan,
+                             E_NPD AS ketNpd,
+                             (CASE NVL (TMNPDCETAK.c_status_cetak, 0)
+                                 WHEN 0 THEN 'BELUM CETAK'
+                                 WHEN 1 THEN 'CETAK'
+                                 ELSE 'TANPA STATUS'
+                              END)
+                                AS status,
+                             (SELECT   SUM (V_NPD)
+                                FROM   TMNPDRINCI
+                               WHERE   TMNPD.I_ID = TMNPDRINCI.I_IDNPD)
+                                AS nilaiNpd,
+                          <!--   TMDPA.I_NIP_PA AS nipPptk,
+                             TMDPA.N_PA AS namaPptk,-->
+                             TMNPDCETAK.I_ID CETAK,
+                             TMNPDCETAK.C_TERIMA
+                      FROM         TMNPD
+                                LEFT JOIN
+                                   TMNPDCETAK
+                                ON TMNPD.I_ID = TMNPDCETAK.I_ID
+                         <!--    LEFT JOIN
+                                tmdpa
+                             ON TMNPD.I_IDSKPD = tmdpa.I_IDSKPD -->
+                     WHERE        C_ANGG_TAHUN = #{tahun}
+                             AND I_IDSKPD = #{idskpd}
+                            <!-- AND tmdpa.I_IDSKPD = TMNPD.I_IDSKPD
+                             AND tmdpa.C_ANGG_TAHUN = TMNPD.C_ANGG_TAHUN-->
+
+ )
+    </select>
+    
+    
+    <insert id="insertnpdcetak" parameterType="java.util.Map"   >
+             
+        INSERT INTO  TMNPDCETAK  (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM,A_JASPER_FILE, A_NPDFILE_PDF, 
+        C_STATUS_CETAK,N_PA,I_NIP_PA,D_NPD_CETAK) 
+        VALUES (#{idNpd},#{userid},#{tglentry} , #{filejasper},#{filepdf},'1',
+        #{namaPptk},#{nipPptk},#{tglc} )
+        
+  
+    </insert>
+    
+    
+    
+</mapper>

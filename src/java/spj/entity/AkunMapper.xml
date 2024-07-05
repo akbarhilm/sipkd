@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.AkunMapper">
+    
+    <select id="getNamaAkun" parameterType="java.lang.String"  resultType="spp.model.JournalUmum">
+        select n_akun as namaakun, i_id as idBas
+        from trbas where c_akun = #{value}
+    </select>
+    
+    <select id="getBanyakAllAkun" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(c_akun) as banyak
+        FROM   trbas
+        WHERE c_aktif = '1' 
+        
+        <if test="kodeAkunref != null and kodeAkunref != '' ">
+            and c_akun like ''||#{kodeAkunref}||'%'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(trbas.n_akun) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        <if test="kode != null and kode != '' ">
+            and upper(trbas.c_akun) like '%'||upper(#{kode})||'%'
+        </if>   
+         
+    </select>
+    
+    <select id="getAllAkun" parameterType="java.util.Map"  resultType="spp.model.Akun">
+        
+        SELECT idBas, kodeAkun, namaAkun
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT i_id as idBas,
+        c_akun as kodeAkun,
+        n_akun as namaAkun  
+        FROM trbas where  c_aktif = '1' 
+        
+        <if test="kodeAkunref != null and kodeAkunref != '' ">
+            and c_akun like ''||#{kodeAkunref}||'%'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(trbas.n_akun) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        <if test="kode != null and kode != '' ">
+            and upper(trbas.c_akun) like '%'||upper(#{kode})||'%'
+        </if>  
+           
+        ORDER BY 
+        <choose>
+            <when test="iSortCol_0 == 0 ">
+                trbas.i_id
+            </when>
+            <when test="iSortCol_0 == 1 ">
+               c_akun
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                trbas.n_akun
+            </when>
+            <otherwise>
+                trbas.c_akun  
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' ">
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>                
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakAkun123" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(c_akun) as banyak
+        FROM   trbas
+        WHERE c_aktif = '1' 
+        and (c_akun like ('1%')  or c_akun like ('2%') or c_akun like ('3%'))
+        
+        <if test="kodeAkunref != null and kodeAkunref != '' ">
+            and c_akun like ''||#{kodeAkunref}||'%'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(trbas.n_akun) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        <if test="kode != null and kode != '' ">
+            and upper(trbas.c_akun) like '%'||upper(#{kode})||'%'
+        </if>   
+         
+    </select>
+    
+    <select id="getAkun123" parameterType="java.util.Map"  resultType="spp.model.Akun">
+        
+        SELECT idBas, kodeAkun, namaAkun
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT i_id as idBas,
+        c_akun as kodeAkun,
+        n_akun as namaAkun  
+        FROM trbas where  c_aktif = '1' 
+        and (c_akun like ('1%')  or c_akun like ('2%') or c_akun like ('3%'))
+        
+        <if test="kodeAkunref != null and kodeAkunref != '' ">
+            and c_akun like ''||#{kodeAkunref}||'%'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(trbas.n_akun) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        <if test="kode != null and kode != '' ">
+            and upper(trbas.c_akun) like '%'||upper(#{kode})||'%'
+        </if>  
+           
+        ORDER BY 
+        <choose>
+            <when test="iSortCol_0 == 0 ">
+                trbas.i_id
+            </when>
+            <when test="iSortCol_0 == 1 ">
+               c_akun
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                trbas.n_akun
+            </when>
+            <otherwise>
+                trbas.c_akun  
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' ">
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>                
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakAkunBukuBesar" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from (
+        select distinct idbas,c_akun, n_akun from (
+        select  trbas.i_id as idbas,c_akun, n_akun from tmjoursaldoawal , trbas where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd} and  tmjoursaldoawal.i_idbas = trbas.i_id
+        <if test="nama != null and nama != '' ">
+            and upper(n_akun) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and upper(c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        union all     
+        select  trbas.i_id as idbas,tmjourskpd.c_akun, n_akun from tmjourskpd , trbas where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd} and  tmjourskpd.c_akun = trbas.c_akun
+        <if test="nama != null and nama != '' ">
+            and upper(n_akun) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and upper(tmjourskpd.c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        union all
+        select  tmjourumumskpd.i_idbas as idbas,c_akun,n_akun  from tmjourumumskpd, trbas where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd} and  tmjourumumskpd.i_idbas = trbas.i_id
+        <if test="nama != null and nama != '' ">
+            and upper(n_akun) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and upper(c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+        ))
+    </select>
+    
+    <select id="getAkunBukuBesar" parameterType="java.util.Map"  resultType="spp.model.Akun">
+        SELECT idBas, kodeAkun, namaAkun
+        FROM   (SELECT   ROWNUM AS rn, a.*   FROM   (  
+        SELECT distinct idBas,c_akun as kodeAkun, n_akun as namaAkun FROM (
+        SELECT  trbas.i_id as idBas,c_akun, n_akun FROM tmjoursaldoawal , trbas where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd} and  tmjoursaldoawal.i_idbas = trbas.i_id
+        <if test="nama != null and nama != '' ">
+            and upper(n_akun) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and upper(c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        union all     
+        SELECT  trbas.i_id as idBas,tmjourskpd.c_akun, n_akun FROM tmjourskpd , trbas where c_angg_tahun = #{tahun}  and i_idskpd = #{idskpd} and  tmjourskpd.c_akun = trbas.c_akun
+        <if test="nama != null and nama != '' ">
+            and upper(n_akun) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and upper(tmjourskpd.c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        union all
+        SELECT  tmjourumumskpd.i_idbas as idBas,c_akun,n_akun  FROM tmjourumumskpd, trbas where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd} and  tmjourumumskpd.i_idbas = trbas.i_id
+        
+        <if test="nama != null and nama != '' ">
+            and upper(n_akun) like '%'||upper(#{nama})||'%'
+        </if>
+        
+        <if test="kode != null and kode != '' ">
+            and upper(c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        )
+        
+        ORDER BY 
+        <choose>
+            <when test="iSortCol_0 == 0 ">
+                idBas
+            </when>
+            <when test="iSortCol_0 == 1 ">
+               c_akun
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                n_akun
+            </when>
+            <otherwise>
+                c_akun  
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' ">
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakAkunBukuBesarPpkd" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(*) as banyak from (
+        select distinct idbas, c_akun, n_akun from (
+        select  trbas.i_id as idbas, c_akun, n_akun from tmjoursaldoawal , trbas where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd} and  tmjoursaldoawal.i_idbas = trbas.i_id
+        union all     
+        select trbas.i_id as idbas, tmjourppkd.c_akun,n_akun from tmjourppkd, trbas  where c_angg_tahun = #{tahun} and tmjourppkd.c_akun = trbas.c_akun
+        union all
+        select  tmjourumumppkd.i_idbas as idbas, c_akun,n_akun  from tmjourumumppkd, trbas where c_angg_tahun = #{tahun} and tmjourumumppkd.i_idbas = trbas.i_id ) order by 1
+        )
+    </select>
+    
+    <select id="getAkunBukuBesarPpkd" parameterType="java.util.Map"  resultType="spp.model.Akun">
+        SELECT idBas, kodeAkun, namaAkun
+        FROM   (SELECT   ROWNUM AS rn, a.*   FROM   (  
+        SELECT distinct idBas, c_akun as kodeAkun, n_akun as namaAkun FROM (
+        SELECT  trbas.i_id as idBas, c_akun, n_akun FROM tmjoursaldoawal , trbas where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd} and  tmjoursaldoawal.i_idbas = trbas.i_id
+        <if test="kode != null and kode != '' ">
+            and upper(c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(trbas.n_akun) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        union all     
+        SELECT trbas.i_id as idBas, tmjourppkd.c_akun,n_akun FROM tmjourppkd, trbas  where c_angg_tahun = #{tahun} and  tmjourppkd.c_akun = trbas.c_akun
+        <if test="kode != null and kode != '' ">
+            and upper(tmjourppkd.c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(trbas.n_akun) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        union all
+        SELECT  tmjourumumppkd.i_idbas as idBas, c_akun,n_akun  FROM tmjourumumppkd, trbas where c_angg_tahun = #{tahun} and  tmjourumumppkd.i_idbas = trbas.i_id 
+        <if test="kode != null and kode != '' ">
+            and upper(trbas.c_akun) like '%'||upper(#{kode})||'%'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(trbas.n_akun) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        ) 
+        ORDER BY 
+        <choose>
+            <when test="iSortCol_0 == 0 ">
+                trbas.i_id
+            </when>
+            <when test="iSortCol_0 == 1 ">
+               c_akun
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                trbas.n_akun
+            </when>
+            <otherwise>
+                c_akun  
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' ">
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+</mapper>

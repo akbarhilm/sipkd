@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.FormBkuMapper">
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF  where i_id = '1'
+    </select>
+    
+    <select id="getSaldoAwalTunai"   parameterType="java.util.Map" resultType="spp.model.FormBku">
+        
+        SELECT sum(saldoawal + kas_sebelum) AS saldoawal
+        FROM (SELECT NVL (v_saldoawal_debet, 0) AS saldoawal, 0 AS kas_sebelum
+        FROM tmjoursaldoawal
+        WHERE i_idbas = 9947 AND c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT 0 saldoawal,
+        NVL (SUM (v_kas_terima - v_kas_keluar), 0) kas_sebelum
+        FROM tmbkuskpdpengeluaran
+        WHERE <!--(c_akun = '1.1.1.03.01.001' OR c_trx IN ('JJ', 'NP', 'NM')) -->
+        c_uangpersediaan = 1
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        AND SUBSTR (d_posting, 1, 6) &lt; #{tahun} || #{bulan})
+    </select>
+    
+    <select id="getSaldoAwalBank"   parameterType="java.util.Map" resultType="spp.model.FormBku">
+        SELECT sum(saldoawal + kas_sebelum) AS saldoawal
+        FROM (SELECT NVL (v_saldoawal_debet, 0) AS saldoawal, 0 AS kas_sebelum
+        FROM tmjoursaldoawal
+        WHERE i_idbas NOT IN (9947, 9949) <!-- UNTUK SELAIN TUNAI DIANGGAP BANK-->
+        AND c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT 0 saldoawal,
+        NVL (SUM (v_kas_terima - v_kas_keluar), 0) kas_sebelum
+        FROM tmbkuskpdpengeluaran
+        WHERE <!-- c_trx IN ( 'JO','P1','P2','P3','P4','P5','P6','ST','LL' ) 
+        OR -->
+        c_uangpersediaan = 2
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        AND SUBSTR (d_posting, 1, 6) &lt; #{tahun} || #{bulan})
+        
+    </select>
+    
+    <select id="getSaldoAwalPanjar"   parameterType="java.util.Map" resultType="spp.model.FormBku">
+        SELECT sum(saldoawal + kas_sebelum) AS saldoawal
+        FROM (SELECT NVL (v_saldoawal_debet, 0) AS saldoawal, 0 AS kas_sebelum
+        FROM tmjoursaldoawal
+        WHERE i_idbas = 9949 AND c_angg_tahun = #{tahun} AND i_idskpd = #{idskpd}
+        UNION ALL
+        SELECT 0 saldoawal,
+        NVL (SUM (v_kas_terima - v_kas_keluar), 0) kas_sebelum
+        FROM tmbkuskpdpengeluaran
+        WHERE (
+        <!-- c_akun = '1.1.1.03.01.003' AND c_trx IN ( 'NP','NM' )  -->
+        c_uangpersediaan = 3
+        AND c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        AND SUBSTR (d_posting, 1, 6) &lt; #{tahun} || #{bulan}))
+        
+    </select>  
+    
+    <select id="getAkunBelanja"   parameterType="java.util.Map" resultType="spp.model.FormBku">  
+        select distinct A.i_idbas as idBas, A.c_akun as kodeakun, A.c_akun ||'/'||B.n_akun as namaakun
+        from tmbkuskpdpengeluaran A, trbas B
+        where  A.i_idbas = B.i_id
+        and  i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        and A.c_akun like '5%'
+        order by A.c_akun
+    </select>  
+       
+    <select id="getWilayah" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select c_wilayah as kodeWilayah, n_wilayah as ketWilayah 
+        from trwilayah 
+        where c_aktif = 1 
+        order by c_wilayah
+        
+    </select>    
+    
+    <select id="getBulan" parameterType="java.util.Map" resultType="spp.model.BukuKasUmum">
+        select C_BLN_TUTUP as kodebulan , 
+        bulan(C_BLN_TUTUP) as bulan 
+        from tmskpdbkurekap 
+        where i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        <if test="idskpd == 761 or idskpd == 1234">
+            and c_wil_sp2dproses =  #{wilayah}
+        </if>
+    </select>
+    
+    <select id="getSaldoAwalPajak"   parameterType="java.util.Map" resultType="spp.model.FormBku">
+        <!--  diubah 7 Des 17, SA jadinya baca ke tmjoursaldoawal
+        select nvl(sum(v_kas_terima - v_kas_keluar),0) as saldoawal
+        from tmbkuskpdpengeluaran 
+        where c_angg_tahun = #{tahun} 
+        and i_idskpd = #{idskpd} 
+        and c_trx = #{jenis}
+        and substr(d_posting,5,2) &lt; #{bulan}
+        -->
+        
+        select nvl(V_SALDOAWAL,0) as saldoawal
+        from tmjoursaldoawal where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        <if test="jenis == 'P1' ">
+            and i_idbas = 3904
+        </if>
+        <if test="jenis == 'P2' ">
+            and i_idbas = 3905
+        </if>
+        <if test="jenis == 'P3' ">
+            and i_idbas = 3906
+        </if>
+        <if test="jenis == 'P4' ">
+            and i_idbas = 3908
+        </if>
+        <if test="jenis == 'P5' ">
+            and i_idbas = 3909
+        </if>
+        <if test="jenis == 'P6' ">
+            and i_idbas = 3907
+        </if>
+        
+    </select>  
+    
+    
+</mapper>

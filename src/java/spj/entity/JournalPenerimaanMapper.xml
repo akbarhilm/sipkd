@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.JournalPenerimaanMapper">
+    
+   <select id="getLoket"  resultType="spp.model.JournalPenerimaan">
+        SELECT i_id as idloket, c_loket || ' / ' || N_LOKET as namaloket  FROM TRPNRMLOKET order by namaloket
+    </select>
+    
+  <select id="getTanggal" parameterType="java.util.Map" resultType="spp.model.JournalPenerimaan">  
+      
+      SELECT DISTINCT (to_char(tmpnrm.D_VALIDASI,'dd') || '-' || 
+      bulan (to_char( tmpnrm.D_VALIDASI,'MM')) || '-' || to_char( tmpnrm.D_VALIDASI,'yyyy'))  as kettgl, 
+      C_VALIDASI_TGL AS kodetgl 
+      FROM tmpnrm , tmpnrmrinci
+      WHERE tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+      AND tmpnrmrinci.v_pnrm &gt; 0
+      AND tmpnrm.i_jour IS NULL
+      AND tmpnrm.c_pnrm_status = '4' 
+      AND I_IDLOKET = #{loket}
+      AND tmpnrm.C_VALIDASI_TGL  &gt; 0
+      AND tmpnrm.c_angg_tahun = #{tahun}
+      order by tmpnrm.C_VALIDASI_TGL
+        
+   </select>    
+    
+    <select id="getListJurnal" parameterType="java.util.Map"  resultType="spp.model.JournalPenerimaan">
+        
+        SELECT idpnrm, d_validasi, noloket, kodeskpd, namaskpd, sts, nilaipnrm, kode
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT i_id as idpnrm,
+            D_VALIDASI as d_validasi,  
+            I_LOKETNO as noloket,
+            C_SKPD as kodeskpd, 
+            N_SKPD as namaskpd,
+            I_STS as sts,
+            SUM(V_PNRM) AS nilaipnrm , kode 
+            FROM (
+                select tmpnrm.i_id, C_SKPD, N_SKPD, I_IDLOKET,I_LOKETNO,I_STS,  D_VALIDASI , V_PNRM, 
+                (CASE  
+                WHEN  substr(c_akun,1,3) = '6.1' THEN '1-Biaya (PPKD)'                 
+                WHEN  c_akun = '4.1.4.10.05' THEN '2-Uang Muka Kerja (PPKD)'                            
+                WHEN  c_akun BETWEEN '4.1.4.19' AND '4.1.4.19.ZZZZZZZ'  THEN '3-Pengembalian (PPKD)' 
+                WHEN  c_akun BETWEEN '4.1.4.20' AND '4.1.4.20.ZZZZZZZ'  THEN '3-Pengembalian (PPKD)'
+                WHEN  C_SKPD_LEVEL = '3' THEN  '4-Penerimaan (PPKD)'                               
+                WHEN  C_SKPD_LEVEL &lt;&gt;'3'THEN  '5-Penerimaan (SKPD)'                              
+                ELSE '99'  
+                END )   AS kode 
+                FROM trbas, tmpnrm, tmpnrmrinci,  trskpd
+                WHERE tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+                AND trbas.i_id =tmpnrmrinci.i_idbas 
+                AND tmpnrm.i_idskpd = trskpd.i_id
+                AND tmpnrmrinci.v_pnrm &gt; 0
+                AND tmpnrm.i_jour IS NULL
+                AND tmpnrm.c_pnrm_status = '4' 
+                AND I_IDLOKET = #{loket}
+                AND C_VALIDASI_TGL = #{tglvalidasi}
+                AND tmpnrm.c_angg_tahun = #{tahun}
+            )
+            GROUP BY  i_id, C_SKPD, N_SKPD, I_IDLOKET, I_LOKETNO,I_STS, D_VALIDASI, KODE
+            order by I_LOKETNO,I_STS, D_VALIDASI, KODE
+        
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakListJournal" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak
+        FROM  ( SELECT i_id as idpnrm,
+            D_VALIDASI as d_validasi,  
+            I_LOKETNO as noloket,
+            C_SKPD as kodeskpd, 
+            N_SKPD as namaskpd,
+            I_STS as sts,
+            SUM(V_PNRM) AS nilaipnrm , kode 
+            FROM (
+                select tmpnrm.i_id, C_SKPD, N_SKPD, I_IDLOKET,I_LOKETNO,I_STS,  D_VALIDASI , V_PNRM, 
+                (CASE  
+                WHEN  substr(c_akun,1,3) = '6.1' THEN '1-Biaya (PPKD)'                 
+                WHEN  c_akun = '4.1.4.10.05' THEN '2-Uang Muka Kerja (PPKD)'                            
+                WHEN  c_akun BETWEEN '4.1.4.19' AND '4.1.4.19.ZZZZZZZ'  THEN '3-Pengembalian (PPKD)' 
+                WHEN  c_akun BETWEEN '4.1.4.20' AND '4.1.4.20.ZZZZZZZ'  THEN '3-Pengembalian (PPKD)'
+                WHEN  C_SKPD_LEVEL = '3' THEN  '4-Penerimaan (PPKD)'                               
+                WHEN  C_SKPD_LEVEL &lt;&gt; '3'THEN  '5-Penerimaan (SKPD)'                              
+                ELSE '99'  
+                END )   AS kode 
+                FROM trbas, tmpnrm, tmpnrmrinci,  trskpd
+                WHERE tmpnrm.i_id = tmpnrmrinci.i_idpnrm
+                AND trbas.i_id =tmpnrmrinci.i_idbas 
+                AND tmpnrm.i_idskpd = trskpd.i_id
+                AND tmpnrmrinci.v_pnrm &gt; 0
+                AND tmpnrm.i_jour IS NULL
+                AND tmpnrm.c_pnrm_status = '4' 
+                AND I_IDLOKET = #{loket}
+                AND C_VALIDASI_TGL = #{tglvalidasi} 
+                AND tmpnrm.c_angg_tahun = #{tahun}
+            )
+            GROUP BY  i_id, C_SKPD, N_SKPD, I_IDLOKET, I_LOKETNO,I_STS, D_VALIDASI, KODE
+            order by I_LOKETNO,I_STS, D_VALIDASI, KODE
+        )
+        
+    </select>
+    
+    <insert id="insertJournalPenerimaan" statementType="CALLABLE" parameterType="spp.model.JournalPenerimaan"> 
+    {CALL proc_j_proses_PNRM(#{tahun}, #{loket}, #{tglvalidasi}, #{idEntry})}
+    </insert>
+    
+</mapper>

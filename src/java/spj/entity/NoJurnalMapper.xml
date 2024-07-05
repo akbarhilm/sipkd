@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.NoJurnalMapper">
+    
+       
+    <select id="getNoJurnalSkpdAll" parameterType="java.util.Map" resultType="spp.model.NoJurnal">
+        SELECT  noJurnal
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   ( SELECT DISTINCT i_journo_doc as noJurnal FROM tmjourskpd  order by i_journo_doc ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakNoJurnalSkpdAll" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak from (
+            SELECT DISTINCT i_journo_doc as noJurnal FROM tmjourskpd  order by i_journo_doc
+        )
+         
+    </select>    
+    
+    <select id="getNoJurnalSkpd" parameterType="java.util.Map" resultType="spp.model.NoJurnal">
+        
+        SELECT  noJurnal
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT DISTINCT i_journo_doc as noJurnal FROM tmjourskpd where  i_idskpd= #{idskpd}
+                order by i_journo_doc ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getBanyakNoJurnalSkpd" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak FROM (
+            SELECT DISTINCT i_journo_doc as noJurnal FROM tmjourskpd where  i_idskpd= #{idskpd}
+            order by i_journo_doc
+        )
+         
+    </select>
+        
+    <select id="getNoJurnal" parameterType="java.util.Map" resultType="spp.model.NoJurnal">
+        SELECT  noJurnal
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT  distinct i_journo_doc as noJurnal
+        from tmjourumumskpd where i_idskpd= #{idskpd} order by i_journo_doc
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    <select id="getBanyakNoJurnal" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak FROM (
+            SELECT  distinct i_journo_doc as noJurnal
+            from tmjourumumskpd where i_idskpd= #{idskpd} order by i_journo_doc
+        )
+         
+    </select>
+    
+    <select id="getNoJurnalAll"  parameterType="java.util.Map" resultType="spp.model.NoJurnal">
+        
+        SELECT  noJurnal
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT  distinct i_journo_doc as noJurnal from tmjourumumskpd order by i_journo_doc ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakNoJurnalAll" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak FROM (
+             SELECT  distinct i_journo_doc as noJurnal from tmjourumumskpd order by i_journo_doc
+        )
+         
+    </select>
+       
+</mapper>

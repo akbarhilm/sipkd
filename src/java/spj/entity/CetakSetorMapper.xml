@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spj.entity.CetakSetorMapper">
+    
+    
+    <delete id="deletesetorcetak" parameterType="java.lang.Integer"    >
+        delete TMSETORCETAK    WHERE   I_ID = #{value}  
+    </delete>
+    
+   
+    <select id="getharikerjaspp"   parameterType="java.sql.Date" resultType="spp.model.HariKerja">
+        SELECT   T.D_REKAM AS tglRekam,
+        T.D_APPROVE AS tglApprove,
+        T.D_CETAK AS tglCetak,
+        T.D_SAH AS tglSah
+        FROM   TRHARIKERJA T
+        WHERE   C_DOK = 'SPP' AND D_HARI_KERJA = #{value}
+    </select>
+       
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF 
+    </select>
+    
+      
+    <select id="getlistsetorcetak" parameterType="java.util.Map"  resultType="spp.model.Setor">
+        SELECT   id,
+        idskpd,
+        noSetor,
+        tglSetor,
+        tahunSetor,
+        kodeSetor,
+        kodeBeban,
+        kodeJenis,
+        dokSetor,
+        nilaiSetor,
+        status,
+        namaPptk,
+        nipPptk,
+        namaPa,
+        nipPa,
+        idPenerimaan,
+        noValidasi,
+        tahun
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   TMSETOR.I_ID AS id,
+        TMSETOR.C_ANGG_TAHUN AS tahun,
+        TMSETOR.I_IDSKPD AS idskpd,
+        I_SETOR AS NoSetor,
+        D_SETOR AS tglSetor,
+        C_SETOR AS kodeSetor,
+        <!-- N_PK AS namaPptk,
+        I_NIP_PK as nipPptk, -->
+        C_TAHUN_ANGGARAN AS tahunSetor,
+        C_BEBAN AS kodeBeban,
+        (CASE C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        ELSE 'TIDAK ADA'
+        END)
+        AS kodeJenis,
+        E_SETOR AS dokSetor,
+         (CASE NVL (TMSETORCETAK.c_status_cetak, 0)
+        WHEN 0 THEN 'BELUM CETAK'
+        WHEN 1 THEN 'CETAK'
+        ELSE 'TANPA STATUS'
+        END)
+        AS status,
+        nvl(I_IDPNRM,0) as idPenerimaan,
+        nvl(i_validasi,0) as noValidasi,
+        (SELECT   SUM (V_SETOR)
+        FROM   TMSETORRINCI
+        WHERE   TMSETOR.I_ID = TMSETORRINCI.I_IDSETOR)
+        AS NilaiSetor,
+        TMDPA.I_NIP_PA AS nipPa,
+        TMDPA.N_PA AS namaPa,
+        TMSETORCETAK.I_ID CETAK,
+        TMDPA.I_NIP_PKBLJ as nipPptk,
+        TMDPA.N_PKBLJ as namaPptk
+        FROM         TMSETOR
+        LEFT JOIN
+        TMSETORCETAK
+        ON TMSETOR.I_ID = TMSETORCETAK.I_ID
+        LEFT JOIN
+        tmdpa
+        ON TMSETOR.I_IDSKPD = tmdpa.I_IDSKPD
+        WHERE      
+        <!--I_IDPNRM IS NULL
+        and i_validasi is null
+        AND -->
+        tmdpa.I_IDSKPD = tmsetor.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmsetor.C_ANGG_TAHUN
+        AND TMSETOR.C_ANGG_TAHUN = #{tahun}
+        AND TMSETOR.I_IDSKPD = #{idskpd}
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getbanyaksetorcetak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from (
+        SELECT TMSETOR.I_ID as id, TMSETOR.C_ANGG_TAHUN as tahun, TMSETOR.I_IDSKPD as idskpd,
+        I_SETOR as NoSetor, D_SETOR as tglSetor, C_SETOR as kodeSetor,
+        C_TAHUN_ANGGARAN as tahunSetor, C_BEBAN as kodeBeban, 
+        (CASE C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        ELSE 'TIDAK ADA'
+        END)
+        AS kodeJenis,
+        E_SETOR as dokSetor,
+        (CASE NVL (TMSETORCETAK.c_status_cetak, 0)
+        WHEN 0 THEN 'BELUM CETAK'
+        WHEN 1 THEN 'CETAK'
+        ELSE 'TANPA STATUS'
+        END)
+        AS status,
+        (select sum(V_SETOR)  from TMSETORRINCI WHERE TMSETOR.I_ID = TMSETORRINCI.I_IDSETOR) as NilaiSetor  , 
+        TMSETORCETAK.I_ID CETAK
+        FROM TMSETOR
+        LEFT JOIN TMSETORCETAK  ON TMSETOR.I_ID = TMSETORCETAK.I_ID
+        WHERE I_IDPNRM IS NULL
+        AND TMSETOR.C_ANGG_TAHUN =#{tahun}
+        AND TMSETOR.I_IDSKPD = #{idskpd}
+        )
+    </select>
+    
+    
+    <insert id="insertsetorcetak" parameterType="java.util.Map"   >
+             
+        INSERT INTO  TMSETORCETAK  (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM,A_JASPER_FILE, A_SETORFILE_PDF, 
+        C_STATUS_CETAK,N_PA,I_NIP_PA,D_SETOR_CETAK,N_PK,I_NIP_PK) 
+        VALUES (#{id},#{userid},#{tglentry} , #{filejasper},#{filepdf},'1',
+        #{namaPa},#{nipPa},#{tglc},#{namaPptk},#{nipPptk} )
+       
+        <!-- N_PK,I_NIP_PK,  ===>   #{namaPptk},#{nipPptk},  -->
+  
+    </insert>
+    
+       
+</mapper>

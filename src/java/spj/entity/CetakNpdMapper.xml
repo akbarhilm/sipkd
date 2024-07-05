@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spj.entity.CetakNpdMapper">
+    
+      
+    <delete id="deletenpdcetak" parameterType="java.lang.Integer"    >
+        delete TMNPDCETAK    WHERE   I_ID = #{value}  
+    </delete>
+    
+    <select id="getharikerjaspp"   parameterType="java.sql.Date" resultType="spp.model.HariKerja">
+        SELECT   T.D_REKAM AS tglRekam,
+        T.D_APPROVE AS tglApprove,
+        T.D_CETAK AS tglCetak,
+        T.D_SAH AS tglSah
+        FROM   TRHARIKERJA T
+        WHERE   C_DOK = 'SPP' AND D_HARI_KERJA = #{value}
+    </select>
+       
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF 
+    </select>
+    
+    <select id="getlistnpdcetak" parameterType="java.util.Map"  resultType="spp.model.Npd">
+        SELECT    idNpd,
+                  idskpd,
+                  noNpd,
+                  tanggalNpd,
+                  idKegiatan as "kegiatan.idKegiatan",
+                  ketNpd,
+                  status,
+                  namaPptk,
+                  nipPptk,
+                  namaPa,
+                  nipPa,
+                  nilaiNpd,
+                  tahun
+  FROM   (SELECT   ROWNUM AS rn, a.*
+            FROM   (SELECT   
+                             TMNPD.I_ID AS idNpd,
+                             C_ANGG_TAHUN AS tahun,
+                             I_IDSKPD AS idskpd,
+                             I_NPDNO AS NoNpd,
+                             D_NPDNO AS tanggalNpd,
+                             N_PPTK AS namaPptk,
+                             I_PPTK_NIP as nipPptk,
+                             I_IDKEGIATAN AS idKegiatan,
+                             E_NPD AS ketNpd,
+                             (CASE NVL (TMNPDCETAK.c_status_cetak, 0)
+                                 WHEN 0 THEN 'BELUM CETAK'
+                                 WHEN 1 THEN 'CETAK'
+                                 ELSE 'TANPA STATUS'
+                              END)
+                                AS status,
+                             (SELECT   SUM (V_NPD)
+                                FROM   TMNPDRINCI
+                               WHERE   TMNPD.I_ID = TMNPDRINCI.I_IDNPD)
+                                AS nilaiNpd,
+                             TMDPA.I_NIP_PA AS nipPa,
+                             TMDPA.N_PA AS namaPa,
+                             TMNPDCETAK.I_ID CETAK,
+                             TMNPDCETAK.C_TERIMA
+                      FROM         TMNPD
+                                LEFT JOIN
+                                   TMNPDCETAK
+                                ON TMNPD.I_ID = TMNPDCETAK.I_ID
+                             LEFT JOIN
+                                tmdpa
+                             ON TMNPD.I_IDSKPD = tmdpa.I_IDSKPD
+                     WHERE       C_ANGG_TAHUN = #{tahun}
+                             AND I_IDSKPD = #{idskpd}
+                             AND tmdpa.I_IDSKPD = TMNPD.I_IDSKPD
+                             AND tmdpa.C_ANGG_TAHUN = TMNPD.C_ANGG_TAHUN) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <select id="getbanyaknpdcetak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+       select count(*) as banyak from (
+ SELECT   
+                             TMNPD.I_ID AS idNpd,
+                             C_ANGG_TAHUN AS tahun,
+                             I_IDSKPD AS idskpd,
+                             I_NPDNO AS NoNpd,
+                             D_NPDNO AS tanggalNpd,
+                              N_PPTK AS namaPptk,
+                             I_PPTK_NIP as nipPptk,
+                             I_IDKEGIATAN AS idKegiatan,
+                             E_NPD AS ketNpd,
+                             (CASE NVL (TMNPDCETAK.c_status_cetak, 0)
+                                 WHEN 0 THEN 'BELUM CETAK'
+                                 WHEN 1 THEN 'CETAK'
+                                 ELSE 'TANPA STATUS'
+                              END)
+                                AS status,
+                             (SELECT   SUM (V_NPD)
+                                FROM   TMNPDRINCI
+                               WHERE   TMNPD.I_ID = TMNPDRINCI.I_IDNPD)
+                                AS nilaiNpd,
+                          <!--   TMDPA.I_NIP_PA AS nipPptk,
+                             TMDPA.N_PA AS namaPptk,-->
+                             TMNPDCETAK.I_ID CETAK,
+                             TMNPDCETAK.C_TERIMA
+                      FROM         TMNPD
+                                LEFT JOIN
+                                   TMNPDCETAK
+                                ON TMNPD.I_ID = TMNPDCETAK.I_ID
+                         <!--    LEFT JOIN
+                                tmdpa
+                             ON TMNPD.I_IDSKPD = tmdpa.I_IDSKPD -->
+                     WHERE        C_ANGG_TAHUN = #{tahun}
+                             AND I_IDSKPD = #{idskpd}
+                            <!-- AND tmdpa.I_IDSKPD = TMNPD.I_IDSKPD
+                             AND tmdpa.C_ANGG_TAHUN = TMNPD.C_ANGG_TAHUN-->
+
+ )
+    </select>
+    
+    
+    <insert id="insertnpdcetak" parameterType="java.util.Map"   >
+             
+        INSERT INTO  TMNPDCETAK  (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM,A_JASPER_FILE, A_NPDFILE_PDF, 
+        C_STATUS_CETAK,N_PA,I_NIP_PA,N_PPK,I_NIP_PPK,D_NPD_CETAK) 
+        VALUES (#{idNpd},#{userid},#{tglentry} , #{filejasper},#{filepdf},'1',
+        #{namaPa},#{nipPa},#{namaPptk},#{nipPptk},#{tglc} )
+        
+  
+    </insert>
+    
+    
+    
+</mapper>

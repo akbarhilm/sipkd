@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.JournalSPJMapper">
+    
+    <select id="getBanyakJourSpj" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select count(*) as banyak from(
+        SELECT TMSPJ.i_id as idSpj,
+        TMSPJ.c_spj_bulan as bulan,
+        TMSPJ.i_idskpd "skpd.idSkpd",
+        c_kegiatan as kegiatan, 
+        n_kegiatan as namakeg,
+        c_akun  || ' / ' || n_akun as akunbelanja, 
+        (CASE substr(c_akun,1,5)  
+        WHEN '5.2.3' THEN trbas.c_akun_aset || ' / ' || n_akun_aset
+        ELSE trbas.c_akun_lo || ' / ' || n_akun_lo END ) as akunjurnal,  
+        v_spj as nilai_spj
+        FROM TMSPJ, TMSPJRINCIBL, TMDPAKEGIATAN , TRBAS 
+        WHERE  TMSPJ.I_ID = TMSPJRINCIBL.I_IDSPJ
+        and  TMSPJRINCIBL.i_idbas = trbas.i_id
+        and TMSPJRINCIBL.I_IDKEGIATAN = TMDPAKEGIATAN.I_id
+        and TMSPJ.C_ANGG_TAHUN =#{tahun}
+        and TMSPJ.c_spj_bulan=#{bulan}
+        and TMSPJ.i_id = #{idSpj}   
+        )
+    </select>
+    
+    <select id="getListJourSpj" parameterType="java.util.Map"  resultType="spp.model.JournalSPJ">
+        SELECT idSpj,bulan, "skpd.idSkpd",kodekeg, namakeg,  akunbelanja, akunjurnal, nilai_spj
+        FROM  (SELECT   ROWNUM AS rn, a.* FROM ( 
+        SELECT TMSPJ.i_id as idSpj,
+        TMSPJ.c_spj_bulan as bulan,
+        TMSPJ.i_idskpd "skpd.idSkpd",
+        c_kegiatan as kodekeg, 
+        n_kegiatan as namakeg,
+        c_akun  || ' / ' || n_akun as akunbelanja, 
+        (CASE substr(c_akun,1,5)  
+        WHEN '5.2.3' THEN trbas.c_akun_aset || ' / ' || n_akun_aset
+        ELSE trbas.c_akun_lo || ' / ' || n_akun_lo END ) as akunjurnal,  
+        v_spj as nilai_spj
+        FROM TMSPJ, TMSPJRINCIBL, TMDPAKEGIATAN , TRBAS 
+        WHERE  TMSPJ.I_ID = TMSPJRINCIBL.I_IDSPJ
+        and  TMSPJRINCIBL.i_idbas = trbas.i_id
+        and TMSPJRINCIBL.I_IDKEGIATAN = TMDPAKEGIATAN.I_id
+        and TMSPJ.C_ANGG_TAHUN =#{tahun}
+        and TMSPJ.c_spj_bulan=#{bulan}
+        and TMSPJ.i_id = #{idSpj}   
+        ) a) WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        <!-- GET FROM TMBKUSKPDPENGELUARAN, JIKA SPJ SUDAH TIDAK DIPAKAI
+        SELECT distinct tmbkuskpdpengeluaran.c_kegiatan as kodekeg, 
+        n_kegiatan as namakeg,
+        tmbkuskpdpengeluaran.c_akun  || ' / ' || n_akun as akunbelanja, 
+        (CASE substr(tmbkuskpdpengeluaran.c_akun,1,5)  
+        WHEN '5.2.3' THEN trbas.c_akun_aset || ' / ' || n_akun_aset
+        ELSE trbas.c_akun_lo || ' / ' || n_akun_lo END ) as akunjurnal,  
+        v_kas_keluar as nilai_spj
+        FROM tmbkuskpdpengeluaran, TMDPAKEGIATAN , TRBAS 
+        WHERE tmbkuskpdpengeluaran.I_IDKEGIATAN = TMDPAKEGIATAN.I_id
+        and tmbkuskpdpengeluaran.c_akun = TRBAS.c_akun
+        and tmbkuskpdpengeluaran.c_trx = 'JJ'
+        and tmbkuskpdpengeluaran.C_ANGG_TAHUN = #{tahun}
+        and tmbkuskpdpengeluaran.i_idskpd = #{idskpd}
+        and substr(d_posting,5,2) = #{bulan}
+        and tmbkuskpdpengeluaran.i_bkuno = #{noBKU}
+        -->
+        
+    </select>
+    
+    <insert id="insertJournalSpj" statementType="CALLABLE" parameterType="spp.model.JournalSPJ"> 
+        {CALL proc_j_proses_SPJ(#{tahun},#{idskpd},#{bulan},#{idSpj},#{idEntry})}
+        
+    <!--
+        {CALL proc_j_bkuskpd_spj_bl(#{tahun},#{idskpd},#{noBKU},#{idEntry})}
+    -->
+    </insert>
+    
+    <select id="getBulanJournal" parameterType="java.util.Map"  resultType="spp.model.JournalSPJ">
+        SELECT tmspj.i_id as idSpj, tmspj.C_SPJ_BULAN as kodeBulan , BULAN (tmspj.C_SPJ_BULAN) || ' - ' || tmspj.I_SPJNO_DOK as namaBulan
+        FROM tmspj, tmspjsah
+        WHERE tmspj.i_id = tmspjsah.i_id
+        AND tmspj.i_jour IS NULL
+        AND tmspj.c_spj_nihil = '0'
+        AND tmspj.c_angg_tahun = #{tahun}             
+        AND tmspj.i_idskpd = #{idskpd}                               
+        ORDER BY tmspj.i_id
+        
+        <!-- GET FROM TMBKUSKPDPENGELUARAN, JIKA SPJ SUDAH TIDAK DIPAKAI
+        select distinct i_bkuno as noBKU , substr(d_posting,5,2) as kodeBulan, 
+        BULAN ( substr(d_posting,5,2)) || ' - ' || i_doc_bukti as namaBulan 
+        from tmbkuskpdpengeluaran where c_trx = 'JJ'
+        and i_jour is null
+        and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        order by substr(d_posting,5,2)
+        --> 
+        
+    </select>
+   
+</mapper>

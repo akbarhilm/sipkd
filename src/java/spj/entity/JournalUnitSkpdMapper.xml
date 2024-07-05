@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spj.entity.JournalUnitSkpdMapper">
+    
+    <select id="getNoJournal" parameterType="java.lang.String"  resultType="spp.model.JournalUnitSkpd">
+        
+        select nvl(max(i_journo),0)+1 as noJournal from
+        (
+        select nvl(max(i_journo),0)  as i_journo from tmjourumumskpd
+        where c_angg_tahun = to_char(sysdate,'yyyy')
+        union all
+        select nvl(max(i_journo),0) as i_journo from tmjourumumppkd
+        where c_angg_tahun = to_char(sysdate,'yyyy')
+        ) 
+
+    </select>
+    
+    <select id="getNoJournalInteger" parameterType="java.lang.String"  resultType="java.lang.Integer">
+        select nvl(max(i_journo),0)+1 as noJournal   from
+        (
+        select nvl(max(i_journo),0)  as i_journo from tmjourumumskpd
+        where c_angg_tahun = #{tahun}
+        union all
+        select nvl(max(i_journo),0) as i_journo from tmjourumumppkd
+        where c_angg_tahun = #{tahun}
+        ) 
+
+    </select>
+    
+    <select id="getNoJournalDok" parameterType="java.util.Map"  resultType="java.lang.String">
+        select 'JU-' || #{tglPosting}  || '-' || TRIM(TO_CHAR(max(i_journo) + 1 ,'0000000')) as noJournalDok 
+        from
+        (
+        select nvl(max(i_journo),0)  as i_journo from tmjourumumskpd
+        where c_angg_tahun = #{tahun}
+        union all
+        select nvl(max(i_journo),0) as i_journo from tmjourumumppkd
+        where c_angg_tahun = #{tahun}
+        ) 
+
+    </select>
+    
+    <select id="getNamaAkun" parameterType="java.lang.String"  resultType="spp.model.JournalUnitSkpd">
+        select n_akun as namaakun, i_id as idBas
+        from trbas where c_akun = #{value}
+    </select>
+    
+    <select id="getBanyakAllSkpd" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   count(*) as banyak
+        FROM (SELECT   DISTINCT
+        trskpd.i_id  ,
+        trskpd.C_SKPD  ,
+        trskpd.N_SKPD  
+        FROM   trskpd 
+        WHERE  1=1 and C_AKTIF = 1
+        <if test="skpd != null and skpd != '' ">
+            and upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>     
+        )
+    </select>
+    
+    <select id="getBanyakAllAkun" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(c_akun) as banyak
+        FROM   trbas
+        WHERE c_aktif = '1' 
+        
+        <if test="kodeAkunref != null and kodeAkunref != '' ">
+            and c_akun like ''||#{kodeAkunref}||'%'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(trbas.n_akun) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        <if test="kode != null and kode != '' ">
+            and upper(trbas.c_akun) like '%'||upper(#{kode})||'%'
+        </if>   
+         
+    </select>
+    
+    <select id="getAllSkpd" parameterType="java.util.Map"  resultType="spp.model.Skpd">
+        SELECT    i_id as idSkpd,C_SKPD as kodeSkpd,N_SKPD as namaSkpd
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   DISTINCT
+        trskpd.i_id  ,
+        trskpd.C_SKPD  ,
+        trskpd.N_SKPD  
+        FROM   trskpd 
+        WHERE  1=1 and C_AKTIF = 1
+        <if test="skpd != null and skpd != '' ">
+            and upper(TRSKPD.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>
+        
+        <if test="kodeskpd != null and kodeskpd != '' ">
+            and upper(TRSKPD.C_SKPD) like '%'||upper(#{kodeskpd})||'%'
+        </if>    
+          
+        ORDER BY 
+        <choose>
+            <when test="iSortCol_0 == 0 ">
+                trskpd.i_id
+            </when>
+            <when test="iSortCol_0 == 1 ">
+                trskpd.C_SKPD
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                trskpd.N_SKPD
+            </when>
+            <otherwise>
+                trskpd.i_id  
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' ">
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>                
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getKegiatan" parameterType="java.util.Map"  resultType="spp.model.JournalUnitSkpd">
+        SELECT    idKegiatan, kodeKeg, namaKeg, ketKegiatan
+        FROM (SELECT   ROWNUM AS rn, a.*
+        FROM (select i_id as idKegiatan, c_kegiatan as kodeKeg, 
+        n_kegiatan as namaKeg , c_kegiatan || ' - ' || n_kegiatan as ketKegiatan from tmdpakegiatan
+        WHERE i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+
+        <if test="kodeKeg != null and kodeKeg != '' ">
+            and upper(c_kegiatan) like '%'||upper(#{kodeKeg})||'%'
+        </if>  
+        
+        <if test="namaKeg != null and namaKeg != '' ">
+            and upper(n_kegiatan) like '%'||upper(#{namaKeg})||'%'
+        </if>     
+                
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakKegiatan" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(c_kegiatan) as banyak
+        FROM   tmdpakegiatan
+        WHERE i_idskpd = #{idskpd} and c_angg_tahun = #{tahun}
+        
+        <if test="kodeKeg != null and kodeKeg != '' ">
+            and upper(c_kegiatan) like '%'||upper(#{kodeKeg})||'%'
+        </if>  
+        
+        <if test="namaKeg != null and namaKeg != '' ">
+            and upper(n_kegiatan) like '%'||upper(#{namaKeg})||'%'
+        </if>      
+         
+    </select>
+    
+    <select id="getBanyakAllJurnal" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT   count(*) as banyak
+        FROM ( SELECT i_journo as noJournal,
+        d_posting as tglPosting,
+        i_docno as noDok,
+        d_doc as tglDok,
+        e_jour,c_audited,
+        sum(v_debet) as nilaiDebet
+        FROM TMJOURUMUMSKPD
+        WHERE C_STATUS ='0' AND C_AKTIF  ='1' and i_idskpd = #{idskpd}
+        group by i_journo,d_posting,i_docno,d_doc,e_jour,C_STATUS,C_AKTIF,c_audited
+        )
+    </select>
+    
+    <select id="getAllJurnal"  parameterType="java.util.Map"  resultType="spp.model.JournalUnitSkpd">
+        
+        SELECT noJournal, tglPosting, noDok, tglDok,ketJour, nilaiDebet, koreksiBPK
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT i_journo as noJournal,
+        d_posting as tglPosting,
+        i_docno as noDok,
+        d_doc as tglDok,
+        e_jour as ketJour,
+        c_audited as koreksiBPK,
+        sum(v_debet) as nilaiDebet
+
+        FROM TMJOURUMUMSKPD
+        WHERE C_STATUS ='0' AND C_AKTIF  ='1'  AND C_SKPD_KOREKSI  ='1' 
+        and i_idskpd = #{idskpd}
+        group by i_journo,d_posting,i_docno,d_doc,e_jour,C_STATUS,C_AKTIF,c_audited
+        ORDER BY  i_journo
+        
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        
+    </select>
+    
+    
+    <select id="getAllAkun" parameterType="java.util.Map"  resultType="spp.model.Akun">
+        
+        SELECT idBas, kodeAkun, namaAkun
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT i_id as idBas,
+        c_akun as kodeAkun,
+        n_akun as namaAkun  
+        FROM trbas where  c_aktif = '1' 
+        
+        <if test="kodeAkunref != null and kodeAkunref != '' ">
+            and c_akun like ''||#{kodeAkunref}||'%'
+        </if>
+        
+        <if test="nama != null and nama != '' ">
+            and upper(trbas.n_akun) like '%'||upper(#{nama})||'%'
+        </if> 
+        
+        <if test="kode != null and kode != '' ">
+            and upper(trbas.c_akun) like '%'||upper(#{kode})||'%'
+        </if>  
+           
+        ORDER BY 
+        <choose>
+            <when test="iSortCol_0 == 0 ">
+                trbas.i_id
+            </when>
+            <when test="iSortCol_0 == 1 ">
+                c_akun
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                trbas.n_akun
+            </when>
+            <otherwise>
+                trbas.c_akun  
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sSortDir_0 == 'desc' ">
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose>                
+        ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getListJurnal" parameterType="java.util.Map"  resultType="spp.model.JournalUnitSkpd">
+        SELECT J.i_id as idJour, 
+        S.c_skpd ||'/'|| S.n_skpd as ketskpd,
+        J.i_idbas as idBas,
+        B.c_akun as kodeakun,
+        B.n_akun as namaakun,
+        J.v_debet as nilaiDebet,
+        J.v_kredit as nilaiKredit,
+        J.c_jenis as jenis,
+        J.c_beban as beban,
+        J.i_idkegiatan as idKegiatan,
+        J.i_journo_doc as noJournalDok,
+        K.c_kegiatan as kodeKeg,
+        K.n_kegiatan as namaKeg
+        FROM TMJOURUMUMSKPD J
+        join trbas B on B.i_id = J.i_idbas
+        join trskpd S on S.i_id = J.i_idskpd
+        left join tmdpakegiatan K on K.i_id = J.i_idkegiatan
+        WHERE J.i_journo = #{noJournal} and J.C_STATUS ='0' AND J.C_AKTIF  ='1' and J.i_idskpd = #{idskpd}
+        
+    </select>
+    
+    <select id="getBanyakListJurnal" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT count(*) as banyak
+        FROM ( SELECT J.i_id as idJour, 
+        J.i_idskpd as idskpd,
+        S.c_skpd ||'/'|| S.n_skpd as skpd,
+        J.i_idbas as idBas,
+        B.c_akun as kodeakun,
+        B.n_akun as namaakun,
+        J.v_debet as nilaiDebet,
+        J.v_kredit as nilaiKredit,
+        J.c_jenis as jenis,
+        J.c_beban as beban,
+        J.i_idkegiatan as idKegiatan
+        FROM TMJOURUMUMSKPD J
+        join trbas B on B.i_id = J.i_idbas
+        join trskpd S on S.i_id = J.i_idskpd
+        WHERE  J.i_journo = #{noJournal} and J.C_STATUS ='0' AND J.C_AKTIF  ='1' and J.i_idskpd = #{idskpd}
+        )
+    </select>
+    
+    <insert id="insertJournal" parameterType="spp.model.JournalUnitSkpd"  useGeneratedKeys="true"  keyColumn="I_ID" >
+        INSERT INTO TMJOURUMUMSKPD (
+        I_ID, 
+        C_ANGG_TAHUN,
+        D_POSTING,
+        I_DOCNO,
+        D_DOC,
+        I_IDSKPD,
+        I_JOURNO,
+        I_JOURNO_DOC,
+        I_IDBAS,
+        C_JENIS,
+        C_BEBAN,
+        I_IDKEGIATAN,
+        E_JOUR,
+        V_DEBET,
+        V_KREDIT,
+        C_AUDITED,
+        C_SKPD_KOREKSI,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM
+        )VALUES(
+        SEQ_TMJOURUMUMSKPD.NEXTVAL,
+        #{tahun},
+        #{tglPosting},
+        #{noDok},
+        #{tglDok},
+        #{idskpd},
+        #{noJournal},
+        #{noJournalDok},
+        #{idBas},
+        #{jenis},
+        #{beban},
+        #{idKegiatan},
+        #{ketJour},
+        #{nilaiDebet},
+        #{nilaiKredit},
+        #{koreksiBPK},
+        '1',
+        #{idEntry},
+        sysdate
+        )
+    </insert>
+    
+    <update id="updateJournal" parameterType="spp.model.JournalUnitSkpd" >
+        UPDATE TMJOURUMUMSKPD
+        SET
+        C_ANGG_TAHUN = #{tahun},
+        D_POSTING = #{tglPosting},
+        I_DOCNO = #{noDok},
+        D_DOC = #{tglDok},
+        I_IDSKPD = #{idskpd},
+        I_JOURNO = #{noJournal},
+        I_IDBAS = #{idBas},
+        C_JENIS = #{jenis},
+        C_BEBAN = #{beban},
+        I_IDKEGIATAN = #{idKegiatan},
+        E_JOUR = #{ketJour},
+        V_DEBET = #{nilaiDebet},
+        V_KREDIT = #{nilaiKredit},
+        C_AUDITED = #{koreksiBPK},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE  
+        I_ID = #{idJour}
+        
+    </update>
+    
+    <delete id="deleteJournal" parameterType="spp.model.JournalUnitSkpd"  >
+        DELETE TMJOURUMUMSKPD 
+        WHERE 
+        I_JOURNO = #{noJournal}
+        AND C_ANGG_TAHUN = #{tahun}
+    </delete>
+    
+    <update id="updateAktifJournal" parameterType="spp.model.JournalUnitSkpd"   >
+        UPDATE TMJOURUMUMSKPD
+        SET
+        C_AKTIF  ='0',
+        V_DEBET = 0,
+        V_KREDIT = 0,
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE  
+        I_JOURNO = #{noJournal}
+        AND C_ANGG_TAHUN = #{tahun}
+        AND C_STATUS ='0' 
+        AND C_AKTIF  ='1'
+        
+    </update>
+    
+    <update id="updateAktifById" parameterType="spp.model.JournalUnitSkpd"   >
+        UPDATE TMJOURUMUMSKPD
+        SET
+        C_AKTIF  ='0',
+        V_DEBET = 0,
+        V_KREDIT = 0,
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = sysdate
+        WHERE  
+        I_ID = #{idJour}
+        AND C_ANGG_TAHUN = #{tahun}
+        AND C_STATUS ='0' 
+        AND C_AKTIF  ='1'
+        
+    </update>
+    
+    <select id="getStatus" parameterType="java.lang.String"  resultType="java.lang.String">
+        select distinct c_status from tmjourumumppkd where i_journo = #{noJurnal}
+
+    </select>
+    
+</mapper>
