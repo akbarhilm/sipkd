@@ -1,0 +1,685 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="eset.entity.EsetMapper">
+    <select id="getListWil"   resultType="java.util.Map">
+        select c_wil_sp2dproses,n_wil_sp2dproses
+        from(
+        select a.*, max(c_wil_sp2dproses) over () as maxc_wil_sp2dproses
+        from trwilsp2dproses a
+           
+        )
+        where c_wil_sp2dproses = maxc_wil_sp2dproses
+        union all
+        select c_wil_sp2dproses,n_wil_sp2dproses
+        from(
+        select a.*, max(c_wil_sp2dproses) over () as maxc_wil_sp2dproses
+        from trwilsp2dproses a
+           
+        )
+        where c_wil_sp2dproses != maxc_wil_sp2dproses
+    </select>
+    <select id="getBanyakListWil"   resultType="java.lang.Integer">
+        select count(*) from(select c_wil_sp2dproses,n_wil_sp2dproses
+        from(
+        select a.*, max(c_wil_sp2dproses) over () as maxc_wil_sp2dproses
+        from trwilsp2dproses a
+           
+        )
+        where c_wil_sp2dproses = maxc_wil_sp2dproses
+        union all
+        select c_wil_sp2dproses,n_wil_sp2dproses
+        from(
+        select a.*, max(c_wil_sp2dproses) over () as maxc_wil_sp2dproses
+        from trwilsp2dproses a
+           
+        )
+        where c_wil_sp2dproses != maxc_wil_sp2dproses
+        )
+    </select>
+    <!--                baru            -->
+    <select id="getSp2dTestSuc" parameterType="java.util.Map" resultType="java.util.Map">
+select d_sp2d_sah as tanggal_validasi, tmsp2dbank.I_SP2DNO_DOK as no_sp2d,C_SKPD || '/' || N_SKPD as skpd,   D_SP2D_PROSESBANK as tanggal_bayar, V_SP2D_KIRIMBANK as nilai, C_BANK_TUJUAN as bank_tujuan, I_REK_TUJUAN as norek_tujuan, 
+N_TUJUAN as nama_tujuan, I_REK_PENGIRIM as norek_pengirim, N_PENGIRIM as nama_pengirim, i_bit11 as bit11, I_BIT62 as bit62,  substr(E_MSG_TERIMABANK,1,2) as kode_respon 
+from tmsp2dbank, tmsp2d where 
+tmsp2dbank.i_idsp2d = tmsp2d.i_id
+<if test=" statusbank == 1 ">
+and c_bank_status = 1
+</if>
+<if test=" statusbank == 9 ">
+and c_bank_status = 9
+</if>
+<if test=" statusbank == 0 ">
+and c_bank_status = 0
+</if>
+<if test=" wilsp2d != 9 ">
+   AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+</if>
+and  to_char(D_SP2D_PROSESBANK,'YYYYMMDD') = #{tglvalid}
+    </select>
+    
+     <select id="getSp2dTestFail" parameterType="java.util.Map" resultType="java.util.Map">
+select  d_sp2d_sah as tanggal_validasi, tmsp2dbank.I_SP2DNO_DOK as no_sp2d,C_SKPD || '/' || N_SKPD as skpd, D_SP2D_PROSESBANK as tanggal_bayar, V_SP2D_KIRIMBANK as nilai, C_BANK_TUJUAN as bank_tujuan, I_REK_TUJUAN as norek_tujuan, 
+N_TUJUAN as nama_tujuan, I_REK_PENGIRIM as norek_pengirim, N_PENGIRIM as nama_pengirim, i_bit11 as bit11, I_BIT62 as bit62, substr(E_MSG_TERIMABANK,1,2) as kode_respon        
+from tmsp2dbank, tmsp2d where 
+tmsp2dbank.i_idsp2d = tmsp2d.i_id
+and c_bank_status = 9
+<if test=" wilsp2d != 9 ">
+   AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+</if>
+and  to_char(D_SP2D_PROSESBANK,'YYYYMMDD') = #{tglvalid}
+    </select>
+    
+     <select id="getSp2dTestNR" parameterType="java.util.Map" resultType="java.util.Map">
+select  d_sp2d_sah as tanggal_validasi, tmsp2dbank.I_SP2DNO_DOK as no_sp2d,C_SKPD || '/' || N_SKPD as skpd, D_SP2D_KIRIMBANK as tanggal_kirim, V_SP2D_KIRIMBANK as nilai_request, C_BANK_TUJUAN as bank_tujuan, I_REK_TUJUAN as norek_tujuan, 
+N_TUJUAN as nama_tujuan, I_REK_PENGIRIM as norek_pengirim, N_PENGIRIM as nama_pengirim, i_bit11 as bit11, I_BIT62 as bit62, substr(E_MSG_TERIMABANK,1,2) as kode_respon    , D_SP2D_PROSESBANK as tanggal_bayar    
+from tmsp2dbank, tmsp2d where 
+tmsp2dbank.i_idsp2d = tmsp2d.i_id
+and c_bank_status = 0
+<if test=" wilsp2d != 9 ">
+   AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+</if>
+and  to_char(D_SP2D_PROSESBANK,'YYYYMMDD') = #{tglvalid}'
+    </select>
+    <!-- =========================================================================== -->
+     <select id="getCS" parameterType="java.util.Map" resultType="java.lang.Integer">
+       select count(*) from ( select d_sp2d_sah as tanggal_validasi, tmsp2dbank.I_SP2DNO_DOK as no_sp2d,C_SKPD || '/' || N_SKPD as skpd,   D_SP2D_PROSESBANK as tanggal_bayar, V_SP2D_KIRIMBANK as nilai, C_BANK_TUJUAN as bank_tujuan, I_REK_TUJUAN as norek_tujuan, 
+N_TUJUAN as nama_tujuan, I_REK_PENGIRIM as norek_pengirim, N_PENGIRIM as nama_pengirim, i_bit11 as bit11, I_BIT62 as bit62,  substr(E_MSG_TERIMABANK,1,2) as kode_respon 
+from tmsp2dbank, tmsp2d where 
+tmsp2dbank.i_idsp2d = tmsp2d.i_id
+
+<if test=" statusbank == 1 ">
+and c_bank_status = 1
+</if>
+<if test=" statusbank == 9 ">
+and c_bank_status = 9
+</if>
+<if test=" statusbank == 0 ">
+and c_bank_status = 0
+</if>
+<if test=" wilsp2d != 9 ">
+   AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+</if>
+and  to_char(D_SP2D_PROSESBANK,'YYYYMMDD') = #{tglvalid})
+     </select>
+     
+     <select id="getCF" parameterType="java.util.Map" resultType="java.lang.Integer">
+ select count(*) from ( select  d_sp2d_sah as tanggal_validasi, tmsp2dbank.I_SP2DNO_DOK as no_sp2d,C_SKPD || '/' || N_SKPD as skpd, D_SP2D_PROSESBANK as tanggal_bayar, V_SP2D_KIRIMBANK as nilai, C_BANK_TUJUAN as bank_tujuan, I_REK_TUJUAN as norek_tujuan, 
+N_TUJUAN as nama_tujuan, I_REK_PENGIRIM as norek_pengirim, N_PENGIRIM as nama_pengirim, i_bit11 as bit11, I_BIT62 as bit62, substr(E_MSG_TERIMABANK,1,2) as kode_respon        
+from tmsp2dbank, tmsp2d where 
+tmsp2dbank.i_idsp2d = tmsp2d.i_id
+and c_bank_status = 9
+<if test=" wilsp2d != 9 ">
+   AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+</if>
+and  to_char(D_SP2D_PROSESBANK,'YYYYMMDD') = #{tglvalid})
+     </select>
+     
+     <select id="getCNR" parameterType="java.util.Map" resultType="java.lang.Integer">
+select count(*) from (select  d_sp2d_sah as tanggal_validasi, tmsp2dbank.I_SP2DNO_DOK as no_sp2d,C_SKPD || '/' || N_SKPD as skpd, D_SP2D_KIRIMBANK as tanggal_kirim, V_SP2D_KIRIMBANK as nilai_request, C_BANK_TUJUAN as bank_tujuan, I_REK_TUJUAN as norek_tujuan, 
+N_TUJUAN as nama_tujuan, I_REK_PENGIRIM as norek_pengirim, N_PENGIRIM as nama_pengirim, i_bit11 as bit11, I_BIT62 as bit62, substr(E_MSG_TERIMABANK,1,2) as kode_respon    , D_SP2D_PROSESBANK as tanggal_bayar    
+from tmsp2dbank, tmsp2d where 
+tmsp2dbank.i_idsp2d = tmsp2d.i_id
+and c_bank_status = 0
+<if test=" wilsp2d != 9 ">
+   AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+</if>
+and  to_char(D_SP2D_PROSESBANK,'YYYYMMDD') = #{tglvalid})
+     </select>
+    
+    
+    
+    <!-- //////////////////////////////////////////////////////////// -->
+    <select id="getListSp2dApp" parameterType="java.util.Map" resultType="java.util.Map">
+        select  idSp2d,
+         noSp2d,
+          noDokSp2d,
+          kodeSkpd,
+        namaSkpd,
+         nilaiSp2d,  bit11 ,  pesanBank,
+        wilSp2d, d_sp2d_sah 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (select  aa.i_idsp2d as idSp2d,
+         aa.i_sp2dno as noSp2d,
+         aa.I_SP2DNO_DOK as noDokSp2d,
+         aa.c_skpd as kodeSkpd,
+         aa.n_skpd_PENDEK as namaSkpd,
+         aa.v_sp2d as nilaiSp2d, aa.I_BIT11 as bit11 , min(bb.E_MSG_TERIMABANK )  pesanBank,
+         aa.c_wil_sp2dproses as wilSp2d, d_sp2d_sah
+         from
+         (
+  SELECT tmsp2d.i_id i_idsp2d,
+         tmsp2d.i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         trskpd.c_skpd,
+         trskpd.n_skpd_PENDEK,
+         tmsp2d.c_wil_sp2dproses,
+         tmsp2d.v_sp2d, max( TMSP2DBANK.I_BIT11) I_BIT11 , TO_CHAR (d_sp2d_sah, 'YYYYMMDD') as d_sp2d_sah
+    FROM tmsp2d, trskpd , TMSP2DBANK
+   WHERE     tmsp2d.c_angg_tahun = #{tahun}
+        <if test=" wilsp2d != 9 ">
+         AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+         </if>
+         <if test="nosp2d != null and nosp2d != ''">
+             and tmsp2d.i_sp2dno like '%'||#{nosp2d}||'%'
+         </if>
+         <if test="kodeskpd != null and kodeskpd !=''">
+         and trskpd.c_skpd like '%'||#{kodeskpd}||'%'
+         </if>
+         AND tmsp2d.i_idskpd = trskpd.I_id
+         AND TO_CHAR (d_sp2d_sah, 'YYYYMMDD') = #{tglvalid}
+          AND tmsp2d.i_ID = TMSP2DBANK.I_IDSP2D
+         AND c_sp2d_sah = '1'
+         and c_bank_aprv &lt;&gt; '1'
+         group by  tmsp2d.i_id ,
+         tmsp2d.i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         trskpd.c_skpd,
+         trskpd.n_skpd_PENDEK,
+         tmsp2d.c_wil_sp2dproses,
+         tmsp2d.v_sp2d  , 
+         TO_CHAR (d_sp2d_sah, 'YYYYMMDD') 
+         ) aa , TMSP2DBANK bb 
+         where   aa.i_IDsp2d = aa.I_IDSP2D
+         and aa.I_BIT11  = bb.I_BIT11
+         group by aa.i_idsp2d,
+         aa.i_sp2dno,
+         aa.I_SP2DNO_DOK,
+         aa.c_skpd,
+         aa.n_skpd_PENDEK,
+         aa.c_wil_sp2dproses,
+         aa.v_sp2d, aa.I_BIT11, d_sp2d_sah
+        ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset} 
+        ORDER BY nosp2d
+    </select>
+    
+    <select id="getBanyakListSp2dApp" parameterType="java.util.Map" resultType="java.lang.Integer">
+    select count(*) from(       select  idSp2d,
+         noSp2d,
+          noDokSp2d,
+          kodeSkpd,
+        namaSkpd,
+         nilaiSp2d,  bit11 ,  pesanBank,
+        wilSp2d, d_sp2d_sah 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (select  aa.i_idsp2d as idSp2d,
+         aa.i_sp2dno as noSp2d,
+         aa.I_SP2DNO_DOK as noDokSp2d,
+         aa.c_skpd as kodeSkpd,
+         aa.n_skpd_PENDEK as namaSkpd,
+         aa.v_sp2d as nilaiSp2d, aa.I_BIT11 as bit11 , min(bb.E_MSG_TERIMABANK )  pesanBank,
+         aa.c_wil_sp2dproses as wilSp2d, d_sp2d_sah
+         from
+         (
+  SELECT tmsp2d.i_id i_idsp2d,
+         tmsp2d.i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         trskpd.c_skpd,
+         trskpd.n_skpd_PENDEK,
+         tmsp2d.c_wil_sp2dproses,
+         tmsp2d.v_sp2d, max( TMSP2DBANK.I_BIT11) I_BIT11 , TO_CHAR (d_sp2d_sah, 'YYYYMMDD') as d_sp2d_sah
+    FROM tmsp2d, trskpd , TMSP2DBANK
+   WHERE     tmsp2d.c_angg_tahun = #{tahun}
+        <if test=" wilsp2d != 9 ">
+         AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+         </if>
+         <if test="nosp2d != null and nosp2d != ''">
+             and tmsp2d.i_sp2dno like '%'||#{nosp2d}||'%'
+         </if>
+         <if test="kodeskpd != null and kodeskpd !=''">
+         and trskpd.c_skpd like '%'||#{kodeskpd}||'%'
+         </if>
+         AND tmsp2d.i_idskpd = trskpd.I_id
+         AND TO_CHAR (d_sp2d_sah, 'YYYYMMDD') = #{tglvalid}
+          AND tmsp2d.i_ID = TMSP2DBANK.I_IDSP2D
+         AND c_sp2d_sah = '1'
+         and c_bank_aprv &lt;&gt; '1'
+         group by  tmsp2d.i_id ,
+         tmsp2d.i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         trskpd.c_skpd,
+         trskpd.n_skpd_PENDEK,
+         tmsp2d.c_wil_sp2dproses,
+         tmsp2d.v_sp2d  , 
+         TO_CHAR (d_sp2d_sah, 'YYYYMMDD') 
+         ) aa , TMSP2DBANK bb 
+         where   aa.i_IDsp2d = aa.I_IDSP2D
+         and aa.I_BIT11  = bb.I_BIT11
+         group by aa.i_idsp2d,
+         aa.i_sp2dno,
+         aa.I_SP2DNO_DOK,
+         aa.c_skpd,
+         aa.n_skpd_PENDEK,
+         aa.c_wil_sp2dproses,
+         aa.v_sp2d, aa.I_BIT11, d_sp2d_sah
+        ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset} 
+        ORDER BY nosp2d
+    </select>
+    <select id="getSumSp2d" parameterType='java.util.Map' resultType='java.util.Map'>
+        select sum(nilaiSp2d) as sumSp2d from(       select  idSp2d,
+         noSp2d,
+          noDokSp2d,
+          kodeSkpd,
+        namaSkpd,
+         nilaiSp2d,  bit11 ,  pesanBank,
+        wilSp2d, d_sp2d_sah 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (select  aa.i_idsp2d as idSp2d,
+         aa.i_sp2dno as noSp2d,
+         aa.I_SP2DNO_DOK as noDokSp2d,
+         aa.c_skpd as kodeSkpd,
+         aa.n_skpd_PENDEK as namaSkpd,
+         aa.v_sp2d as nilaiSp2d, aa.I_BIT11 as bit11 , min(bb.E_MSG_TERIMABANK )  pesanBank,
+         aa.c_wil_sp2dproses as wilSp2d, d_sp2d_sah
+         from
+         (
+  SELECT tmsp2d.i_id i_idsp2d,
+         tmsp2d.i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         trskpd.c_skpd,
+         trskpd.n_skpd_PENDEK,
+         tmsp2d.c_wil_sp2dproses,
+         tmsp2d.v_sp2d, max( TMSP2DBANK.I_BIT11) I_BIT11 , TO_CHAR (d_sp2d_sah, 'YYYYMMDD') as d_sp2d_sah
+    FROM tmsp2d, trskpd , TMSP2DBANK
+   WHERE     tmsp2d.c_angg_tahun = #{tahun}
+        <if test=" wilsp2d != 9 ">
+         AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+         </if>
+        
+         AND tmsp2d.i_idskpd = trskpd.I_id
+         AND TO_CHAR (d_sp2d_sah, 'YYYYMMDD') = #{tglvalid}
+          AND tmsp2d.i_ID = TMSP2DBANK.I_IDSP2D
+         AND c_sp2d_sah = '1'
+         and c_bank_aprv &lt;&gt; '1'
+         group by  tmsp2d.i_id ,
+         tmsp2d.i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         trskpd.c_skpd,
+         trskpd.n_skpd_PENDEK,
+         tmsp2d.c_wil_sp2dproses,
+         tmsp2d.v_sp2d  , 
+         TO_CHAR (d_sp2d_sah, 'YYYYMMDD') 
+         ) aa , TMSP2DBANK bb 
+         where   aa.i_IDsp2d = aa.I_IDSP2D
+         and aa.I_BIT11  = bb.I_BIT11
+         group by aa.i_idsp2d,
+         aa.i_sp2dno,
+         aa.I_SP2DNO_DOK,
+         aa.c_skpd,
+         aa.n_skpd_PENDEK,
+         aa.c_wil_sp2dproses,
+         aa.v_sp2d, aa.I_BIT11, d_sp2d_sah
+        ) a)
+       
+        ORDER BY nosp2d
+        )
+    </select>
+    <select id="getSp2dById" parameterType='java.util.Map' resultType='eset.model.Eset'>
+        SELECT tmsp2d.i_id as idSp2d,
+         i_sp2dno as noSp2d,
+         tmsp2d.I_SP2DNO_DOK as noDokSp2d,
+         TRSKPD.c_skpd as kodeSkpd,
+         TRSKPD.c_skpd||'/'||TRSKPD.n_skpd as skpd,
+         TRSKPD.n_skpd as namaSkpd,
+         tmsp2d.v_spp as nilaiSpp,
+         tmsp2d.V_POT_SPM as nilaiPotSpm,
+         tmsp2d.v_sp2d as nilaiSp2d,
+         C_BANK_TUJUAN as kodeBankTujuan,
+         I_REK_TUJUAN as noRekTujuan,
+         N_TUJUAN as namaTujuan,
+         c_beban as kodeBeban,
+         e_sp2d as ketSp2d,
+         tmsp2d.c_wil_sp2dproses as wilSp2d,
+         d_sp2d_sah as tglSp2d
+         
+    
+    FROM tmsp2d, TMSP2DBANK, TRSKPD
+   WHERE     tmsp2d.c_angg_tahun = #{tahun}
+         
+         AND tmsp2d.i_idskpd = trskpd.I_id
+       
+         AND c_sp2d_sah = '1'
+         AND tmsp2d.i_ID = TMSP2DBANK.I_IDSP2D
+         AND TMSP2D.I_ID = #{idsp2d}
+             
+        group by tmsp2d.i_id,
+         i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         TRSKPD.c_skpd,
+         TRSKPD.n_skpd,
+         tmsp2d.v_spp ,
+         tmsp2d.V_POT_SPM ,
+         tmsp2d.v_sp2d ,
+         C_BANK_TUJUAN ,
+         I_REK_TUJUAN ,
+         N_TUJUAN,
+         c_beban,
+         e_sp2d,
+         tmsp2d.c_wil_sp2dproses,
+         d_sp2d_sah
+ORDER BY i_sp2dno
+
+
+    </select>
+    <update id="updateSp2dApp" parameterType="eset.model.EsetRinci">
+        Update tmsp2d
+        Set c_bank_APRV = 1 , i_pgun_bank =#{idEntry} , d_pgun_bank = sysdate
+        Where I_id = #{idSp2d}
+
+    </update>
+        
+<!--    <select id="getBanyakSppPaguUp" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count(distinct( T.I_ID)) 
+        FROM   TRSPPPAGUUP T 
+        LEFT JOIN
+        trskpd s
+        ON S.I_ID = T.I_IDSKPD
+        WHERE 1=1 
+        <if test="namaskpd != null and namaskpd != '' ">
+            and upper(S.N_SKPD) like '%'||upper(#{namaskpd})||'%'
+        </if> 
+        <if test="tahun != null and tahun != '' ">
+            and C_ANGG_TAHUN = #{tahun}
+        </if> 
+    </select>  
+    <update id="updateSppPaguUp" parameterType="eset.model.SppPaguUp">
+        UPDATE   TRSPPPAGUUP
+        SET   V_SPP = #{nilaiSpp},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit}
+        WHERE   I_ID = #{id}
+    </update>   
+    <update id="pindahSppPaguTahun" parameterType="java.util.Map">
+        INSERT INTO THSPPPAGUUP (I_IDSPPPAGUUP,
+        I_IDSKPD,
+        V_SPP,
+        C_ANGG_TAHUN,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM,
+        I_PGUN_UBAH,
+        D_PGUN_UBAH)
+        SELECT   T.I_ID,
+        T.I_IDSKPD,
+        T.V_SPP,
+        T.C_ANGG_TAHUN,
+        T.I_PGUN_REKAM,
+        T.D_PGUN_REKAM,
+        T.I_PGUN_UBAH,
+        T.D_PGUN_UBAH
+        FROM   TRSPPPAGUUP T
+        WHERE   T.C_ANGG_TAHUN = #{tahunlama}
+    </update> 
+    <delete  id="hapusSppPaguTahun" parameterType="java.util.Map">
+        UPDATE   TRSPPPAGUUP
+        SET   C_ANGG_TAHUN = #{tahunbaru} 
+        WHERE   C_ANGG_TAHUN = #{tahunlama}
+    </delete>       
+    <select id="getAllAkunRoot"  
+            resultType="java.util.Map">         
+        SELECT   I_ID AS "key",
+        C_AKUN ||'-'|| N_AKUN AS "title",
+        'true' AS "lazy",
+        'true' AS "folder",
+        C_AKUN AS "kodeakun",
+        C_AKTIF AS "isaktif"
+        FROM   TRBAS T
+        WHERE   T.I_IDINDUK = 1
+    </select>
+    <select id="getAllAkunAnak"              resultType="java.util.Map">         
+        SELECT  I_ID AS "key",
+        C_AKUN ||'-'||N_AKUN  AS "title",
+        CASE
+        WHEN (SELECT   COUNT (x.I_ID)
+        FROM   TRBAS x
+        WHERE   X.I_IDINDUK = T.I_ID) > 0
+        THEN
+        'true'
+        ELSE
+        'false'
+        END as  "lazy",
+        'true' AS "folder",C_AKUN AS "kodeakun",C_AKTIF AS "isaktif"
+        FROM   TRBAS T
+        WHERE   T.I_IDINDUK = #{induk}
+    </select>    
+    <select id="getAkunByIdTambah" parameterType="java.lang.Integer"  resultType="eset.model.Akun">        
+        SELECT   
+        T.I_ID as idAkuninduk,
+        T.C_AKUN as kodeAkun,
+        T.C_TAHUN_BERLAKU as tahunBerlaku,
+        T.C_TAHUN_BERAKHIR as tahunBerakhir
+        FROM    TRBAS T
+        WHERE T.I_ID = #{value}
+    </select>
+    
+    <select id="getAkunById" parameterType="java.lang.Integer"  resultType="eset.model.Akun">        
+        SELECT   
+        T.I_ID as idAkun,
+        T.I_IDINDUK as idAkunInduk,
+        T.C_AKUN as kodeAkun,
+        T.N_AKUN as namaAkun,
+        T.C_AKTIF as isAktif,
+        T.C_TAHUN_BERLAKU as tahunBerlaku,
+        T.C_TAHUN_BERAKHIR as tahunBerakhir
+        FROM    TRBAS T
+        WHERE T.I_ID = #{value}
+    </select>
+    
+    <select id="getSkpdById" parameterType="java.lang.Integer"
+            resultType="eset.model.Skpd">
+        SELECT   DISTINCT T.I_ID AS idSkpd,
+        T.I_IDINDUK as idInduk,
+        T.C_SKPD AS kodeSkpd,
+        T.C_UNITKERJA AS kodeUnit,
+        T.N_SKPD AS namaSkpd,
+        T.N_SKPD_PENDEK AS namaSkpdPendek,
+        T.I_IDURUSAN AS "urusan.idUrusan",
+        T.C_AKTIF AS isAktif,
+        T.C_PENDAPATAN AS isPendapatan,
+        T.C_NERACA AS isNeraca,
+        T.C_KELURAHAN AS kodeKelurahan,
+        T.C_KECAMATAN AS kodeKecamatan,
+        T.C_SKPD_LEVEL AS levelSkpd,
+        T.C_KOMISI AS kodeKomisi,
+        T.C_ASISTEN AS kodeAsisten,
+        T.C_TAHUN_BERLAKU AS tahunBerlaku,
+        T.C_TAHUN_BERAKHIR AS tahunBerakhir
+        FROM   TRSKPD T
+        WHERE   T.I_ID = #{value}
+
+    </select>
+    
+    
+    <update id="editSkpd" parameterType="eset.model.Skpd"   >
+        UPDATE TRSKPD
+        SET  
+ 
+        I_IDINDUK = #{idInduk},
+        C_SKPD = #{kodeSkpd},
+        C_UNITKERJA = #{kodeUnit},
+        N_SKPD  = #{namaSkpd},
+        N_SKPD_PENDEK = #{namaSkpdPendek},
+        I_IDURUSAN = #{urusan.idUrusan},
+        C_AKTIF = #{isAktif},
+        C_PENDAPATAN = #{isPendapatan},
+        C_NERACA = #{isNeraca},
+        C_KELURAHAN =  #{kodeKelurahan},
+        C_KECAMATAN = #{kodeKecamatan},
+        C_SKPD_LEVEL = #{levelSkpd},
+        C_KOMISI = #{kodeKomisi},
+        C_ASISTEN = #{kodeAsisten},
+        C_TAHUN_BERLAKU = #{tahunBerlaku},
+        C_TAHUN_BERAKHIR = #{tahunBerakhir},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit}
+     
+        WHERE  I_ID  =  #{idSkpd}
+    </update>
+    
+    
+    <insert id="insertSkpd" parameterType="eset.model.Skpd"   >
+        INSERT INTO  TRSKPD (I_ID, 
+        I_IDINDUK, 
+        C_SKPD, 
+        C_UNITKERJA, 
+        N_SKPD, 
+        N_SKPD_PENDEK, 
+        I_IDURUSAN, 
+        C_AKTIF, 
+        C_PENDAPATAN,
+        C_NERACA,
+        C_KELURAHAN,
+        C_KECAMATAN, 
+        C_SKPD_LEVEL,
+        C_KOMISI,
+        C_ASISTEN,
+        C_TAHUN_BERLAKU,
+        C_TAHUN_BERAKHIR,
+        I_PGUN_REKAM, 
+        D_PGUN_REKAM )
+        VALUES ( SEQ_TRSKPD.nextval ,
+        #{idSkpd}, 
+        #{kodeSkpd}, 
+        #{kodeUnit}, 
+        #{namaSkpd}, 
+        #{namaSkpdPendek}, 
+        #{urusan.idUrusan}, 
+        #{isAktif}, 
+        #{isPendapatan}, 
+        #{isNeraca},
+        #{kodeKelurahan}, 
+        #{kodeKecamatan},
+        #{levelSkpd},
+        #{kodeKomisi},
+        #{kodeAsisten},
+        #{tahunBerlaku},
+        #{tahunBerakhir},
+        #{idEntry}, 
+        #{tglEntry} )
+    </insert>
+    
+    <select id="getUrusan" parameterType="java.util.Map"
+            resultType="eset.model.Skpd">
+        SELECT   I_ID AS idUrusan,
+        C_URUSAN AS kodeUrusan,
+        N_URUSAN AS namaUrusan
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   I_ID,
+        C_URUSAN,
+        N_URUSAN
+        FROM   TRURUSAN T 
+        <if test="urusan != null and urusan != '' ">
+            where upper( T.N_URUSAN) like '%'||upper(#{urusan})||'%'
+        </if> ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+             
+    </select>
+    
+    <select id="getBanyakAllUrusan" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        select count(i_id) from TRURUSAN T
+        <if test="bank != null and bank != '' ">
+            where upper( T.N_URUSAN) like '%'||upper(#{urusan})||'%'
+        </if>          
+    </select>
+    
+    <update id="updateAkun" parameterType="eset.model.Akun"   >
+        UPDATE  TRBAS SET
+        C_AKUN = #{kodeAkun},
+        N_AKUN = #{namaAkun},
+        C_AKTIF = #{isAktif},
+        C_TAHUN_BERLAKU = #{tahunBerlaku},
+        C_TAHUN_BERAKHIR = #{tahunBerakhir},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit}
+        WHERE I_ID = #{idAkun}
+    </update>
+    
+    <insert id="insertAkun" parameterType="eset.model.Akun"   >
+        INSERT INTO TRBAS(
+        I_ID, 
+        I_IDINDUK, 
+        C_AKUN, 
+        N_AKUN, 
+        C_AKTIF, 
+        C_TAHUN_BERLAKU, 
+        C_TAHUN_BERAKHIR, 
+        I_PGUN_REKAM, 
+        D_PGUN_REKAM 
+        ) VALUES (
+        SEQ_TRBAS.nextval,
+        #{idAkunInduk},
+        #{kodeAkun},
+        #{namaAkun},
+        #{isAktif},
+        #{tahunBerlaku},
+        #{tahunBerakhir},
+        #{idEdit},
+        #{tglEdit}
+        )
+        
+    </insert>
+    <select id="getAllBendaharaSpp" parameterType="java.util.Map"
+            resultType="eset.model.Bendahara">
+        SELECT   T.I_ID AS idBendahara,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        T.I_NIP AS nip,
+        T.I_NRK AS nrk,
+        T.N_PEG AS nama,
+        T.N_JABATAN AS namaJabatan,
+        T.C_AKTIF AS isAktif,B.N_SKPD as "skpd.namaSkpd"
+        FROM   TRSPPBENDAHARA T  LEFT JOIN
+        trskpd b
+        ON B.I_ID = T.I_IDSKPD
+        WHERE 1=1 
+        <if test="nama != null and nama != '' ">
+            and upper(T.N_PEG) like '%'||upper(#{nama})||'%'
+        </if>
+        <if test="skpd != null  and    skpd != '' ">
+            and upper(B.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if> 
+        ORDER BY  
+        <choose>
+            <when test="iSortCol_0 == 1 ">
+                T.I_NIP
+            </when>
+            <when test="iSortCol_0 == 2 ">
+                T.N_PEG
+            </when>
+            <when test="iSortCol_0 == 3 ">
+                B.N_SKPD
+            </when>                                      
+            <otherwise>
+                T.I_IDSKPD
+            </otherwise>
+        </choose>  
+        <choose>
+            <when test="sSortDir_0 == 'desc' " >
+                desc
+            </when>
+            <otherwise> 
+                asc
+            </otherwise>
+        </choose> 
+    </select> 
+    <select id="getBanyakBendaharaSpp" parameterType="java.util.Map"
+             resultType="java.lang.Integer">
+        SELECT   COUNT (DISTINCT (T.I_ID)) as banyak
+        FROM   TRSPPBENDAHARA T   WHERE 1=1 
+        <if test="nama != null and nama != '' ">
+            and upper(T.N_PEG) like '%'||upper(#{nama})||'%'
+        </if>
+        <if test="skpd != null  and    skpd != '' ">
+            and upper(B.N_SKPD) like '%'||upper(#{skpd})||'%'
+        </if>           
+    </select>
+    <select id="getSpmBatasProses" parameterType="java.util.Map"
+            resultType="eset.model.SpmProses">
+        SELECT   T.I_ID as id,
+        T.C_BEBAN as kodeBeban,
+        T.C_JENIS as kodeJenis,
+        T.C_BATAS_WAKTU as batasWaktu
+        FROM   TRSPMPROSES T WHERE C_JENIS = #{jenis}  and  T.C_BEBAN = #{beban}          
+    </select>-->
+</mapper>

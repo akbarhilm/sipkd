@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="eset.entity.ListDataMapper">
+    <select id="getListWil"   resultType="java.util.Map">
+        select c_wil_sp2dproses,n_wil_sp2dproses
+        from(
+        select a.*, max(c_wil_sp2dproses) over () as maxc_wil_sp2dproses
+        from trwilsp2dproses a
+           
+        )
+        where c_wil_sp2dproses = maxc_wil_sp2dproses
+        union all
+        select c_wil_sp2dproses,n_wil_sp2dproses
+        from(
+        select a.*, max(c_wil_sp2dproses) over () as maxc_wil_sp2dproses
+        from trwilsp2dproses a
+           
+        )
+        where c_wil_sp2dproses != maxc_wil_sp2dproses
+    </select>
+    <select id="getBanyakListWil"   resultType="java.lang.Integer">
+        select count(*) from(select c_wil_sp2dproses,n_wil_sp2dproses
+        from(
+        select a.*, max(c_wil_sp2dproses) over () as maxc_wil_sp2dproses
+        from trwilsp2dproses a
+           
+        )
+        where c_wil_sp2dproses = maxc_wil_sp2dproses
+        union all
+        select c_wil_sp2dproses,n_wil_sp2dproses
+        from(
+        select a.*, max(c_wil_sp2dproses) over () as maxc_wil_sp2dproses
+        from trwilsp2dproses a
+           
+        )
+        where c_wil_sp2dproses != maxc_wil_sp2dproses
+        )
+    </select>
+    <!--                baru            -->
+    <select id="getSp2dTestSuc" parameterType="java.util.Map" resultType="java.util.Map">
+select d_sp2d_sah as tanggal_validasi, tmsp2dbank.I_SP2DNO_DOK as no_sp2d,C_SKPD || '/' || N_SKPD as skpd,   D_SP2D_PROSESBANK as tanggal_bayar, V_SP2D_KIRIMBANK as nilai, C_BANK_TUJUAN as bank_tujuan, I_REK_TUJUAN as norek_tujuan, 
+N_TUJUAN as nama_tujuan, I_REK_PENGIRIM as norek_pengirim, N_PENGIRIM as nama_pengirim, i_bit11 as bit11, I_BIT62 as bit62,  substr(E_MSG_TERIMABANK,1,2) as kode_respon 
+from tmsp2dbank, tmsp2d where 
+tmsp2dbank.i_idsp2d = tmsp2d.i_id
+
+
+and c_bank_status = #{statusbank}
+
+<if test=" wilsp2d != 9 ">
+   AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+</if>
+<if test="statusbank == 0">
+and  to_char(D_SP2D_KIRIMBANK,'YYYY') = #{tglbayar}
+</if>
+<if test="statusbank ==9">
+and  to_char(D_SP2D_PROSESBANK,'YYYYMM') = #{tglbayar}
+</if>
+<if test="statusbank==1">
+    and  to_char(D_SP2D_PROSESBANK,'YYYYMMDD') = #{tglbayar}
+</if>
+    </select>
+    
+     
+    <!-- =========================================================================== -->
+     <select id="getCS" parameterType="java.util.Map" resultType="java.lang.Integer">
+       select count(*) from ( select d_sp2d_sah as tanggal_validasi, tmsp2dbank.I_SP2DNO_DOK as no_sp2d,C_SKPD || '/' || N_SKPD as skpd,   D_SP2D_PROSESBANK as tanggal_bayar, V_SP2D_KIRIMBANK as nilai, C_BANK_TUJUAN as bank_tujuan, I_REK_TUJUAN as norek_tujuan, 
+N_TUJUAN as nama_tujuan, I_REK_PENGIRIM as norek_pengirim, N_PENGIRIM as nama_pengirim, i_bit11 as bit11, I_BIT62 as bit62,  substr(E_MSG_TERIMABANK,1,2) as kode_respon 
+from tmsp2dbank, tmsp2d where 
+tmsp2dbank.i_idsp2d = tmsp2d.i_id
+
+
+and c_bank_status = #{statusbank}
+
+<if test=" wilsp2d != 9 ">
+   AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+</if>
+<if test="statusbank!=1">
+and  to_char(D_SP2D_PROSESBANK,'YYYYMM') = #{tglbayar}
+</if>
+<if test="statusbank==1">
+    and  to_char(D_SP2D_PROSESBANK,'YYYYMMDD') = #{tglbayar}
+</if>
+)
+     </select>
+     
+    
+    <!-- //////////////////////////////////////////////////////////// -->
+    <select id="getListSp2dApp" parameterType="java.util.Map" resultType="java.util.Map">
+        select  idSp2d,
+         noSp2d,
+          noDokSp2d,
+          kodeSkpd,
+        namaSkpd,
+         nilaiSp2d,  bit11 ,  pesanBank,
+        wilSp2d, d_sp2d_sah 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (select  aa.i_idsp2d as idSp2d,
+         aa.i_sp2dno as noSp2d,
+         aa.I_SP2DNO_DOK as noDokSp2d,
+         aa.c_skpd as kodeSkpd,
+         aa.n_skpd_PENDEK as namaSkpd,
+         aa.v_sp2d as nilaiSp2d, aa.I_BIT11 as bit11 , min(bb.E_MSG_TERIMABANK )  pesanBank,
+         aa.c_wil_sp2dproses as wilSp2d, d_sp2d_sah
+         from
+         (
+  SELECT tmsp2d.i_id i_idsp2d,
+         tmsp2d.i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         trskpd.c_skpd,
+         trskpd.n_skpd_PENDEK,
+         tmsp2d.c_wil_sp2dproses,
+         tmsp2d.v_sp2d, max( TMSP2DBANK.I_BIT11) I_BIT11 , TO_CHAR (d_sp2d_sah, 'YYYYMMDD') as d_sp2d_sah
+    FROM tmsp2d, trskpd , TMSP2DBANK
+   WHERE     tmsp2d.c_angg_tahun = #{tahun}
+        <if test=" wilsp2d != 9 ">
+         AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+         </if>
+         <if test="nosp2d != null and nosp2d != ''">
+             and tmsp2d.i_sp2dno like '%'||#{nosp2d}||'%'
+         </if>
+         <if test="kodeskpd != null and kodeskpd !=''">
+         and trskpd.c_skpd like '%'||#{kodeskpd}||'%'
+         </if>
+         AND tmsp2d.i_idskpd = trskpd.I_id
+         AND TO_CHAR (d_sp2d_sah, 'YYYYMMDD') = #{tglvalid}
+          AND tmsp2d.i_ID = TMSP2DBANK.I_IDSP2D
+         AND c_sp2d_sah = '1'
+         and c_bank_aprv &lt;&gt; '1'
+         group by  tmsp2d.i_id ,
+         tmsp2d.i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         trskpd.c_skpd,
+         trskpd.n_skpd_PENDEK,
+         tmsp2d.c_wil_sp2dproses,
+         tmsp2d.v_sp2d  , 
+         TO_CHAR (d_sp2d_sah, 'YYYYMMDD') 
+         ) aa , TMSP2DBANK bb 
+         where   aa.i_IDsp2d = aa.I_IDSP2D
+         and aa.I_BIT11  = bb.I_BIT11
+         group by aa.i_idsp2d,
+         aa.i_sp2dno,
+         aa.I_SP2DNO_DOK,
+         aa.c_skpd,
+         aa.n_skpd_PENDEK,
+         aa.c_wil_sp2dproses,
+         aa.v_sp2d, aa.I_BIT11, d_sp2d_sah
+        ) a)
+        WHERE   ROWNUM  &lt;= #{limit} AND rn &gt; #{offset} 
+        ORDER BY nosp2d
+    </select>
+    
+   
+    <select id="getSumSp2d" parameterType='java.util.Map' resultType='java.util.Map'>
+        select sum(nilaiSp2d) as sumSp2d from(       select  idSp2d,
+         noSp2d,
+          noDokSp2d,
+          kodeSkpd,
+        namaSkpd,
+         nilaiSp2d,  bit11 ,  pesanBank,
+        wilSp2d, d_sp2d_sah 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (select  aa.i_idsp2d as idSp2d,
+         aa.i_sp2dno as noSp2d,
+         aa.I_SP2DNO_DOK as noDokSp2d,
+         aa.c_skpd as kodeSkpd,
+         aa.n_skpd_PENDEK as namaSkpd,
+         aa.v_sp2d as nilaiSp2d, aa.I_BIT11 as bit11 , min(bb.E_MSG_TERIMABANK )  pesanBank,
+         aa.c_wil_sp2dproses as wilSp2d, d_sp2d_sah
+         from
+         (
+  SELECT tmsp2d.i_id i_idsp2d,
+         tmsp2d.i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         trskpd.c_skpd,
+         trskpd.n_skpd_PENDEK,
+         tmsp2d.c_wil_sp2dproses,
+         tmsp2d.v_sp2d, max( TMSP2DBANK.I_BIT11) I_BIT11 , TO_CHAR (d_sp2d_sah, 'YYYYMMDD') as d_sp2d_sah
+    FROM tmsp2d, trskpd , TMSP2DBANK
+   WHERE     tmsp2d.c_angg_tahun = #{tahun}
+        <if test=" wilsp2d != 9 ">
+         AND tmsp2d.c_wil_sp2dproses = #{wilsp2d}
+         </if>
+        
+         AND tmsp2d.i_idskpd = trskpd.I_id
+         AND TO_CHAR (d_sp2d_sah, 'YYYYMMDD') = #{tglvalid}
+          AND tmsp2d.i_ID = TMSP2DBANK.I_IDSP2D
+         AND c_sp2d_sah = '1'
+         and c_bank_aprv &lt;&gt; '1'
+         group by  tmsp2d.i_id ,
+         tmsp2d.i_sp2dno,
+         tmsp2d.I_SP2DNO_DOK,
+         trskpd.c_skpd,
+         trskpd.n_skpd_PENDEK,
+         tmsp2d.c_wil_sp2dproses,
+         tmsp2d.v_sp2d  , 
+         TO_CHAR (d_sp2d_sah, 'YYYYMMDD') 
+         ) aa , TMSP2DBANK bb 
+         where   aa.i_IDsp2d = aa.I_IDSP2D
+         and aa.I_BIT11  = bb.I_BIT11
+         group by aa.i_idsp2d,
+         aa.i_sp2dno,
+         aa.I_SP2DNO_DOK,
+         aa.c_skpd,
+         aa.n_skpd_PENDEK,
+         aa.c_wil_sp2dproses,
+         aa.v_sp2d, aa.I_BIT11, d_sp2d_sah
+        ) a)
+       
+        ORDER BY nosp2d
+        )
+    </select>
+    
+        
+
+</mapper>
