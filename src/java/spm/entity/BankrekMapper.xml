@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spm.entity.BankrekMapper">
+    <select id="getBankrek" parameterType="java.util.Map"
+            resultType="spp.model.Bankrek">
+         
+SELECT   I_ID AS idBankrek,
+         I_IDSKPD AS "skpd.idSkpd",
+         C_BANK AS kodeBankrek,
+         N_BANK AS namaBankrek,
+         I_REK_BANKSTS AS idBANKSTS,
+         I_REK_BANKSPM AS idBANKSPM,
+         C_TAHUN_BERLAKU AS kodeThnBerlaku,
+         C_TAHUN_BERAKHIR AS kodeThnBerakhir,
+         C_AKTIF AS isAktif,
+         C_SKPD AS "skpd.kodeSkpd",
+         N_SKPD AS "skpd.namaSkpd"
+  FROM   (SELECT   ROWNUM AS rn, a.*
+            FROM   (SELECT   B.I_ID,
+                             B.I_IDSKPD,
+                             B.C_BANK,
+                             B.N_BANK,
+                             B.I_REK_BANKSTS,
+                             B.I_REK_BANKSPM,
+                             B.C_TAHUN_BERLAKU,
+                             B.C_TAHUN_BERAKHIR,
+                             B.C_AKTIF,
+                             P.C_SKPD,
+                             P.N_SKPD
+                      FROM      TRSKPDBANKREK B
+                             INNER JOIN
+                                trskpd p
+                             ON P.I_ID = B.I_IDSKPD where 1=1   
+                              <if test="namabankrek != null and namabankrek != '' ">
+             AND upper( B.N_BANK) like '%'||upper(#{namabankrek})||'%'
+                            </if>
+                              <if test="idskpd != null and idskpd != '' ">
+            AND B.I_IDSKPD = #{idskpd}
+                            </if>
+                             ) a)WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    <select id="getBanyakAllBankrek" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        select count(i_id) from TRSKPDBANKREK T
+        where 1=1   
+           <if test="idskpd != null and idskpd != '' ">
+            AND T.I_IDSKPD = #{idskpd}
+           </if>
+        <if test="namabankrek != null and namabankrek != '' ">
+            and upper( T.N_BANK) like '%'||upper(#{namabankrek})||'%'
+        </if>          
+    </select>
+    
+    
+
+    
+   
+    <delete id="deleteBankrek" parameterType="java.lang.Integer"   >
+        delete TRSKPDBANKREK     WHERE I_ID      = #{idBankrek}
+    </delete>
+    
+    <select id="getBankrekById" parameterType="java.lang.Integer"
+            resultType="spp.model.Bankrek">
+SELECT   t.I_ID AS idBankrek,
+         t.I_IDSKPD AS "skpd.idSkpd",
+         t.C_BANK AS kodeBankrek,
+         t.N_BANK AS namaBankrek,
+         t.I_REK_BANKSTS AS idBANKSTS,
+         t.I_REK_BANKSPM AS idBANKSPM,
+         t.C_TAHUN_BERLAKU AS kodeThnBerlaku,
+         t.C_TAHUN_BERAKHIR AS kodeThnBerakhir,
+         t.C_AKTIF AS isAktif,
+         P.C_SKPD AS "skpd.kodeSkpd",
+         P.N_SKPD AS "skpd.namaSkpd"
+  FROM      TRSKPDBANKREK t
+         INNER JOIN
+            trskpd p
+         ON P.I_ID = T.I_IDSKPD
+ WHERE   t.I_ID = #{value}
+
+    </select>
+    
+    <update id="updateBankrek" parameterType="spp.model.Bankrek"   >
+        UPDATE TRSKPDBANKREK
+        SET  
+        I_IDSKPD = #{skpd.idSkpd},  
+        N_BANK   = #{namaBankrek},
+        C_BANK = #{kodeBankrek},
+        I_REK_BANKSTS = #{idBANKSTS},
+        I_REK_BANKSPM = #{idBANKSPM},
+        C_TAHUN_BERLAKU = #{kodeThnBerlaku},
+        C_TAHUN_BERAKHIR = #{kodeThnBerakhir},
+        C_AKTIF = #{isAktif},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit}
+     
+        WHERE  I_ID  =  #{idBankrek}
+    </update>
+    
+    <insert id="insertBankrek" parameterType="spp.model.Bankrek"   >
+        INSERT INTO TRSKPDBANKREK (I_ID, I_IDSKPD, C_BANK, N_BANK, I_REK_BANKSTS, I_REK_BANKSPM, C_TAHUN_BERLAKU, C_TAHUN_BERAKHIR,C_AKTIF, I_PGUN_REKAM, D_PGUN_REKAM)
+        VALUES (SEQ_TRSKPDBANKREK.nextval ,#{skpd.idSkpd}, #{kodeBankrek},#{namaBankrek}, #{idBANKSTS},#{idBANKSPM},#{kodeThnBerlaku},#{kodeThnBerakhir},#{isAktif},#{idEntry},#{tglEntry} )
+    </insert>
+    
+    
+</mapper>

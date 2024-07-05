@@ -1,0 +1,855 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="spm.entity.CetakSpmMapper">
+    
+    <select id="getbanyakspmcetakbtl5" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        select i_idspp from tmspm where i_id = #{value}
+    </select> 
+    
+    <select id="getbanyakspmcetakbtl3" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count (*)
+        from tmspprincibtl,trbas
+        where  tmspprincibtl.i_idspp = #{idspp}
+        and tmspprincibtl.i_idbas = trbas.i_id
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.8')
+        and TMSPPRINCIBTL.V_SPP &gt; 0 
+
+    </select> 
+    
+    <select id="getbanyakspmcetakbtl4" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT  count (*)
+        from tmspprincibtl,trbas
+        where  tmspprincibtl.i_idspp = #{idspp}
+        and tmspprincibtl.i_idbas = trbas.i_id
+        AND SUBSTR (trbas.c_akun, 1, 5) IN ('5.1.2')
+        and TMSPPRINCIBTL.V_SPP &gt; 0 
+
+    </select> 
+   
+    <delete id="deletespmcetak" parameterType="java.lang.Integer"    >
+        delete TMSPMCETAK    WHERE   I_ID = #{value}  
+    </delete>
+ 
+    <select id="getharikerjaspp"   parameterType="java.sql.Date" resultType="spp.model.HariKerja">
+        SELECT   T.D_REKAM AS tglRekam,
+        T.D_APPROVE AS tglApprove,
+        T.D_CETAK AS tglCetak,
+        T.D_SAH AS tglSah
+        FROM   TRHARIKERJA T
+        WHERE   C_DOK = 'SPP' AND D_HARI_KERJA = #{value}
+    </select>
+    <insert id="insertspmcetak" parameterType="java.util.Map"   >
+        INSERT INTO  TMSPMCETAK  (
+        I_ID, I_PGUN_REKAM, D_PGUN_REKAM,A_JASPER_FILE, A_SPPFILE_PDF, 
+        C_STATUS_CETAK,N_PK,I_NIP_PK,I_NIP_PA,N_PA,D_SPM_CETAK,C_STATUS_CAMEL) 
+        VALUES (#{id},#{userid},#{tglentry} , #{filejasper},#{filepdf},'1',
+        #{namaPa},#{nipPa},#{nipPptk},#{namaPptk},#{tglc},#{statcam} )
+    </insert>
+    <select id="getlistspmcetak" parameterType="java.util.Map"  resultType="spp.model.SppUp"> 
+        <!-- tmspp.I_PPTK_NIP as NPPTK, -->       
+        SELECT   id,
+        idSkpd as "skpd.idSkpd",
+        idspp,
+        noSpm AS "spmUp.noSpm",
+        namaPptk,
+        nipPptk,
+        kodeBeban,
+        uangmuka,
+        tahun,
+        status,
+        kodeJenis,
+        namaBendahara,nipBendahara,kodeNihil,
+        nilaiSpp 
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  SELECT   Z.i_id AS id,
+        Z.i_idskpd AS idskpd,
+        Z.i_idspp AS idspp,
+        Z.i_spmno AS noSpm,
+        Z.c_nihil as kodeNihil,
+        Z.PPTK AS namaBendahara,
+        Z.NPPTK AS nipBendahara,
+        Z.n_pa AS namaPptk,
+        Z.ni_pa AS nipPptk,
+        Z.nk_pa AS nrkPa,
+        Z.c_beban AS kodeBeban,
+        Z.c_uangmuka AS uangmuka,
+        Z.C_ANGG_TAHUN AS tahun,
+        Z.status,
+        (CASE Z.C_JENIS
+        WHEN '1' THEN 'BTL'
+        WHEN '2' THEN 'BTL-BANTUAN'
+        WHEN '3' THEN 'BL'
+        WHEN '4' THEN 'BIAYA'
+        WHEN '5' THEN 'RESTITUSI'
+        ELSE 'SALAH'
+        END)
+        AS kodeJenis,
+        SUM (Z.v_spp) AS nilaiSpp
+        FROM   (SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.I_IDSPP,
+        tmspm.i_spmno,
+        tmspm.C_NIHIL,
+        tmdpa.N_PKBLJ AS pptk,
+        tmdpa.I_NIP_PKBLJ as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        'CETAK' AS status,
+        tmspprincibl.v_spp
+        FROM   tmspm,
+        tmspprincibl,
+        tmspmcetak,
+        tmspp,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibl.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        AND tmspmcetak.N_PEG_PEMBERISKPD is null
+        and tmspmcetak.N_PEG_TERIMAKPKD is null
+        AND  tmspmcetak.c_wil_sp2dproses is null
+        AND tmspmcetak.D_SPM_MOHONSKPD is null
+        AND tmspmcetak.D_SPM_TERIMAKPKD is null
+        
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.I_IDSPP,
+        tmspm.i_spmno,
+        tmspm.C_NIHIL,
+        tmsppcetak.N_PK AS pptk,
+        tmsppcetak.I_NIP_PK as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        'PENGAJUAN' AS status,
+        tmspprincibl.v_spp
+        FROM   tmspm,
+        tmspprincibl,
+        tmspp,
+        tmsppcetak,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibl.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.I_IDSPP,
+        tmspm.i_spmno,
+        tmspm.C_NIHIL,
+        tmdpa.N_PKBLJ AS pptk,
+        tmdpa.I_NIP_PKBLJ as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        'CETAK' AS status,
+        tmspprincibtl.v_spp
+        FROM   tmspm,
+        tmspprincibtl,
+        tmspmcetak,
+        tmspp,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibtl.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        AND tmspmcetak.N_PEG_PEMBERISKPD is null
+        and tmspmcetak.N_PEG_TERIMAKPKD is null
+        AND  tmspmcetak.c_wil_sp2dproses is null
+        AND tmspmcetak.D_SPM_MOHONSKPD is null
+        AND tmspmcetak.D_SPM_TERIMAKPKD is null
+        
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.I_IDSPP,
+        tmspm.i_spmno,
+        tmspm.C_NIHIL,
+        tmsppcetak.N_PK AS pptk,
+        tmsppcetak.I_NIP_PK as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        'PENGAJUAN' AS status,
+        tmspprincibtl.v_spp
+        FROM   tmspm,
+        tmspprincibtl,
+        tmspp,
+        tmsppcetak,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibtl.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.I_IDSPP,
+        tmspm.i_spmno,
+        tmspm.C_NIHIL,
+        tmdpa.N_PKBLJ AS pptk,
+        tmdpa.I_NIP_PKBLJ as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        'CETAK' AS status,
+        tmspprincibtlbantuan.v_spp
+        FROM   tmspm,
+        tmspprincibtlbantuan,
+        tmspmcetak,
+        tmspp,
+        tmdpa
+        WHERE tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibtlbantuan.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        AND tmspmcetak.N_PEG_PEMBERISKPD is null
+        and tmspmcetak.N_PEG_TERIMAKPKD is null
+        AND  tmspmcetak.c_wil_sp2dproses is null
+        AND tmspmcetak.D_SPM_MOHONSKPD is null
+        AND tmspmcetak.D_SPM_TERIMAKPKD is null
+        
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.I_IDSPP,
+        tmspm.i_spmno,
+        tmspm.C_NIHIL,
+        tmsppcetak.N_PK AS pptk,
+        tmsppcetak.I_NIP_PK as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        'PENGAJUAN' AS status,
+        tmspprincibtlbantuan.v_spp
+        FROM   tmspm,
+        tmspprincibtlbantuan,
+        tmspp,
+        tmsppcetak,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibtlbantuan.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.I_IDSPP,
+        tmspm.i_spmno,
+        tmspm.C_NIHIL,
+        tmdpa.N_PKBLJ AS pptk,
+        tmdpa.I_NIP_PKBLJ as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        'CETAK' AS status,
+        tmspprincibiaya.v_spp
+        FROM   tmspm,
+        tmspprincibiaya,
+        tmspmcetak,
+        tmspp,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibiaya.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        AND tmspmcetak.N_PEG_PEMBERISKPD is null
+        and tmspmcetak.N_PEG_TERIMAKPKD is null
+        AND  tmspmcetak.c_wil_sp2dproses is null
+        AND tmspmcetak.D_SPM_MOHONSKPD is null
+        AND tmspmcetak.D_SPM_TERIMAKPKD is null
+        
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.I_IDSPP,
+        tmspm.i_spmno,
+        tmspm.C_NIHIL,
+        tmsppcetak.N_PK AS pptk,
+        tmsppcetak.I_NIP_PK as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        'PENGAJUAN' AS status,
+        tmspprincibiaya.v_spp
+        FROM   tmspm,
+        tmspprincibiaya,
+        tmspp,
+        tmsppcetak,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibiaya.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        
+        UNION ALL
+        
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.I_IDSPP,
+        tmspm.i_spmno,
+        tmspm.C_NIHIL,
+        tmdpa.N_PKBLJ AS pptk,
+        tmdpa.I_NIP_PKBLJ as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        'CETAK' AS status,
+        tmspprincipnrm.v_spp
+        FROM   tmspm,
+        tmspprincipnrm,
+        tmspmcetak,
+        tmspp,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincipnrm.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        AND tmspmcetak.N_PEG_PEMBERISKPD is null
+        and tmspmcetak.N_PEG_TERIMAKPKD is null
+        AND  tmspmcetak.c_wil_sp2dproses is null
+        AND tmspmcetak.D_SPM_MOHONSKPD is null
+        AND tmspmcetak.D_SPM_TERIMAKPKD is null
+        
+        UNION ALL
+        SELECT   tmspm.i_id,
+        tmspm.i_idskpd,
+        tmspm.I_IDSPP,
+        tmspm.i_spmno,
+        tmspm.C_NIHIL,
+        tmsppcetak.N_PK AS pptk,
+        tmsppcetak.I_NIP_PK as NPPTK,
+        TMDPA.I_NIP_PA as ni_pa,
+        TMDPA.I_NRK_PA as nk_pa ,
+        TMDPA.N_PA as n_pa,
+        tmspp.c_beban,
+        tmspm.c_angg_tahun,
+        tmspp.c_jenis,
+        tmspp.c_uangmuka,
+        'PENGAJUAN' AS status,
+        tmspprincipnrm.v_spp
+        FROM   tmspm,
+        tmspprincipnrm,
+        tmspp,
+        tmsppcetak,
+        tmdpa
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincipnrm.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        and tmdpa.I_IDSKPD = tmspm.I_IDSKPD
+        AND tmdpa.C_ANGG_TAHUN = tmspm.C_ANGG_TAHUN
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        ) Z
+        GROUP BY   i_id,
+        i_idskpd,
+        i_idspp,
+        i_spmno,
+        PPTK,
+        NPPTK,
+        n_pa,ni_pa,nk_pa,c_nihil,
+        c_beban,
+        C_JENIS,
+        c_uangmuka,
+        STATUS,
+        C_ANGG_TAHUN 
+        order by i_spmno) a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset} 
+    </select>
+    <select id="getbanyakspmcetak" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        
+        SELECT   COUNT ( distinct i_id) AS banyak
+                    
+        FROM   (SELECT   tmspm.i_id
+                               
+        FROM   tmspm,
+        tmspprincibl,
+        tmspmcetak,
+        tmspp
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibl.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id
+                              
+        FROM   tmspm,
+        tmspprincibl,
+        tmspp,
+        tmsppcetak
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibl.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        UNION ALL
+        SELECT   tmspm.i_id
+                              
+        FROM   tmspm,
+        tmspprincibtl,
+        tmspmcetak,
+        tmspp
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibtl.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id
+                               
+        FROM   tmspm,
+        tmspprincibtl,
+        tmspp,
+        tmsppcetak
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibtl.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        UNION ALL
+        SELECT   tmspm.i_id
+                              
+        FROM   tmspm,
+        tmspprincibtlbantuan,
+        tmspmcetak,
+        tmspp
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibtlbantuan.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id
+        FROM   tmspm,
+        tmspprincibtlbantuan,
+        tmspp,
+        tmsppcetak
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibtlbantuan.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        UNION ALL
+        SELECT   tmspm.i_id
+        FROM   tmspm,
+        tmspprincibiaya,
+        tmspmcetak,
+        tmspp
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspm.i_idspp = tmspprincibiaya.i_idspp
+        AND tmspm.i_id = tmspmcetak.i_id
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmsp2d
+        WHERE   tmspm.i_id = tmsp2d.i_idspm)
+        UNION ALL
+        SELECT   tmspm.i_id
+        FROM   tmspm,
+        tmspprincibiaya,
+        tmspp,
+        tmsppcetak
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincibiaya.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        
+        UNION ALL 
+        
+        SELECT   tmspm.i_id
+        FROM   tmspm,
+        tmspprincipnrm,
+        tmspp,
+        tmsppcetak
+        WHERE       tmspp.i_id = tmspm.i_idspp
+        AND tmspp.i_id = tmsppcetak.i_id
+        AND tmspm.i_idspp = tmspprincipnrm.i_idspp
+        AND tmspm.c_angg_tahun =  #{tahun}
+        AND tmspm.i_idskpd =  #{idskpd}
+        AND NOT EXISTS
+        (SELECT   1
+        FROM   tmspmcetak
+        WHERE   tmspm.i_id = tmspmcetak.i_id)
+        
+        )
+          
+
+    </select> 
+    
+    <select id="getnilaiparam"   parameterType="java.util.Map" resultType="java.util.Map">
+        select N_DAERAH_JUDUL,N_DAERAH,I_PERDA_NO,C_PERDA_TAHUN,C_PERDA_TGL,N_KOTA,E_PERATURAN_SPD1,
+        E_PERATURAN_SPD2,E_PERATURAN_SPD3,E_PERATURAN_SPD4,E_PERATURAN_SPD5
+        from   TRDOKREFF 
+    </select>
+    
+    <select id="getidkegkon"   parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT distinct NVL (a.i_idkegiatan, -1) as idkegiatan , NVL (a.i_idkontrak, -1) as idkontrak,
+        a.c_uangmuka as uangMuka
+        FROM tmbast a
+        WHERE a.c_angg_tahun = #{tahun}
+        AND a.i_idskpd = #{idskpd}
+        <if test="uangmuka == 1 ">
+            AND EXISTS (
+            select 1 from tmspp where c_angg_tahun = #{tahun}
+            AND i_idskpd = #{idskpd} 
+            and i_id = #{idspp}
+            and i_bastno = a.i_bastno
+            )
+        </if>
+        
+        <if test="uangmuka != 1 ">
+            AND EXISTS (
+            SELECT *
+            FROM (SELECT b.i_idkegiatan, b.i_idkontrak
+            FROM tmbast b, tmspp, tmspprincibl, tmspm
+            WHERE b.i_bastno = tmspp.i_bastno
+            AND tmspp.i_id = tmspm.i_idspp
+            and tmspp.i_id = tmspprincibl.i_idspp
+            AND b.i_idkegiatan = tmspprincibl.i_idkegiatan
+            AND tmspp.c_jenis = '3'
+            AND tmspp.c_beban = 'LS'
+            AND tmspp.c_uangmuka = '0'
+            AND tmspp.c_angg_tahun = #{tahun}
+            AND tmspp.i_idskpd = #{idskpd}
+            AND tmspm.i_idspp = #{idspp}) xx
+            WHERE a.i_idkegiatan = xx.i_idkegiatan
+            AND a.i_idkontrak = xx.i_idkontrak) 
+        </if>
+        
+    </select>
+    
+    <select id="getnilai"   parameterType="java.util.Map" resultType="java.util.Map">
+        
+        SELECT SUM (v_kontr) v_kontr, SUM (v_spp) v_spp, SUM (v_pot_spm) AS v_pot_spm,
+        SUM (v_kontr - v_spp + v_pot_spm) AS selisih 
+        FROM (SELECT tmkontrak.v_kontr v_kontr, 0 AS v_spp, 0 AS v_pot_spm
+        FROM tmkontrak
+        WHERE i_id = #{idkontrak}
+        AND i_idkegiatan = #{idkegiatan}
+        AND tmkontrak.c_angg_tahun = #{tahun}
+        AND tmkontrak.i_idskpd = #{idskpd}
+       
+        UNION ALL
+        SELECT 0 nilai_kontrak, NVL (tmspprincibl.v_spp, 0) AS nilai_spp,  0 AS v_pot_spm
+        FROM tmbast b INNER JOIN tmspp
+        ON b.i_bastno = tmspp.i_bastno
+        AND tmspp.c_jenis = '3'
+        AND b.i_idkegiatan = #{idkegiatan} 
+        AND b.i_idkontrak = #{idkontrak} 
+        AND tmspp.c_beban = 'LS'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd} 
+        and b.c_angg_tahun = #{tahun}
+        and b.i_idskpd = #{idskpd}
+        INNER JOIN tmspprincibl
+        ON b.i_idkegiatan = tmspprincibl.i_idkegiatan
+        and tmspp.i_id = tmspprincibl.i_idspp
+        and b.i_idbas = tmspprincibl.i_idbas
+        and b.i_idspd = tmspprincibl.i_idspd
+       
+        UNION ALL
+        select 0 nilai_kontrak, 0 AS nilai_spp,  NVL(v_pot_spm,0) AS v_pot_spm
+        from tmspmpot where i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun}
+        and c_pot_spm = 31
+        and exists (select tmspm.i_id from tmspm , tmspp, tmbast b 
+        where b.i_bastno = tmspp.i_bastno
+        AND tmspp.c_jenis = '3'
+        AND b.i_idkegiatan = #{idkegiatan} 
+        AND b.i_idkontrak = #{idkontrak}
+        AND b.c_angg_tahun = #{tahun}
+        and b.i_idskpd = #{idskpd} 
+        AND tmspp.c_beban = 'LS'
+        AND tmspp.c_angg_tahun = #{tahun}
+        AND tmspp.i_idskpd = #{idskpd} 
+        and tmspm.i_idspp = tmspp.i_id
+        and tmspmpot.i_idspm = tmspm.I_id 
+        )
+        )
+        
+    </select>
+    
+    
+    <select id="getPathFile"  parameterType="java.util.Map" resultType="spp.model.SppUp" >  
+    
+        SELECT 
+        tmspp.c_jenis as kodeJenis,
+        tmspp.c_beban as kodeBeban, 
+        tmspm.c_nihil as kodeNihil,  
+        trskpd.c_skpd_level as levelSkpd,       
+        A_SPPFILE_PDF AS alamatPdfOutput
+        FROM TMSPMCETAK, tmspp, trskpd,tmspm
+        WHERE TMSPMCETAK.C_STATUS_CETAK = 1 AND tmspm.i_spmno = #{nospm}  and TMSPM.c_angg_tahun = #{tahun}
+        and TMSPMCETAK.i_id = tmspm.i_id
+        and Trskpd.i_id = tmspm.i_idskpd
+        and tmspp.i_id = tmspm.i_idspp
+    </select>
+    
+    <select id="getSisaUmk"   parameterType="java.util.Map" resultType="java.util.Map">
+        select sum(v_kontrak-v_spp+v_pot) as NILAI_SISA ,
+        sum(v_kontrak) as NILAI_KONTRAK,
+        sum(v_spp-v_pot) as NILAI_REALISASI
+        from (
+        select V_KONTR as v_kontrak, 0 as v_spp, 0 as v_pot
+        from tmkontrak where c_angg_tahun = #{tahun} and i_idskpd =  #{idskpd} 
+        and i_id = (select i_idkontrak from tmspp where i_id = #{idspp})
+
+        union all
+        select 0 as v_kontrak, sum(V_SPP) as v_spp ,  0 as v_pot
+        from tmspp, tmspprincibl
+        where tmspp.i_id = tmspprincibl.i_idspp
+        and c_angg_tahun = #{tahun} 
+        and i_idskpd =  #{idskpd}
+        and i_idkontrak = (select i_idkontrak from tmspp A where A.i_id = #{idspp})
+
+        union all
+        select  0 as v_kontrak, 0 as v_spp, sum(V_POT_SPM) as v_pot
+        from tmspmpot where exists(select 1 from tmspm, tmspp where  tmspm.i_idspp= tmspp.i_id
+        and tmspm.i_id = tmspmpot.i_idspm
+        and tmspp.c_angg_tahun = #{tahun} 
+        and tmspp.i_idskpd =  #{idskpd} 
+        and  i_idkontrak = (select i_idkontrak from tmspp A where A.i_id = #{idspp}))
+        and c_pot_spm = 31
+        )
+    </select>
+    
+    <select id="getKodeUmk"   parameterType="java.util.Map" resultType="java.util.Map">
+        select nvl(sum(c_uangmuka),0) as  KODE_UMK 
+        from tmspp where c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        and i_idkontrak = (select i_idkontrak from tmspp A where A.i_id = #{idspp})
+    </select>
+    
+    <select id="getKodeSumbDana"   parameterType="java.util.Map" resultType="java.util.Map">
+        select C_ANGG_SUMBDANA as KODE_SUMBDANA, I_ID as IDKEGIATAN
+        from tmdpakegiatan where c_angg_tahun = #{tahun} and i_idskpd = #{idskpd} 
+        and i_id = (select distinct i_idkegiatan from tmspprincibl, tmspp 
+        where tmspprincibl.i_idspp =  tmspp.i_id
+        and c_angg_tahun = #{tahun}
+        and i_idskpd =  #{idskpd}
+        and i_idspp = #{idspp})
+    </select>
+    
+    <select id="getNilaiBlud"   parameterType="java.util.Map" resultType="java.util.Map">
+        select sum(v_spp) AS V_SPP ,  sum(v_pot) AS V_POT from (
+        
+        <!-- UNTUK CEK
+        select nvl((v_spp),0) as v_spp , 0 as v_pot
+        from tmspprincibl, tmspp
+        where tmspprincibl.i_idspp =  tmspp.i_id
+        and c_angg_tahun = #{tahun}
+        and i_idskpd =  #{idskpd}
+        and i_idbas in ( 11652, 11653, 11654)
+        union all
+        select  tmspm.c_angg_tahun , tmspm.i_idskpd, 0 as v_spp, nvl((V_POT_SPM),0) as v_pot
+        from tmspmpot , tmspm where  
+         tmspm.i_id = tmspmpot.i_idspm
+        and tmspm.c_angg_tahun = #{tahun}
+        and tmspm.i_idskpd =  #{idskpd}
+        and c_pot_spm = 37
+        -->
+        
+        select nvl(sum(v_spp),0) as v_spp , 0 as v_pot
+        from tmspprincibl, tmspp 
+        where tmspprincibl.i_idspp =  tmspp.i_id
+        and c_angg_tahun = #{tahun}
+        and i_idskpd =  #{idskpd}
+        and exists (select 1 from tmspprincibl R where i_idspp = #{idspp} and R.i_idkegiatan = tmspprincibl.i_idkegiatan)
+        union all
+        select  0 as v_spp, nvl(sum(V_POT_SPM),0) as v_pot
+        from tmspmpot where exists(select 1 from tmspm, tmspp, tmspprincibl where  tmspm.i_idspp= tmspp.i_id
+        and  tmspp.i_id = tmspprincibl.i_idspp
+        and tmspm.i_id = tmspmpot.i_idspm
+        and tmspp.c_angg_tahun = #{tahun} 
+        and tmspp.i_idskpd =  #{idskpd}
+        and exists (select 1 from tmspprincibl R where i_idspp = #{idspp} and R.i_idkegiatan = tmspprincibl.i_idkegiatan))
+        and c_pot_spm = 37
+       
+        )
+    </select>
+    
+    <select id="getKodeMultiyear"   parameterType="java.util.Map" resultType="java.util.Map">
+        select c_uangmuka, c_uangmuka_pot
+        from tmdpakegiatan where c_angg_tahun = #{tahun}
+        AND i_idskpd = #{idskpd}
+        <!-- and i_id = (select distinct i_idkegiatan from tmspprincibl where i_idspp = #{idspp}) edit 4 des 17 oleh zainab-->
+        and exists (select 1 from tmspprincibl where i_idspp = #{idspp} and i_idkegiatan = tmdpakegiatan.i_id)
+        
+    </select>
+    
+    <select id="getNilaiPotonganBtl"   parameterType="java.util.Map" resultType="java.util.Map">
+        select nvl(sum(POT_SIMPEG),0) as POT_SIMPEG, nvl(sum(POT_SPM),0) as POT_SPM
+        from (
+        select v_peg_jumpot as POT_SIMPEG, 0 as POT_SPM
+        from tmpegrekaplist
+        where i_idspp = #{idspp}
+        and i_idspm = #{idspm}
+        and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+
+        union all
+        select 0 as POT_SIMPEG, v_pot_spm as POT_SPM
+        from tmspmpot
+        where i_idspm = #{idspm}
+        and i_idskpd = #{idskpd}
+        and c_angg_tahun = #{tahun}
+        )
+    </select>
+    
+    <select id="getUmkSah"   parameterType="java.util.Map" resultType="java.util.Map">
+        select nvl(sum(i_id),0) as validasi_umk
+        from tmsp2d where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_pgun_sah is not null
+        and d_pgun_sah is not null
+        and exists (select 1 from tmspp where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and i_id = tmsp2d.i_idspp
+        and c_uangmuka = 1 
+        and i_idkontrak = #{idkontrak})
+        
+    </select>
+    
+</mapper>

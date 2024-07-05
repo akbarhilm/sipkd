@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spm.entity.SpmPotUangmukaMapper">
+
+                
+    <select id="getBanyakPot" parameterType="java.util.Map" resultType="spp.model.SpmPotUangmuka">
+            
+        SELECT COUNT(DISTINCT I_IDPOTSPM) as BANYAK
+        FROM (
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE C_POT ='3'
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{nospm}
+        UNION ALL
+        SELECT I_ID, C_POT_SPM,  TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , 0 AS NILAI_POTONGAN
+        FROM TRPOTSPM 
+        WHERE C_POT ='3'
+        ) XXXXX
+                        
+    </select>
+
+    <select id="getAllPot" parameterType="java.util.Map"  resultType="spp.model.SpmPotUangmuka">
+            
+        SELECT I_IDPOTSPM as idPot , C_POT_SPM cPot,   POTONGAN as Pot, SUM(NILAI_POTONGAN) AS NilaiPot, 
+        SUM(status) as Status, decode(SUM(IDPOTONGAN),0,'add','edit')  as kodeEdit , SUM(IDPOTONGAN) AS idTmPotongan
+        FROM (
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN, 
+        2 as status, TMSPMPOT.I_ID AS IDPOTONGAN
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE C_POT ='3'
+        and TRPOTSPM.c_pot_spm &lt;&gt; 37
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{nospm}  
+        AND  TMSPMPOT.C_ANGG_TAHUN = #{tahun} 
+        AND  TMSPMPOT.I_IDSKPD = #{idskpd} 
+        
+        UNION ALL
+        SELECT I_ID, C_POT_SPM,  TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , 0 AS NILAI_POTONGAN, 
+        1 as status,  0 AS IDPOTONGAN
+        FROM TRPOTSPM 
+        WHERE C_POT ='3'
+        and c_pot_spm &lt;&gt; 37
+        ) XXXXX
+        GROUP BY  I_IDPOTSPM , C_POT_SPM,  POTONGAN
+        ORDER BY  I_IDPOTSPM ASC
+        
+    </select>
+    <insert id="addPot" parameterType="spp.model.SpmPotUangmuka"   >
+        INSERT INTO TMSPMPOT (
+        I_ID, 
+        C_ANGG_TAHUN,
+        I_IDSKPD,
+        I_IDSPM,
+        C_POT_SPM,
+        V_POT_SPM,
+        <if test="cPot == 31 or cPot == 33 or cPot == 34">
+            I_IDBAS,
+        </if>
+        I_PGUN_REKAM
+        ) VALUES (
+        SEQ_TMSPMPOT.NEXTVAL,
+        #{tahun},
+        #{idSkpd},
+        #{idSpm},
+        #{cPot},
+        round(#{NilaiPot},0),
+        <if test="cPot == 31 or cPot == 33 or cPot == 34">
+            #{idBas},
+        </if>
+        #{idEntry}
+        )
+    </insert>
+    
+    <update id="updatePot" parameterType="spp.model.SpmPotUangmuka"  >
+        UPDATE  TMSPMPOT SET
+        V_POT_SPM = round(#{NilaiPot},0)
+        <if test="cPot == 33 or cPot == 34">
+            ,I_IDBAS = #{idBas}
+        </if>
+        , I_PGUN_UBAH = #{idEdit}
+        , D_PGUN_UBAH = sysdate
+        WHERE  I_IDSKPD = #{idSkpd}
+        AND I_IDSPM = #{idSpm}
+        AND C_POT_SPM = #{cPot}
+        AND C_ANGG_TAHUN = #{tahun}
+        
+    </update>
+   
+    <select id="getDataSpp" parameterType="java.lang.Integer"  resultType="java.util.Map">
+        select I_ID, I_IDKONTRAK from tmspp where i_id = (select i_idspp from tmspm where i_id = #{value})
+    </select>
+    
+    <select id="getListPotUmk" parameterType="java.util.Map"  resultType="spp.model.SpmPotUangmuka">
+       
+        select i_idbas as idBas, c_akun as kodeAkun, n_akun as namaAkun,
+        sum(pagu_umk) as paguUmk ,sum(v_umk) as nilaiUmk, 
+        sum(v_sebelum)  as nilaiSebelum , sum(v_entry) as nilaiPotongan,
+        case when #{kodeumk} = '1' then
+        sum (nvl((v_umk-v_sebelum),0)) 
+        else
+        sum (nvl((v_saldoumk-v_sebelum),0))   
+        end   AS sisaPotongan
+        <!--sum (nvl((v_umk-v_sebelum),0)) as sisaPotongan -->
+        FROM (SELECT ROWNUM AS rn, a.* 
+        from(
+        select i_idbas, 0 as pagu_umk, nvl(v_spp,0) as v_umk, 0 as v_sebelum, 0 as v_entry, 0 as v_saldoumk
+        from tmspp, tmspprincibl
+        where  tmspp.i_id =  tmspprincibl.i_idspp
+        and c_uangmuka = 1
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun} 
+        and i_idkontrak = #{idkontrak}
+
+        union all
+        select  tmdpabl.i_idbas, nvl(v_uangmuka_saldo,0) as pagu_umk,0 as v_umk, 0 as v_sebelum, 0 as v_entry, 0 as v_saldoumk 
+        from tmdpabl 
+        where  exists ( select 1 from tmspp, tmspprincibl
+        where  tmspp.i_id =  tmspprincibl.i_idspp
+        and tmdpabl.i_idbas =  tmspprincibl.i_idbas
+        and tmdpabl.i_idkegiatan =  tmspprincibl.i_idkegiatan
+        and tmspp.i_idskpd = #{idskpd} 
+        and tmspp.c_angg_tahun = #{tahun} 
+        and i_idkontrak = #{idkontrak}
+        )
+        and tmdpabl.i_idskpd = #{idskpd} 
+        and tmdpabl.c_angg_tahun = #{tahun} 
+        <!--
+        select distinct tmdpabl.i_idbas, nvl(v_uangmuka_saldo,0) as pagu_umk,0 as v_umk, 0 as v_sebelum, 0 as v_entry 
+        from tmdpabl,tmspp, tmspprincibl
+        where  tmspp.i_id =  tmspprincibl.i_idspp
+        and tmdpabl.i_idbas =  tmspprincibl.i_idbas
+        and tmdpabl.i_idkegiatan =  tmspprincibl.i_idkegiatan
+        and tmdpabl.i_idskpd = #{idskpd} 
+        and tmdpabl.c_angg_tahun = #{tahun} 
+        and i_idkontrak = #{idkontrak}
+        -->
+
+        union all
+        select i_idbas, 0 as pagu_umk,0 as v_umk, nvl(v_pot_spm,0) as v_sebelum, 0 as v_entry, 0 as v_saldoumk 
+        from tmspmpot, tmspp, tmspm where  C_POT_SPM = 31
+        and tmspp.i_id =  tmspm.i_idspp
+        and tmspm.i_id = tmspmpot.i_idspm
+        and tmspmpot.i_idskpd = #{idskpd} 
+        and tmspmpot.c_angg_tahun = #{tahun} 
+        and i_idspm !=  #{idspm}
+        and i_idkontrak = #{idkontrak}
+        <!--
+        select i_idbas, 0 as pagu_umk,0 as v_umk, nvl(v_pot_spm,0) as v_sebelum, 0 as v_entry 
+        from tmspmpot where  C_POT_SPM = 31
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun} 
+        and i_idspm !=  #{idspm}
+        -->
+        union all
+        select i_idbas, 0 as pagu_umk,0 as v_umk, 0 as v_sebelum, nvl(v_pot_spm,0) as v_entry, 0 as v_saldoumk 
+        from tmspmpot where  C_POT_SPM = 31
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun} 
+        and i_idspm =  #{idspm}
+        
+        union all <!-- DITAMBAHKAN 14 SEPT 2017 BY ZAINAB, UNTUK POT UMK MULTIYEAR-->
+        select i_idbas, 0 as pagu_umk,0 as v_umk, 0 as v_sebelum, 0 as v_entry, nvl(v_uangmuka_saldo,0) as v_saldoumk 
+        from tmkontrakrinci 
+        where  i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun} 
+        and i_idkontrak =  #{idkontrak} 
+
+        )a) aaa, trbas 
+        where aaa.i_idbas = trbas.i_id 
+        and ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+        group by i_idbas,  c_akun , n_akun
+        
+    </select>
+
+    <select id="getBanyakPotUmk" parameterType="java.util.Map"  resultType="java.lang.Integer"> 
+        SELECT COUNT (*) as banyak FROM (
+        select i_idbas as idBas, c_akun as kodeAkun, n_akun as namaAkun,
+        sum(pagu_umk) as paguUmk ,sum(v_umk) as nilaiUmk, 
+        sum(v_sebelum)  as nilaiSebelum , sum(v_entry) as nilaiPotongan ,
+        sum (nvl((v_umk-v_sebelum),0)) as sisaPotongan
+        FROM (SELECT ROWNUM AS rn, a.* 
+        from(
+        select i_idbas, 0 as pagu_umk, nvl(v_spp,0) as v_umk, 0 as v_sebelum, 0 as v_entry
+        from tmspp, tmspprincibl
+        where  tmspp.i_id =  tmspprincibl.i_idspp
+        and c_uangmuka = 1
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun} 
+        and i_idkontrak = #{idkontrak}
+
+        union all
+        select tmdpabl.i_idbas, nvl(v_uangmuka_saldo,0) as pagu_umk,0 as v_umk, 0 as v_sebelum, 0 as v_entry 
+        from tmdpabl,tmspp, tmspprincibl
+        where  tmspp.i_id =  tmspprincibl.i_idspp
+        and tmdpabl.i_idbas =  tmspprincibl.i_idbas
+        and tmdpabl.i_idkegiatan =  tmspprincibl.i_idkegiatan
+        and tmdpabl.i_idskpd = #{idskpd} 
+        and tmdpabl.c_angg_tahun = #{tahun} 
+        and i_idkontrak = #{idkontrak}
+
+        union all
+        select i_idbas, 0 as pagu_umk,0 as v_umk, nvl(v_pot_spm,0) as v_sebelum, 0 as v_entry 
+        from tmspmpot, tmspp, tmspm where  C_POT_SPM = 31
+        and tmspp.i_id =  tmspm.i_idspp
+        and tmspm.i_id = tmspmpot.i_idspm
+        and tmspmpot.i_idskpd = #{idskpd} 
+        and tmspmpot.c_angg_tahun = #{tahun} 
+        and i_idspm !=  #{idspm}
+        and i_idkontrak = #{idkontrak}
+
+        union all
+        select i_idbas, 0 as pagu_umk,0 as v_umk, 0 as v_sebelum, nvl(v_pot_spm,0) as v_entry 
+        from tmspmpot where  C_POT_SPM = 31
+        and i_idskpd = #{idskpd} 
+        and c_angg_tahun = #{tahun} 
+        and i_idspm =  #{idspm}
+
+        )a) aaa, trbas 
+        where aaa.i_idbas = trbas.i_id 
+        group by i_idbas,  c_akun , n_akun
+        )
+    </select>
+    
+    <delete id="deletePotUmk" parameterType="java.util.Map"  >
+        DELETE TMSPMPOT 
+        WHERE 
+        I_IDSKPD = #{idskpd}
+        AND C_ANGG_TAHUN = #{tahun}
+        AND I_IDSPM = #{idspm}
+        AND C_POT_SPM = 31
+        
+    </delete>
+    
+    <select id="getKodeUmk" parameterType="java.util.Map"  resultType="spp.model.SpmPotUangmuka">
+        select C_UANGMUKA as kodeUmk
+        from tmdpakegiatan
+        where c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd} 
+        and C_UANGMUKA_POT = 1
+        and i_id = (select i_idkegiatan from tmkontrak where i_id = #{idkontrak})
+       
+    </select> 
+    
+    <select id="getAkunDenda" parameterType="java.util.Map"  resultType="spp.model.SpmPotUangmuka">
+        select i_idbas as idBas, c_akun||'/'||n_akun as namaAkun
+        from tmspm, tmspprincibl, trbas
+        where tmspm.i_idspp = tmspprincibl.i_idspp
+        and tmspprincibl.i_idbas = trbas.i_id
+        and c_angg_tahun = #{tahun}
+        and i_idskpd = #{idskpd}
+        and tmspm.i_id = #{idspm}
+    
+    </select> 
+    
+</mapper>

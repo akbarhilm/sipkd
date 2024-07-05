@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spm.entity.SpmBtlBantuanMapper">
+
+    <select id="getAllSpmBtlBantuan" parameterType="java.util.Map"  resultType="spp.model.SpmBtlBantuan">         
+        select 
+        idspm as idspm,
+        noSpm as noSpm,
+        idspp as id,
+        noSpp as noSpp,
+        kodeSkpdKoor AS kodeSkpdKoor,
+        "skpd.namaSkpd" AS namaSkpdKoor, 
+        N_KEGIATAN AS namaKegiatan ,  
+        nilaiSpp AS nilaiSpp
+        from ( SELECT rownum rn, a.* FROM(
+        SELECT   aaa.I_ID AS idspm,
+        D_SPMNO AS tglSpm,
+        I_SPMNO AS noSpm,
+        aaa.C_ANGG_TAHUN AS tahun,
+        I_IDSPP AS idspp,
+        I_SPPNO AS noSpp,
+        C_JENIS AS kodeJenis,
+        C_BEBAN AS kodeBeban,
+        aaa.I_IDSKPDkoord AS skpdKoord, 
+        C_SKPD as kodeSkpdKoor,
+        N_SKPD AS "skpd.namaSkpd",
+        I_IDBTLBANTUAN as idbantuan,
+        TMDPABTLBANTUAN.N_KEGIATAN || ' ' || TMDPABTLBANTUAN.A_KEGIATAN as N_KEGIATAN,                  
+        N_PPTK AS namaPptk,
+        I_PPTK_NIP AS nipPptk,
+        C_BULAN AS bulan,
+        KET AS keterangan,
+        V_SPP AS nilaiSpp
+        FROM   (   
+        SELECT  TMSPM.I_ID,
+        TMSPP.I_ID AS I_IDSPP,
+        TMSPP.C_ANGG_TAHUN,
+        TMSPP.I_SPPNO,
+        TMSPP.D_SPPNO,
+        TMSPM.I_SPMNO,
+        TMSPM.D_SPMNO,
+        TMSPP.C_JENIS,
+        TMSPP.C_BEBAN,
+        TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD as i_IDSKPDKOORD,
+        TMSPPRINCIBTLBANTUAN.I_IDBTLBANTUAN as I_IDBTLBANTUAN,
+        TMSPP.C_BULAN,
+        TMSPM.E_SPM AS KET,
+        TRSKPD.C_SKPD,
+        TRSKPD.N_SKPD,
+        TMSPM.C_POTAYAT ,
+        TMSPP.I_PPTK_NIP,
+        TMSPP.N_PPTK,
+        SUM (TMSPPRINCIBTLBANTUAN.V_SPP) V_SPP
+        FROM  TMSPP , TMSPM, TMSPPCETAK, TMSPPRINCIBTLBANTUAN , TRSKPD 
+        WHERE TMSPM.I_IDSPP = TMSPP.I_ID                  
+        AND TMSPPRINCIBTLBANTUAN.I_IDSPP = TMSPP.I_ID
+        AND TMSPPCETAK.C_STATUS_CETAK ='1'
+        AND TMSPP.I_ID = TMSPPCETAK.I_ID
+        AND   TRSKPD.I_ID = TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD
+        AND  TMSPP.C_BEBAN = 'LS'  
+        AND  TMSPP.C_JENIS = '2'
+        AND NOT EXISTS (SELECT 1 FROM TMSPMCETAK WHERE   TMSPMCETAK.I_ID = TMSPM.I_ID ) 
+        AND TMSPM.I_IDSKPD =  #{idskpd}
+        AND TMSPM.C_ANGG_TAHUN = #{tahun}
+        GROUP BY    TMSPM.I_ID,
+        TMSPP.I_ID ,
+        TMSPP.C_ANGG_TAHUN,
+        TMSPP.I_SPPNO,
+        TMSPP.D_SPPNO,
+        TMSPM.I_SPMNO,
+        TMSPM.D_SPMNO,
+        TMSPP.C_JENIS,
+        TMSPP.C_BEBAN,
+        TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD,
+        TMSPPRINCIBTLBANTUAN.I_IDBTLBANTUAN,
+        TMSPP.C_BULAN,
+        TMSPM.E_SPM,
+        TRSKPD.C_SKPD,
+        TRSKPD.N_SKPD,
+        TMSPM.C_POTAYAT ,
+        TMSPP.I_PPTK_NIP,
+        TMSPP.N_PPTK,
+        TMSPP.I_IDSKPD                       
+        union all 
+        SELECT  
+        NULL AS I_ID,
+        TMSPP.I_ID AS I_IDSPP,
+        TMSPP.C_ANGG_TAHUN,
+        TMSPP.I_SPPNO,
+        TMSPP.D_SPPNO,
+        NULL AS I_SPMNO,
+        NULL AS D_SPMNO,
+        TMSPP.C_JENIS,
+        TMSPP.C_BEBAN,
+        TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD,
+        TMSPPRINCIBTLBANTUAN.I_IDBTLBANTUAN,
+        TMSPP.C_BULAN,
+        NULL AS KET,
+        TRSKPD.C_SKPD,
+        TRSKPD.N_SKPD,
+        '0' C_POTAYAT ,
+        TMSPP.I_PPTK_NIP,
+        TMSPP.N_PPTK,
+        SUM (TMSPPRINCIBTLBANTUAN.V_SPP) V_SPP
+        FROM  TMSPP ,TMSPPCETAK, TMSPPRINCIBTLBANTUAN , TRSKPD 
+        WHERE  TMSPPRINCIBTLBANTUAN.I_IDSPP = TMSPP.I_ID
+        AND TMSPPCETAK.C_STATUS_CETAK ='1'
+        AND TMSPP.I_ID = TMSPPCETAK.I_ID
+        AND   TRSKPD.I_ID = TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD
+        AND  TMSPP.C_BEBAN = 'LS'  
+        AND  TMSPP.C_JENIS = '2'
+        AND NOT EXISTS (SELECT 1 FROM TMSPM WHERE   TMSPP.I_ID = TMSPM.I_IDSPP ) 
+        AND TMSPP.I_IDSKPD =  #{idskpd}
+        AND TMSPP.C_ANGG_TAHUN = #{tahun}
+        GROUP BY   
+        TMSPP.I_ID ,
+        TMSPP.C_ANGG_TAHUN,
+        TMSPP.I_SPPNO,
+        TMSPP.D_SPPNO,
+        TMSPP.C_JENIS,
+        TMSPP.C_BEBAN,
+        TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD,
+        TMSPPRINCIBTLBANTUAN.I_IDBTLBANTUAN,
+        TMSPP.C_BULAN,
+        TRSKPD.C_SKPD,
+        TRSKPD.N_SKPD,
+        TMSPP.I_PPTK_NIP,
+        TMSPP.N_PPTK,
+        TMSPP.I_IDSKPD                 
+        ) aaa , TMDPABTLBANTUAN
+        where   aaa.I_IDBTLBANTUAN =TMDPABTLBANTUAN.i_id
+        order by  nospm, nospp
+        )a )  WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset} ORDER BY  noSpm
+    </select>
+    <select id="getBanyakSpmBtlBantuan" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (*) AS banyak FROM  (
+        select 
+        idspm as idspm,
+        noSpm as noSpm,
+        idspp as id,
+        noSpp as noSpp,
+        kodeSkpdKoor AS kodeSkpdKoor,
+        "skpd.namaSkpd" AS namaSkpdKoor, 
+        N_KEGIATAN AS namaKegiatan ,  
+        nilaiSpp AS nilaiSpp
+        from ( SELECT rownum rn, a.* FROM(
+        SELECT   aaa.I_ID AS idspm,
+        D_SPMNO AS tglSpm,
+        I_SPMNO AS noSpm,
+        aaa.C_ANGG_TAHUN AS tahun,
+        I_IDSPP AS idspp,
+        I_SPPNO AS noSpp,
+        C_JENIS AS kodeJenis,
+        C_BEBAN AS kodeBeban,
+        aaa.I_IDSKPDkoord AS skpdKoord, 
+        C_SKPD as kodeSkpdKoor,
+        N_SKPD AS "skpd.namaSkpd",
+        I_IDBTLBANTUAN as idbantuan,
+        TMDPABTLBANTUAN.N_KEGIATAN  || ' ' || TMDPABTLBANTUAN.A_KEGIATAN as N_KEGIATAN,                  
+        N_PPTK AS namaPptk,
+        I_PPTK_NIP AS nipPptk,
+        C_BULAN AS bulan,
+        KET AS keterangan,
+        V_SPP AS nilaiSpp
+        FROM   (   
+        SELECT  TMSPM.I_ID,
+        TMSPP.I_ID AS I_IDSPP,
+        TMSPP.C_ANGG_TAHUN,
+        TMSPP.I_SPPNO,
+        TMSPP.D_SPPNO,
+        TMSPM.I_SPMNO,
+        TMSPM.D_SPMNO,
+        TMSPP.C_JENIS,
+        TMSPP.C_BEBAN,
+        TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD as i_IDSKPDKOORD,
+        TMSPPRINCIBTLBANTUAN.I_IDBTLBANTUAN as I_IDBTLBANTUAN,
+        TMSPP.C_BULAN,
+        TMSPM.E_SPM AS KET,
+        TRSKPD.C_SKPD,
+        TRSKPD.N_SKPD,
+        TMSPM.C_POTAYAT ,
+        TMSPP.I_PPTK_NIP,
+        TMSPP.N_PPTK,
+        SUM (TMSPPRINCIBTLBANTUAN.V_SPP) V_SPP
+        FROM  TMSPP , TMSPM, TMSPPCETAK, TMSPPRINCIBTLBANTUAN , TRSKPD 
+        WHERE TMSPM.I_IDSPP = TMSPP.I_ID                  
+        AND TMSPPRINCIBTLBANTUAN.I_IDSPP = TMSPP.I_ID
+        AND TMSPPCETAK.C_STATUS_CETAK ='1'
+        AND TMSPP.I_ID = TMSPPCETAK.I_ID
+        AND   TRSKPD.I_ID = TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD
+        AND  TMSPP.C_BEBAN = 'LS'  
+        AND  TMSPP.C_JENIS = '2'
+        AND NOT EXISTS (SELECT 1 FROM TMSPMCETAK WHERE   TMSPMCETAK.I_ID = TMSPM.I_ID ) 
+        AND TMSPM.I_IDSKPD =  #{idskpd}
+        AND TMSPM.C_ANGG_TAHUN = #{tahun}
+        GROUP BY    TMSPM.I_ID,
+        TMSPP.I_ID ,
+        TMSPP.C_ANGG_TAHUN,
+        TMSPP.I_SPPNO,
+        TMSPP.D_SPPNO,
+        TMSPM.I_SPMNO,
+        TMSPM.D_SPMNO,
+        TMSPP.C_JENIS,
+        TMSPP.C_BEBAN,
+        TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD,
+        TMSPPRINCIBTLBANTUAN.I_IDBTLBANTUAN,
+        TMSPP.C_BULAN,
+        TMSPM.E_SPM,
+        TRSKPD.C_SKPD,
+        TRSKPD.N_SKPD,
+        TMSPM.C_POTAYAT ,
+        TMSPP.I_PPTK_NIP,
+        TMSPP.N_PPTK,
+        TMSPP.I_IDSKPD                       
+        union all 
+        SELECT  
+        NULL AS I_ID,
+        TMSPP.I_ID AS I_IDSPP,
+        TMSPP.C_ANGG_TAHUN,
+        TMSPP.I_SPPNO,
+        TMSPP.D_SPPNO,
+        NULL AS I_SPMNO,
+        NULL AS D_SPMNO,
+        TMSPP.C_JENIS,
+        TMSPP.C_BEBAN,
+        TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD,
+        TMSPPRINCIBTLBANTUAN.I_IDBTLBANTUAN,
+        TMSPP.C_BULAN,
+        NULL AS KET,
+        TRSKPD.C_SKPD,
+        TRSKPD.N_SKPD,
+        '0' C_POTAYAT ,
+        TMSPP.I_PPTK_NIP,
+        TMSPP.N_PPTK,
+        SUM (TMSPPRINCIBTLBANTUAN.V_SPP) V_SPP
+        FROM  TMSPP ,TMSPPCETAK, TMSPPRINCIBTLBANTUAN , TRSKPD 
+        WHERE  TMSPPRINCIBTLBANTUAN.I_IDSPP = TMSPP.I_ID
+        AND TMSPPCETAK.C_STATUS_CETAK ='1'
+        AND TMSPP.I_ID = TMSPPCETAK.I_ID
+        AND   TRSKPD.I_ID = TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD
+        AND  TMSPP.C_BEBAN = 'LS'  
+        AND  TMSPP.C_JENIS = '2'
+        AND NOT EXISTS (SELECT 1 FROM TMSPM WHERE   TMSPP.I_ID = TMSPM.I_IDSPP ) 
+        AND TMSPP.I_IDSKPD =  #{idskpd}
+        AND TMSPP.C_ANGG_TAHUN = #{tahun}
+        GROUP BY   
+        TMSPP.I_ID ,
+        TMSPP.C_ANGG_TAHUN,
+        TMSPP.I_SPPNO,
+        TMSPP.D_SPPNO,
+        TMSPP.C_JENIS,
+        TMSPP.C_BEBAN,
+        TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD,
+        TMSPPRINCIBTLBANTUAN.I_IDBTLBANTUAN,
+        TMSPP.C_BULAN,
+        TRSKPD.C_SKPD,
+        TRSKPD.N_SKPD,
+        TMSPP.I_PPTK_NIP,
+        TMSPP.N_PPTK,
+        TMSPP.I_IDSKPD                 
+        ) aaa , TMDPABTLBANTUAN
+        where   aaa.I_IDBTLBANTUAN =TMDPABTLBANTUAN.i_id
+        order by  nospm, nospp
+        )a )
+        ) 
+    </select> 
+    <select id="getSpmBtlBantuanById" parameterType="java.util.Map" resultType="spp.model.SpmBtlBantuan">
+        SELECT   TMSPP.I_ID AS id,
+        TMSPP.C_ANGG_TAHUN AS tahun,
+        TMSPP.I_SPPNO AS noSpp,
+        TMSPP.D_SPPNO AS tglSpp,
+        TMSPP.C_JENIS AS kodeJenis,
+        TMSPP.C_BEBAN AS kodeBeban,
+        TMSPP.N_PPTK AS namaPptk,
+        TMSPP.N_PPTK AS namaBendahara,
+        TMSPP.I_PPTK_NIP AS nipPptk,
+        TMSPP.I_PPTK_NIP AS nipBendahara,
+        TMSPP.C_BULAN || '/' || TMSPP.C_ANGG_TAHUN AS bulan,
+        TMSPP.E_SPP AS keterangan,
+        TMDPABTLBANTUAN.C_KEGIATAN as kodeKegiatan,
+        TMDPABTLBANTUAN.N_KEGIATAN || ' ' || TMDPABTLBANTUAN.A_KEGIATAN  as namaKegiatan,
+        (SELECT C_SKPD FROM TRSKPD WHERE I_ID = (SELECT I_IDSKPDKOORD FROM TMSPPRINCIBTLBANTUAN WHERE I_IDSPP = #{idspp} ) ) as kodeSkpdKoor,
+        (SELECT N_SKPD FROM TRSKPD WHERE I_ID = (SELECT I_IDSKPDKOORD FROM TMSPPRINCIBTLBANTUAN WHERE I_IDSPP = #{idspp} ) ) as namaSkpdKoor,
+        TMSPM.I_ID as idspm,
+        TMSPM.I_SPMNO AS noSpm,
+        TMSPM.D_SPMNO AS tglSpm,
+        COALESCE( TMSPM.E_SPM, TMSPP.E_SPP) AS keteranganSpm
+        FROM    TMSPP 
+        INNER JOIN
+        TMSPPCETAK 
+        ON TMSPPCETAK.I_ID = TMSPP.I_ID
+        INNER JOIN
+        TMSPPRINCIBTLBANTUAN 
+        ON TMSPPRINCIBTLBANTUAN.I_IDSPP = TMSPP.I_ID
+        INNER JOIN
+        TMDPABTLBANTUAN 
+        ON TMDPABTLBANTUAN.I_ID = TMSPPRINCIBTLBANTUAN.I_IDBTLBANTUAN
+        INNER JOIN
+        trskpd 
+        ON trskpd.I_ID = TMSPPRINCIBTLBANTUAN.I_IDSKPDKOORD
+        LEFT JOIN
+        TMSPM 
+        ON TMSPM.I_IDSPP = TMSPP.I_ID
+        WHERE   
+        TMSPP.C_JENIS ='2'
+        AND TMSPP.C_BEBAN ='LS'
+        AND TMSPP.I_ID = #{idspp}
+        AND tmspp.c_angg_tahun = #{tahun}
+    </select>
+    
+    <insert id="updateSpmBtlBantuanMaster" parameterType="spp.model.SpmBtlBantuan"   >         
+        UPDATE TMSPM
+        SET    
+        D_SPMNO      = #{tglSpm}, 
+        E_SPM        = REPLACE ( REPLACE (REPLACE (#{keteranganSpm} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )
+        WHERE  I_ID         = #{idspm}    
+    </insert>
+    <select id="getAllSpdBtl" parameterType="java.util.Map"  resultType="spp.model.SpmBtlBantuanRinci">     
+ 
+        SELECT I_IDSPP as idspp,
+        C_AKUN as cAkun,
+        N_AKUN as nAkun,
+        V_SPP as nilaiSpp
+        FROM TMSPPRINCIBTLBANTUAN,trbas 
+        WHERE TMSPPRINCIBTLBANTUAN.I_IDBAS = trbas.I_ID 
+        AND  I_IDSPP = #{idspp}
+    </select>
+    <select id="getBanyakSpdBtl" parameterType="java.util.Map"  resultType="java.lang.Integer">     
+        
+        SELECT count( I_IDSPP )AS total    
+        FROM TMSPPRINCIBTLBANTUAN,trbas 
+        WHERE TMSPPRINCIBTLBANTUAN.I_IDBAS = trbas.I_ID 
+        AND  I_IDSPP = #{idspp}
+    </select>
+    <insert id="insertSpmBtlBantuanMaster" parameterType="spp.model.SpmBtlBantuan" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="idspm" >         
+        INSERT INTO  TMSPM (
+        I_ID, I_IDSPP, C_ANGG_TAHUN, 
+        I_SPMNO, D_SPMNO,  I_IDSKPD,  E_SPM ) 
+        VALUES ( SEQ_TMSPM.NEXTVAL,#{id},#{tahun},#{noSpm},#{tglSpm}, #{idskpd}
+        , REPLACE ( REPLACE (REPLACE (#{keteranganSpm} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )  )     
+    </insert>  
+</mapper> 

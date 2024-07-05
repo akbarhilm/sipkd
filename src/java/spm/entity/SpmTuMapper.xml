@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spm.entity.SpmTuMapper">
+    <select id="getAllSpmTu" parameterType="java.util.Map"  resultType="spp.model.SpmTu">         
+        SELECT   I_ID AS idspm,
+        I_IDSPP AS id,
+        C_ANGG_TAHUN AS tahun,
+        I_SPPNO AS noSpp,
+        D_SPPNO AS tglSpp,
+        C_JENIS AS kodeJenis,
+        C_BEBAN AS kodeBeban,
+        I_IDSKPD AS "skpd.idSkpd",
+        N_PPTK AS namaPptk,
+        I_PPTK_NIP AS nipPptk,
+        C_UANGMUKA AS kodeUangMuka,
+        C_BULAN AS bulan,
+        KET AS keterangan,
+        N_SKPD AS "skpd.namaSkpd",
+        I_SPMNO AS noSpm,
+        D_SPMNO AS tglSpm,
+        nilaiSpp
+        FROM   (SELECT   ROWNUM AS rn,
+        T.I_ID,
+        P.I_ID AS I_IDSPP,
+        P.C_ANGG_TAHUN,
+        P.I_SPPNO,
+        P.D_SPPNO,
+        T.I_SPMNO,
+        T.D_SPMNO,
+        P.C_JENIS,
+        P.C_BEBAN,
+        P.I_IDSKPD,
+        P.C_BULAN,
+        T.E_SPM AS KET,
+        S.N_SKPD,
+        T.C_UANGMUKA,
+        P.I_PPTK_NIP,
+        P.N_PPTK,
+        (SELECT   SUM (SBL.V_SPP)
+        FROM   TMSPPRINCIBL SBL
+        WHERE   SBL.I_IDSPP = p.I_ID)
+        AS nilaiSpp
+        FROM         TMSPP P   
+        INNER JOIN
+        TMSPPCETAK C
+        ON C.I_ID = P.I_ID
+        LEFT JOIN
+        TMSPM T
+        ON T.I_IDSPP = P.I_ID
+        LEFT JOIN
+        trskpd S
+        ON S.I_ID = P.I_IDSKPD
+        WHERE  P.C_BEBAN = 'TU'  AND 
+        P.I_IDSKPD =  #{idskpd}  AND 
+        P.C_ANGG_TAHUN = #{tahun} 
+        and not exists (select 1 from tmspmcetak where T.i_id = tmspmcetak.i_id)  )
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset} ORDER BY I_SPMNO
+    </select>
+    <select id="getBanyakSpmTu" parameterType="java.util.Map"  resultType="java.lang.Integer">
+        SELECT   COUNT (*) AS banyak FROM  (
+        SELECT   I_ID AS idspm,
+        I_IDSPP AS id,
+        C_ANGG_TAHUN AS tahun,
+        I_SPPNO AS noSpp,
+        D_SPPNO AS tglSpp,
+        C_JENIS AS kodeJenis,
+        C_BEBAN AS kodeBeban,
+        I_IDSKPD AS "skpd.idSkpd",
+        N_PPTK AS namaPptk,
+        I_PPTK_NIP AS nipPptk,
+        C_UANGMUKA AS kodeUangMuka,
+        C_BULAN AS bulan,
+        KET AS keterangan,
+        N_SKPD AS "skpd.namaSkpd",
+        I_SPMNO AS noSpm,
+        D_SPMNO AS tglSpm,
+        nilaiSpp
+        FROM   (SELECT   ROWNUM AS rn,
+        T.I_ID,
+        P.I_ID AS I_IDSPP,
+        P.C_ANGG_TAHUN,
+        P.I_SPPNO,
+        P.D_SPPNO,
+        T.I_SPMNO,
+        T.D_SPMNO,
+        P.C_JENIS,
+        P.C_BEBAN,
+        P.I_IDSKPD,
+        P.C_BULAN,
+        T.E_SPM AS KET,
+        S.N_SKPD,
+        T.C_UANGMUKA,
+        P.I_PPTK_NIP,
+        P.N_PPTK,
+        (SELECT   SUM (SBL.V_SPP)
+        FROM   TMSPPRINCIBL SBL
+        WHERE   SBL.I_IDSPP = p.I_ID)
+        AS nilaiSpp
+        FROM         TMSPP P   
+        INNER JOIN
+        TMSPPCETAK C
+        ON C.I_ID = P.I_ID
+        LEFT JOIN
+        TMSPM T
+        ON T.I_IDSPP = P.I_ID
+        LEFT JOIN
+        trskpd S
+        ON S.I_ID = P.I_IDSKPD
+        WHERE  P.C_BEBAN = 'TU'  AND 
+        P.I_IDSKPD =  #{idskpd}  AND 
+        P.C_ANGG_TAHUN = #{tahun} 
+        and not exists (select 1 from tmspmcetak where T.i_id = tmspmcetak.i_id)  )
+        )
+    </select>  
+    <select id="getSpmTUById" parameterType="java.lang.Integer"  resultType="spp.model.SpmTu">        
+        SELECT   T.I_ID AS id,
+        T.C_ANGG_TAHUN AS tahun,
+        T.I_SPPNO AS noSpp,
+        T.D_SPPNO AS tglSpp,
+        T.C_JENIS AS kodeJenis,
+        T.C_BEBAN AS kodeBeban,
+        T.I_IDSKPD AS "skpd.idSkpd",
+        P.N_SKPD AS "skpd.namaSkpd",
+        T.N_PPTK AS namaPptk,
+        T.N_PPTK AS namaBendahara,
+        T.I_PPTK_NIP AS nipPptk,
+        T.I_PPTK_NIP AS nipBendahara,
+        T.C_UANGMUKA AS kodeUangMuka,
+        T.C_BULAN || '/' || T.C_ANGG_TAHUN AS bulan,
+        T.E_SPP AS keterangan,
+        S.I_SPMNO AS noSpm,
+        S.D_SPMNO AS tglSpm,
+        null AS noNpwp,
+        COALESCE( S.E_SPM, T.E_SPP) AS keteranganSpm,
+        T.C_BANK_TRANSFER AS kodeBank,
+        T.N_BANK AS namaBank,
+        T.I_REK_BANK AS noRekeningSPM ,S.I_ID as idspm
+        FROM            TMSPP T
+        INNER JOIN
+        TMSPPCETAK C
+        ON C.I_ID = T.I_ID
+        LEFT JOIN
+        trskpd p
+        ON P.I_ID = T.I_IDSKPD
+        LEFT JOIN
+        TMSPM S
+        ON S.I_IDSPP = T.I_ID
+        WHERE   T.I_ID = #{value}
+    </select>
+    <select id="getAllSpdBL" parameterType="java.util.Map"  resultType="spp.model.SpmTuRinci">        
+        SELECT    c_angg_tahun as tahun,
+        i_idskpd as idSkpd,
+        I_id as idSpd,
+        i_spdno as noSpd,
+        d_spdno as tglSpd,
+        C_KEGIATAN || '/' || N_KEGIATAN AS kegiatan,
+        c_akun  || '/' || n_akun as akun,
+        V_SPp as nilaiSpp  
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (          
+        SELECT             
+        D.c_angg_tahun,
+        D.i_idskpd,
+        D.I_id,
+        D.i_spdno,
+        D.d_spdno,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        TMSPPRINCIBL.I_IDBAS,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN,
+        SUM (TMSPPRINCIBL.v_spp) AS V_SPp
+        FROM   tmspd D, TMSPDRINCIBL B, TMSPDSAH H,tmdpakegiatan, TMSPPRINCIBL, TRBAS  
+        WHERE   (D.I_id = B.I_IDSPD)
+        AND (D.I_id = H.I_ID)
+        and tmdpakegiatan.I_ID = B.I_IDKEGIATAN
+        AND TMSPPRINCIBL.I_IDSPD = B.I_IDKEGIATAN
+        AND TMSPPRINCIBL.I_IDBAS = TRBAS.I_ID 
+        AND D.c_jenis = '3'
+        AND D.C_ANGG_TAHUN = #{tahun}
+        AND  D.i_idskpd = #{idskpd}
+        and TMSPPRINCIBL.I_IDSPP =#{idspp}
+        GROUP BY D.c_angg_tahun,
+        D.i_idskpd,
+        D.I_id ,
+        D.i_spdno,
+        D.d_spdno,
+        tmdpakegiatan.C_KEGIATAN,
+        tmdpakegiatan.N_KEGIATAN,
+        TMSPPRINCIBL.I_IDBAS,
+        TRBAS.C_AKUN,
+        TRBAS.N_AKUN 
+        )a)
+        WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    <insert id="insertSpmTuMaster" parameterType="spp.model.SpmTu" useGeneratedKeys="true"  keyColumn="I_ID" keyProperty="idspm" >         
+        INSERT INTO  TMSPM (
+        I_ID, I_IDSPP, C_ANGG_TAHUN, 
+        I_SPMNO, D_SPMNO,  I_IDSKPD,  E_SPM, 
+        C_UANGMUKA) 
+        VALUES ( SEQ_TMSPM.NEXTVAL,#{id},#{tahun},#{noSpm},#{tglSpm}, #{skpd.idSkpd}
+        , REPLACE ( REPLACE (REPLACE (#{keteranganSpm} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )
+        ,#{kodeUangMuka}  )     
+    </insert>
+    <insert id="insertSpmTuRinci" parameterType="spp.model.SpmTuRinci"   >  
+        INSERT  INTO TMSPMRINCIBL (I_ID,
+        I_IDSPM, 
+        I_IDSPP,                                
+        I_IDBL,
+        I_IDKEGIATAN,
+        I_IDBAS,
+        V_SPM,
+        I_PGUN_REKAM,
+        D_PGUN_REKAM ) VALUES     
+        (   SEQ_I_SPMNO.NEXTVAL ,#{idspm},
+        #{idspp},               
+        #{idBl},
+        #{kegiatan.idKegiatan},
+        #{akun.idAkun},
+        #{nilaiSpp},
+        #{idEntry},
+        #{tglEntry})
+    </insert>
+    <insert id="updateSpmTuMaster" parameterType="spp.model.SpmTu"   >         
+        UPDATE TMSPM
+        SET    
+        D_SPMNO      = #{tglSpm}, 
+        E_SPM        = REPLACE ( REPLACE (REPLACE (#{keteranganSpm} , CHR(13), ' '), CHR(10), ' '), CHR(9), ' ' )
+        WHERE  I_ID         = #{idspm}    
+    </insert>
+</mapper>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spm.entity.SpmPotNihilMapper">
+
+                
+    <select id="getBanyakPot" parameterType="java.util.Map" resultType="spp.model.SpmPotNihil">
+            
+        SELECT COUNT(DISTINCT I_IDPOTSPM) as BANYAK
+        FROM (
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE C_POT ='3'
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{nospm}
+        UNION ALL
+        SELECT I_ID, C_POT_SPM,  TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , 0 AS NILAI_POTONGAN
+        FROM TRPOTSPM 
+        WHERE C_POT ='3'
+        ) XXXXX
+                        
+    </select>
+    
+    <select id="getAkunPendapatan" parameterType="java.util.Map" resultType="spp.model.SpmPotNihil">
+        select i_idskpd as idSkpd, i_idbas as idBas, (c_akun || ' / ' ||n_akun) as namaAkun,sum(nilaiPot) as nilaiPot, decode(nilaiPot,0,'add','edit') as kodeEdit, idTmPotongan from(
+        SELECT I_IDSKPD , i_IDBAS , C_AKUN, N_AKUN, 0 as nilaiPot, 0 as idTmPotongan FROM TRSKPDBASNIHIL , TRBAS , TRSKPD 
+        WHERE TRSKPDBASNIHIL.i_IDBAS = TRBAS.i_iD 
+        AND TRSKPDBASNIHIL.I_IDSKPD =TRSKPD.I_ID  
+        AND I_IDSKPD = #{idskpd}
+        AND C_BLUD='1'
+        AND TRBAS.C_AKTIF ='1'
+        AND #{tahun} BETWEEN TRBAS.C_TAHUN_BERLAKU AND TRBAS.C_TAHUN_BERAKHIR
+        AND C_AKUN BETWEEN '4' AND '4.2' and TRSKPDBASNIHIL.i_idbas not in (select i_idbas from tmspmpot where i_idspm = #{idspm} AND i_idskpd = #{idskpd} and c_pot_spm = '37')
+        union all
+        select a.i_idskpd, a.i_idbas,b.c_akun,b.n_akun, v_pot_spm as nilaiPot,d.i_id as idTmPotongan from
+        TRSKPDBASNIHIL a,trbas b,trskpd c, tmspmpot d
+        WHERE a.i_IDBAS = b.i_iD 
+        AND a.I_IDSKPD =c.I_ID  
+        and c.i_id = d.i_idskpd
+        and a.i_idbas = d.i_idbas
+        AND c.I_ID = #{idskpd}
+        and i_idspm = #{idspm}
+         
+        )
+        group by i_idSkpd,i_idBas,c_akun,n_akun,nilaiPot,idTmPotongan
+        order by 2
+    </select>
+
+    <select id="getAllPot" parameterType="java.util.Map"  resultType="spp.model.SpmPotNihil">
+            
+        SELECT I_IDPOTSPM as idPot , C_POT_SPM cPot,   POTONGAN as Pot, SUM(NILAI_POTONGAN) AS NilaiPot, 
+        SUM(status) as Status, decode(SUM(IDPOTONGAN),0,'add','edit')  as kodeEdit , SUM(IDPOTONGAN) AS idTmPotongan
+        FROM (
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN, 
+        2 as status, TMSPMPOT.I_ID AS IDPOTONGAN
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE C_POT ='3'
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{nospm}  
+        AND  TMSPMPOT.C_ANGG_TAHUN = #{tahun} 
+        AND  TMSPMPOT.I_IDSKPD = #{idskpd} 
+        
+        UNION ALL
+        SELECT I_ID, C_POT_SPM,  TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , 0 AS NILAI_POTONGAN, 
+        1 as status,  0 AS IDPOTONGAN
+        FROM TRPOTSPM 
+        WHERE C_POT ='3'
+        ) XXXXX
+        GROUP BY  I_IDPOTSPM , C_POT_SPM,  POTONGAN
+        ORDER BY  I_IDPOTSPM ASC
+                
+    </select>
+    
+    <insert id="addPot" parameterType="spp.model.SpmPotNihil">
+        INSERT INTO TMSPMPOT (
+        I_ID,
+        C_ANGG_TAHUN,
+        I_IDSKPD, 
+        I_IDSPM,
+        C_POT_SPM,
+        P_POT, 
+        I_IDBAS,
+        V_POT_SPM,
+        I_PGUN_REKAM, 
+        D_PGUN_REKAM
+        ) 
+        VALUES ( 
+        seq_TMSPMPOT.nextval,
+        #{tahun} ,
+        #{idSkpd} ,
+        #{idSpm},
+        '37' ,
+        0 ,
+        #{idBas},
+        #{NilaiPot},
+        #{idEntry},
+        sysdate
+       
+        )     
+    </insert>
+    
+    <update id="updatePot" parameterType="spp.model.SpmPotNihil"  >
+        UPDATE  TMSPMPOT SET
+        V_POT_SPM = round(#{NilaiPot},0) 
+        WHERE  I_IDSKPD = #{idSkpd}
+        AND I_IDSPM = #{idSpm}
+        AND I_IDBAS = #{idBas}
+        AND C_POT_SPM = '37'
+        AND C_ANGG_TAHUN = #{tahun}
+    </update>
+    
+    <delete id="deletePot" parameterType="spp.model.SpmPotNihil"  >
+        delete from TMSPMPOT WHERE  I_IDSKPD = #{idSkpd}
+        AND I_IDSPM = #{idSpm}
+        AND I_IDBAS = #{idBas}
+        AND C_POT_SPM = '37'
+        AND C_ANGG_TAHUN = #{tahun}
+    </delete>
+   
+    
+</mapper>

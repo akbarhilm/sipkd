@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spm.entity.RekananMapper">
+    <select id="getRekanan" parameterType="java.util.Map"  resultType="spp.model.Rekanan">
+        SELECT 
+        I_ID as idRekanan, 
+        C_REKAN as kodeRekanan, 
+        N_REKAN as namaRekanan, 
+        N_REKAN_DIR as namaDirekturRekanan, 
+        I_REKAN_AKTE as idRekananAkte, 
+        I_REKAN_NPWP as idRekananNpwp, 
+        A_REKAN as alamatRekanan,
+        D_REKAN_AKTE as tanggalRekananAkte
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   
+        I_ID, 
+        C_REKAN, 
+        N_REKAN, 
+        N_REKAN_DIR, 
+        I_REKAN_AKTE, 
+        I_REKAN_NPWP, 
+        A_REKAN,
+        D_REKAN_AKTE FROM TRREKANAN T
+       <if test="namarekanan != null and namarekanan != '' ">
+            where upper( T.N_REKAN) like '%'||upper(#{namarekanan})||'%'
+        </if>
+       ORDER BY  
+                                <choose>
+                                    <when test="iSortCol_0 == 1 ">
+                                       T.C_REKAN
+                                    </when>
+                                    <when test="iSortCol_0 == 3 ">
+                                         T.N_REKAN
+                                    </when>
+                                     <when test="iSortCol_0 == 6 ">
+                                         T.A_REKAN
+                                    </when>       
+                                    <when test="iSortCol_0 == 4 ">
+                                         T.N_REKAN_DIR
+                                    </when>                                
+                                    <otherwise>
+                                         T.I_ID
+                                    </otherwise>
+                                    </choose>  
+                                    <choose>
+                                        <when test="sSortDir_0 == 'desc' " >
+                                            desc
+                                        </when>
+                                        <otherwise> 
+                                            asc
+                                        </otherwise>
+                                    </choose>   ) a)  WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+   
+    </select>
+    <select id="getCountRekanan" parameterType="java.util.Map"
+             resultType="java.lang.Integer">
+        select count(*) as banyak from (
+         SELECT 
+        I_ID as idRekanan, 
+        C_REKAN as kodeRekanan, 
+        N_REKAN as namaRekanan, 
+        N_REKAN_DIR as namaDirekturRekanan, 
+        I_REKAN_AKTE as idRekananAkte, 
+        I_REKAN_NPWP as idRekananNpwp, 
+        A_REKAN as alamatRekanan,
+        D_REKAN_AKTE as tanggalRekananAkte
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   
+        I_ID, 
+        C_REKAN, 
+        N_REKAN, 
+        N_REKAN_DIR, 
+        I_REKAN_AKTE, 
+        I_REKAN_NPWP, 
+        A_REKAN,
+        D_REKAN_AKTE FROM TRREKANAN T
+       <if test="namarekanan != null and namarekanan != '' ">
+            where upper( T.N_REKAN) like '%'||upper(#{namarekanan})||'%'
+        </if>
+   
+                                       ) a)      )
+    </select>
+    <insert id="insertRekanan" parameterType="spp.model.Rekanan">
+        INSERT INTO  TRREKANAN (I_ID,C_REKAN, N_REKAN, 
+        N_REKAN_DIR, I_REKAN_AKTE, 
+        I_REKAN_NPWP, A_REKAN,D_REKAN_AKTE, I_PGUN_REKAM,
+        D_PGUN_REKAM)
+        VALUES (  SEQ_TRREKANAN.nextval  ,#{kodeRekanan},#{namaRekanan},#{namaDirekturRekanan},#{idRekananAkte},
+        #{idRekananNpwp},#{alamatRekanan},#{tglEntry},#{idEntry},#{tglEntry})
+    </insert>
+     <select id="getRekananById" parameterType="java.lang.Integer"
+            resultType="spp.model.Rekanan">
+         SELECT 
+        I_ID as idRekanan, 
+        C_REKAN as kodeRekanan, 
+        N_REKAN as namaRekanan, 
+        N_REKAN_DIR as namaDirekturRekanan, 
+        I_REKAN_AKTE as idRekananAkte, 
+        I_REKAN_NPWP as idRekananNpwp, 
+        A_REKAN as alamatRekanan
+         FROM TRREKANAN
+         WHERE   I_ID =  #{value}
+    </select>
+     <delete id="deleteRekanan" parameterType="java.lang.Integer"   >
+        delete TRREKANAN     WHERE I_ID      = #{idRekanan}
+    </delete>
+     <update id="updateRekanan" parameterType="spp.model.Rekanan"   >
+        UPDATE TRREKANAN
+        SET          
+        C_REKAN = #{kodeRekanan}, 
+        N_REKAN = #{namaRekanan}, 
+        N_REKAN_DIR = #{namaDirekturRekanan}, 
+        I_REKAN_AKTE = #{idRekananAkte}, 
+        I_REKAN_NPWP = #{idRekananNpwp}, 
+        A_REKAN = #{alamatRekanan},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = #{tglEdit} 
+        WHERE  I_ID  = #{idRekanan}
+         
+    </update>
+</mapper>

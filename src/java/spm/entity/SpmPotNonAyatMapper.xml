@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spm.entity.SpmPotNonAyatMapper">
+            
+    <select id="getTotSpm" parameterType="java.util.Map"  resultType="spp.model.SpmPotNonAyat">            
+        SELECT   TMSPP.C_ANGG_TAHUN AS tahun,
+        TMSPP.I_IDSKPD AS idskpd,
+        TMSPP.I_ID AS idSpp,
+        TMSPP.I_SPPNO AS noSpp,
+        TMSPP.D_SPPNO AS tglNoSpp,
+        TMSPM.I_ID AS idSpm,
+        TMSPM.I_SPMNO AS spmNo,
+        (SUM(V_SPP) - (SELECT   nvl( SUM (T.V_POT_SPM),0)
+        FROM   TMSPMPOT T
+        WHERE       T.C_POT_SPM = 31
+        AND T.I_IDSPM = TMSPM.I_ID
+        AND T.I_IDSKPD = TMSPP.I_IDSKPD
+        AND T.C_ANGG_TAHUN = TMSPP.C_ANGG_TAHUN))
+        AS totSpm 
+        FROM   TMSPP, TMSPPRINCIBL, TMSPM
+        WHERE       (TMSPP.I_id = TMSPM.I_IDSPP)
+        AND (TMSPP.I_id = TMSPPRINCIBL.I_IDSPP)
+        AND TMSPP.C_ANGG_TAHUN = #{tahun}
+        AND TMSPP.I_IDSKPD = #{idskpd}
+        AND TMSPM.I_ID = #{idspm}
+        GROUP BY   TMSPP.C_ANGG_TAHUN,
+        TMSPP.I_ID,
+        TMSPP.I_IDSKPD,
+        TMSPP.I_SPPNO,
+        TMSPP.D_SPPNO,
+        TMSPM.I_ID,
+        TMSPM.I_SPMNO
+            
+    </select>
+    
+    <select id="getVkontrak" parameterType="java.util.Map"  resultType="spp.model.SpmPotNonAyat">
+            
+        SELECT  K.V_KONTR as nilaiKontrak
+        FROM TMKONTRAK K
+        join TMSPP S on S.I_IDKONTRAK = K.I_ID
+        join TMSPM M on M.I_IDSPP = S.I_ID
+        where M.I_ID = #{idspm}
+        AND  S.C_ANGG_TAHUN = #{tahun}
+        AND  S.I_IDSKPD = #{idskpd}
+
+        
+    </select>
+    
+    <select id="getKontrak" parameterType="java.util.Map"  resultType="spp.model.Kontrak">
+            
+        SELECT  K.V_KONTR as nilaiKontrak, K.C_PKP_STATUS as kodePkp, K.C_SKB_STATUS as kodeSkb, K.C_BL_JENIS as kodeBlj
+        FROM TMKONTRAK K
+        join TMSPP S on S.I_IDKONTRAK = K.I_ID
+        join TMSPM M on M.I_IDSPP = S.I_ID
+        where M.I_ID = #{idspm}
+        AND  S.C_ANGG_TAHUN = #{tahun}
+        AND  S.I_IDSKPD = #{idskpd}
+
+        
+    </select>
+    
+    <select id="getJamsostek" parameterType="java.util.Map"  resultType="spp.model.SpmPotNonAyat">
+        
+        SELECT  CEIL(V_POT_IURANDASAR + P_KONTR_SISA
+        * ((#{nilaiKontrak} / 1.1 ) - V_KONTR_MIN))
+        as  nilaiJamsostek
+        FROM TRPOTJAMSTEK
+        WHERE  (#{nilaiKontrak} / 1.1 )  &gt;= V_KONTR_MIN
+        AND    (#{nilaiKontrak} / 1.1 )  &lt;  V_KONTR_MAX
+    </select>
+    
+    <select id="getValTblSpm" parameterType="java.util.Map"  resultType="spp.model.SpmPotNonAyat">
+            
+        SELECT I_IDPOTSPM as idPot , C_POT_SPM cPot,   POTONGAN as Pot , SUM(P_POT) As pPot  , SUM(NILAI_POTONGAN) AS NilaiPot , SUM(Status) As Status,
+        sum(C_PPN) AS statusPPN , decode(SUM(IDPOTONGAN),0,'add','edit')  as kodeEdit , SUM(IDPOTONGAN) AS idTmPotongan, DJP_MAP as kodeAkunPajak, SUM(DJP_KJS) AS kodeJenisSetor
+        FROM (
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , P_POT,TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN, 
+        1 AS Status,C_PPN , TMSPMPOT.I_ID AS IDPOTONGAN, TMSPMPOT.C_DJP_MAP AS DJP_MAP, TMSPMPOT.C_DJP_KJS AS DJP_KJS
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE C_POT ='2' <!-- and TRPOTSPM.c_pot_spm &lt;&gt; '13'  // direvisi 8 maret 2016-->
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{idspm}
+        AND  TMSPMPOT.I_IDSKPD = #{idskpd}
+        AND  TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+        UNION ALL
+        SELECT I_ID, C_POT_SPM,  TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , 0 P_POT        
+        , 0 AS NILAI_POTONGAN, 0 as Status,'0' AS C_PPN, 0 AS IDPOTONGAN, C_DJP_MAP AS DJP_MAP, '0' AS DJP_KJS
+        FROM TRPOTSPM 
+        WHERE C_POT ='2' <!--  and TRPOTSPM.c_pot_spm &lt;&gt; '13' // direvisi 8 maret 2016-->
+        ) XXXXX
+        GROUP BY  I_IDPOTSPM , C_POT_SPM,  POTONGAN, DJP_MAP
+        ORDER BY  C_POT_SPM    
+
+            
+    </select>
+            
+    <insert id="addPotayat" parameterType="spp.model.SpmPotNonAyat"   >
+        INSERT INTO TMSPMPOT (I_ID, C_ANGG_TAHUN,I_IDSKPD,I_IDSPM,C_POT_SPM,V_POT_SPM,P_POT,I_PGUN_REKAM,C_PPN,C_DJP_KJS,C_DJP_MAP,C_PNS,C_PEGAWAI)
+        VALUES (SEQ_TMSPMPOT.NEXTVAL,#{tahun},#{idSkpd},#{idSpm},#{cPot},ceil(#{NilaiPot}),#{persen},#{idEntry},#{statusPPN},#{kodeJenisSetor},#{kodeAkunPajak},#{kodePns},#{kodePegawai})
+    </insert>
+    
+    <update id="updatePotayat" parameterType="spp.model.SpmPotNonAyat"  >
+        UPDATE  TMSPMPOT SET
+        V_POT_SPM = ceil(#{NilaiPot}),
+        P_POT =  #{persen},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = sysdate,        
+        C_PPN = #{statusPPN},
+        C_PNS = #{kodePns},
+        C_PEGAWAI = #{kodePegawai},
+        C_DJP_KJS = #{kodeJenisSetor}
+        WHERE  I_IDSKPD  = #{idSkpd}
+        AND I_IDSPM = #{idSpm}
+        AND C_POT_SPM = #{cPot}
+        AND C_ANGG_TAHUN = #{tahun}
+    </update>
+    
+    <select id="getPotUmk" parameterType="java.util.Map"  resultType="spp.model.SpmPotNonAyat">
+        select sum(cPot) as cPot, sum(NilaiPot) as nilaiPot from (
+        select to_number(c_uangmuka) as cPot , 0 as NilaiPot
+        from tmspm where i_id = #{idspm}
+        union all
+        select 0 as cPot, nvl(sum(v_pot_spm),0) as NilaiPot from tmspmpot where i_idspm = #{idspm}
+        and C_POT_SPM = 31  
+        )
+
+    </select>
+    
+    <!--BUAT NGETESSS ==========================================================-->
+    <select id="getNamaAkun" parameterType="java.lang.String"  resultType="spp.model.SpmPotNonAyat">
+        select n_akun as namaakun from trbas where c_akun = #{value}
+    </select>
+    
+    <select id="getNamaAkunString" parameterType="java.lang.String"  resultType="java.lang.String">
+        select n_akun as namaakun from trbas where c_akun = #{value}
+    </select>
+    
+    <delete id="deletePotongan" parameterType="spp.model.SpmPotNonAyat" >
+        delete from TMSPMPOT where i_idskpd = #{idSkpd}
+        and i_idspm = #{idSpm}
+        and c_angg_tahun = #{tahun} 
+    </delete> 
+</mapper>

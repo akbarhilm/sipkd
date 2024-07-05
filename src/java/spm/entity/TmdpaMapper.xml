@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spm.entity.TmdpaMapper">
+    <select id="getTmdpa" parameterType="java.util.Map"
+            resultType="spp.model.Tmdpa">
+        SELECT
+        I_ID as idTmdpa, 
+        I_IDSKPD as idSkpd, 
+        N_PA as namaPA, 
+         I_NRK_PA as nrkPA,
+         I_NIP_PA as nipPA,
+        C_SKPD_LEVEL as skpdLevel,
+        C_PENDAPATAN as idPendapatan,
+         V_ANGG_DPT as paguDpt,
+         V_ANGG_BTL as paguBtl,
+         V_ANGG_BL as paguBl,
+         V_ANGG_BIAYA as paguBiaya,
+         I_DPA_MURNI as noDpa,
+         D_DPA_MURNI as tglDpa,
+         I_DPA_PRBH as noDpaPrbh,
+         D_DPA_PRBH as tglDpaPrbh,
+         I_NRK_PKDPT as nrkBenPn,
+         I_NIP_PKDPT as nipBenPn,
+         N_PKDPT as namaBenPn,
+         I_NRK_PKBLJ as nrkBenPg,
+         I_NIP_PKBLJ as nipBenPg,
+         N_PKBLJ as namaBenPg,
+         I_NRK_PKBANTUAN as nrkBenPgBantuan,
+         I_NIP_PKBANTUAN as nipBenPgBantuan,
+         N_PKBANTUAN as namaBenPgBantuan,
+         I_NRK_PKBTT as nrkBenPgBTT,
+         I_NIP_PKBTT as nipBenPgBTT,
+         N_PKBTT as namaBenPgBTT,
+         I_NRK_PKBIAYA as nrkBenPgPembiayaan,
+         I_NIP_PKBIAYA as nipBenPgPembiayaan,
+         N_PKBIAYA as namaBenPgPembiayaan,
+         I_NRK_PPKDPT as nrkVerifikatorPn,
+         I_NIP_PPKDPT as nipVerifikatorPn,
+         N_PPKDPT as namaVerifikatorPn,
+         I_NRK_PPKBLJ as nrkVerifikatorPg,
+         I_NIP_PPKBLJ as nipVerifikatorPg,
+         N_PPKBLJ as namaVerifikatorPg
+        FROM (
+           SELECT DISTINCT 
+                T.I_ID,
+                T.I_IDSKPD,
+                P.C_SKPD_LEVEL,
+                P.C_PENDAPATAN,
+                T.N_PA,
+                T.I_NRK_PA,
+                T.I_NIP_PA,
+                T.V_ANGG_DPT,
+                T.V_ANGG_BTL,
+                T.V_ANGG_BL,
+                T.V_ANGG_BIAYA,
+                T.I_DPA_MURNI,
+                T.D_DPA_MURNI,
+                T.I_DPA_PRBH,
+                T.D_DPA_PRBH,
+                T.I_NRK_PKDPT,
+                T.I_NIP_PKDPT,
+                T.N_PKDPT,
+                T.I_NRK_PKBLJ,
+                T.I_NIP_PKBLJ,
+                T.N_PKBLJ,
+                T.I_NRK_PKBANTUAN,
+                T.I_NIP_PKBANTUAN,
+                T.N_PKBANTUAN,
+                T.I_NRK_PKBTT,
+                T.I_NIP_PKBTT,
+                T.N_PKBTT,
+                T.I_NRK_PKBIAYA,
+                T.I_NIP_PKBIAYA,
+                T.N_PKBIAYA,
+                T.I_NRK_PPKDPT,
+                T.I_NIP_PPKDPT,
+                T.N_PPKDPT,
+                T.I_NRK_PPKBLJ,
+                T.I_NIP_PPKBLJ,
+                T.N_PPKBLJ
+                FROM TMDPA T
+                INNER JOIN TRSKPD P ON T.I_IDSKPD = P.I_ID
+                WHERE P.C_AKTIF = 1
+                AND T.C_ANGG_TAHUN = #{tahun}
+                AND T.I_IDSKPD = #{idskpd}  ) a
+    </select>
+    
+        <select id="getAllTmdpa" parameterType="java.util.Map"
+            resultType="spp.model.Tmdpa">
+       SELECT  
+         I_ID as idTmdpa,
+         I_IDSKPD as idSkpd,
+         N_SKPD as namaSkpd,
+         N_SKPD_PENDEK as namaSkpdPendek,
+         C_SKPD as kodeSkpd,
+         C_SKPD_LEVEL as skpdLevel,
+         C_PENDAPATAN as idPendapatan,
+         N_PA as namaPA, 
+         I_NRK_PA as nrkPA,
+         I_NIP_PA as nipPA,
+         V_ANGG_DPT as paguDpt,
+         V_ANGG_BTL as paguBtl,
+         V_ANGG_BL as paguBl,
+         V_ANGG_BIAYA as paguBiaya,
+         I_DPA_MURNI as noDpa,
+         D_DPA_MURNI as tglDpa,
+         I_DPA_PRBH as noDpaPrbh,
+         D_DPA_PRBH as tglDpaPrbh,
+         I_NRK_PKDPT as nrkBenPn,
+         I_NIP_PKDPT as nipBenPn,
+         N_PKDPT as namaBenPn,
+         I_NRK_PKBLJ as nrkBenPg,
+         I_NIP_PKBLJ as nipBenPg,
+         N_PKBLJ as namaBenPg,
+         I_NRK_PKBANTUAN as nrkBenPgBantuan,
+         I_NIP_PKBANTUAN as nipBenPgBantuan,
+         N_PKBANTUAN as namaBenPgBantuan,
+         I_NRK_PKBTT as nrkBenPgBTT,
+         I_NIP_PKBTT as nipBenPgBTT,
+         N_PKBTT as namaBenPgBTT,
+         I_NRK_PKBIAYA as nrkBenPgPembiayaan,
+         I_NIP_PKBIAYA as nipBenPgPembiayaan,
+         N_PKBIAYA as namaBenPgPembiayaan,
+         I_NRK_PPKDPT as nrkVerifikatorPn,
+         I_NIP_PPKDPT as nipVerifikatorPn,
+         N_PPKDPT as namaVerifikatorPn,
+         I_NRK_PPKBLJ as nrkVerifikatorPg,
+         I_NIP_PPKBLJ as nipVerifikatorPg,
+         N_PPKBLJ as namaVerifikatorPg,
+         C_AKTIF as isAktif
+  FROM   (SELECT   ROWNUM AS rn, a.*
+            FROM   (  SELECT  DISTINCT T.I_IDSKPD,
+                               T.I_ID,
+                               P.N_SKPD,
+                               P.N_SKPD_PENDEK,
+                               P.C_PENDAPATAN,
+                               P.C_SKPD,
+                               T.N_PA,
+                               T.I_NRK_PA,
+                               T.I_NIP_PA,
+                               T.V_ANGG_DPT,
+                               T.V_ANGG_BTL,
+                               T.V_ANGG_BL,
+                               T.V_ANGG_BIAYA,
+                               T.I_DPA_MURNI,
+                               T.D_DPA_MURNI,
+                               T.I_DPA_PRBH,
+                               T.D_DPA_PRBH,
+                               T.I_NRK_PKDPT,
+                               T.I_NIP_PKDPT,
+                               T.N_PKDPT,
+                               T.I_NRK_PKBLJ,
+                               T.I_NIP_PKBLJ,
+                               T.N_PKBLJ,
+                               T.I_NRK_PKBANTUAN,
+                               T.I_NIP_PKBANTUAN,
+                               T.N_PKBANTUAN,
+                               T.I_NRK_PKBTT,
+                               T.I_NIP_PKBTT,
+                               T.N_PKBTT,
+                               T.I_NRK_PKBIAYA,
+                               T.I_NIP_PKBIAYA,
+                               T.N_PKBIAYA,
+                               T.I_NRK_PPKDPT,
+                               T.I_NIP_PPKDPT,
+                               T.N_PPKDPT,
+                               T.I_NRK_PPKBLJ,
+                               T.I_NIP_PPKBLJ,
+                               T.N_PPKBLJ,
+                               P.C_SKPD_LEVEL,P.C_AKTIF
+                        FROM       TMDPA T
+                               INNER JOIN
+                                  trskpd p
+                               ON P.I_ID = T.I_IDSKPD  WHERE P.C_AKTIF = 1 AND T.C_ANGG_TAHUN = #{tahun}
+                                <if test="skpd != null and skpd != '' ">
+                                     AND upper(P.N_SKPD) like '%'||upper(#{skpd})||'%'
+                                </if>
+                    ORDER BY  
+                                <choose>
+                                    <when test="iSortCol_0 == 1 ">
+                                        P.C_SKPD
+                                    </when>
+                                    <when test="iSortCol_0 == 2 ">
+                                         P.N_SKPD
+                                    </when>                                    
+                                    <otherwise>
+                                         T.I_IDSKPD
+                                    </otherwise>
+                                    </choose>  
+                                    <choose>
+                                        <when test="sSortDir_0 == 'desc' " >
+                                            desc
+                                        </when>
+                                        <otherwise> 
+                                            asc
+                                        </otherwise>
+                                    </choose>   ) a)  WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+    
+    
+    <select id="getBanyakSkpd" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+       SELECT   COUNT (DISTINCT C.I_IDSKPD) AS BANYAK
+  FROM       TMDPA C
+         INNER JOIN
+            trskpd p
+         ON P.I_ID = C.I_IDSKPD WHERE P.C_AKTIF = 1
+         <if test="skpd != null and skpd != '' ">
+           AND  upper(P.N_SKPD) like '%'||upper(#{skpd})||'%'
+         </if>
+    </select>
+     <update id="updateTmdpa" parameterType="spp.model.Tmdpa"   >
+        UPDATE TMDPA
+        SET          
+        I_NRK_PA = #{nrkPA}, 
+        I_NIP_PA = #{nipPA}, 
+        N_PA = #{namaPA},
+         <if test="idPendapatan == 1 " >
+        I_NRK_PKDPT = #{nrkBenPn},
+        I_NIP_PKDPT = #{nipBenPn},
+        N_PKDPT = #{namaBenPn},
+        I_NRK_PPKDPT = #{nrkVerifikatorPn},
+        I_NIP_PPKDPT = #{nipVerifikatorPn}, 
+        N_PPKDPT = #{namaVerifikatorPn},
+         </if>
+        I_NRK_PKBLJ = #{nrkBenPg}, 
+        I_NIP_PKBLJ = #{nipBenPg}, 
+        N_PKBLJ = #{namaBenPg},
+        <if test="skpdLevel == 3 ">
+        I_NRK_PKBANTUAN = #{nrkBenPgBantuan}, 
+        I_NIP_PKBANTUAN = #{nipBenPgBantuan}, 
+        N_PKBANTUAN = #{namaBenPgBantuan},
+        I_NRK_PKBTT = #{nrkBenPgBTT}, 
+        I_NIP_PKBTT = #{nipBenPgBTT}, 
+        N_PKBTT = #{namaBenPgBTT},
+        I_NRK_PKBIAYA = #{nrkBenPgPembiayaan}, 
+        I_NIP_PKBIAYA = #{nipBenPgPembiayaan}, 
+        N_PKBIAYA = #{namaBenPgPembiayaan},
+         </if>
+        I_NRK_PPKBLJ = #{nrkVerifikatorPg},
+        I_NIP_PPKBLJ = #{nipVerifikatorPg},
+        N_PPKBLJ = #{namaVerifikatorPg},     
+        I_PGUN_UBAH = #{idEdit},
+        D_REKAM_UBAH = #{tglEdit}
+        WHERE  I_ID  = #{idTmdpa}
+         
+    </update>
+    <select id="getTmdpaById" parameterType="java.util.Map" resultType="spp.model.Tmdpa">
+        SELECT  
+         I_ID as idTmdpa,
+         I_IDSKPD as idSkpd,
+         N_SKPD as namaSkpd,
+         N_SKPD_PENDEK as namaSkpdPendek,
+         C_SKPD as kodeSkpd,
+         C_SKPD_LEVEL as skpdLevel,
+         C_PENDAPATAN as idPendapatan,
+         N_PA as namaPA, 
+         I_NRK_PA as nrkPA,
+         I_NIP_PA as nipPA,
+         V_ANGG_DPT as paguDpt,
+         V_ANGG_BTL as paguBtl,
+         V_ANGG_BL as paguBl,
+         V_ANGG_BIAYA as paguBiaya,
+         I_DPA_MURNI as noDpa,
+         D_DPA_MURNI as tglDpa,
+         I_DPA_PRBH as noDpaPrbh,
+         D_DPA_PRBH as tglDpaPrbh,
+         I_NRK_PKDPT as nrkBenPn,
+         I_NIP_PKDPT as nipBenPn,
+         N_PKDPT as namaBenPn,
+         I_NRK_PKBLJ as nrkBenPg,
+         I_NIP_PKBLJ as nipBenPg,
+         N_PKBLJ as namaBenPg,
+         I_NRK_PKBANTUAN as nrkBenPgBantuan,
+         I_NIP_PKBANTUAN as nipBenPgBantuan,
+         N_PKBANTUAN as namaBenPgBantuan,
+         I_NRK_PKBTT as nrkBenPgBTT,
+         I_NIP_PKBTT as nipBenPgBTT,
+         N_PKBTT as namaBenPgBTT,
+         I_NRK_PKBIAYA as nrkBenPgPembiayaan,
+         I_NIP_PKBIAYA as nipBenPgPembiayaan,
+         N_PKBIAYA as namaBenPgPembiayaan,
+         I_NRK_PPKDPT as nrkVerifikatorPn,
+         I_NIP_PPKDPT as nipVerifikatorPn,
+         N_PPKDPT as namaVerifikatorPn,
+         I_NRK_PPKBLJ as nrkVerifikatorPg,
+         I_NIP_PPKBLJ as nipVerifikatorPg,
+         N_PPKBLJ as namaVerifikatorPg,
+         C_AKTIF as isAktif
+FROM (SELECT a.*
+            FROM   (  SELECT  DISTINCT T.I_IDSKPD,
+                               T.I_ID,
+                               P.N_SKPD,
+                               P.N_SKPD_PENDEK,
+                               P.C_PENDAPATAN,
+                               P.C_SKPD,
+                               T.N_PA,
+                               T.I_NRK_PA,
+                               T.I_NIP_PA,
+                               T.V_ANGG_DPT,
+                               T.V_ANGG_BTL,
+                               T.V_ANGG_BL,
+                               T.V_ANGG_BIAYA,
+                               T.I_DPA_MURNI,
+                               T.D_DPA_MURNI,
+                               T.I_DPA_PRBH,
+                               T.D_DPA_PRBH,
+                               T.I_NRK_PKDPT,
+                               T.I_NIP_PKDPT,
+                               T.N_PKDPT,
+                               T.I_NRK_PKBLJ,
+                               T.I_NIP_PKBLJ,
+                               T.N_PKBLJ,
+                               T.I_NRK_PKBANTUAN,
+                               T.I_NIP_PKBANTUAN,
+                               T.N_PKBANTUAN,
+                               T.I_NRK_PKBTT,
+                               T.I_NIP_PKBTT,
+                               T.N_PKBTT,
+                               T.I_NRK_PKBIAYA,
+                               T.I_NIP_PKBIAYA,
+                               T.N_PKBIAYA,
+                               T.I_NRK_PPKDPT,
+                               T.I_NIP_PPKDPT,
+                               T.N_PPKDPT,
+                               T.I_NRK_PPKBLJ,
+                               T.I_NIP_PPKBLJ,
+                               T.N_PPKBLJ,
+                               P.C_SKPD_LEVEL,P.C_AKTIF
+                        FROM       TMDPA T
+                               INNER JOIN
+                                  trskpd p
+                               ON P.I_ID = #{idskpd}  
+                                WHERE P.C_AKTIF = 1 
+                                AND T.C_ANGG_TAHUN = #{tahun}
+                                AND T.I_IDSKPD = #{idskpd}
+                                ) a)   
+    </select>
+</mapper>

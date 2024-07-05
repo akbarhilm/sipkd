@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spm.entity.DokreffMapper">
+    
+    <select id="getDokreff" parameterType="java.util.Map"
+            resultType="spp.model.Dokreff">
+        SELECT   I_ID AS idDokreff,
+         N_DAERAH_JUDUL AS namaDaerahJudul,
+         N_DAERAH AS namaDaerah,
+         N_KOTA AS namaKota,
+         I_PERDA_NO AS noPerda,
+         C_PERDA_TGL AS kodePerdaTanggal,
+         C_PERDA_TAHUN AS kodePerdaTahun,
+         N_PPKD AS namaPpkd,
+         I_NIP_PPKD AS nipPpkd
+  FROM   (SELECT   ROWNUM AS rn, a.*
+            FROM   (SELECT   T.I_ID,
+                             T.N_DAERAH_JUDUL,
+                             T.N_DAERAH,
+                             T.N_KOTA,
+                             T.I_PERDA_NO,
+                             T.C_PERDA_TGL,
+                             T.C_PERDA_TAHUN,
+                             T.N_PPKD,
+                             T.I_NIP_PPKD
+                      FROM   TRDOKREFF T) a)
+
+    </select>
+    
+    <select id="getCountDokreff" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        select count(i_id) from TRDOKREFF
+           
+    </select>
+    
+    <insert id="insertDokreff" parameterType="spp.model.Dokreff"   >
+        INSERT INTO TRDOKREFF (
+        I_ID, N_DAERAH_JUDUL, N_DAERAH, N_KOTA, I_PERDA_NO, C_PERDA_TGL, C_PERDA_TAHUN, 
+        E_PERATURAN_SPD1, E_PERATURAN_SPD2, E_PERATURAN_SPD3, E_PERATURAN_SPD4, E_PERATURAN_SPD5, 
+        N_PPKD, I_NIP_PPKD) 
+        VALUES(SEQ_TRDOKREFF.nextval ,#{namaDaerahJudul},#{namaDaerah},#{namaKota},#{noPerda},#{kodePerdaTanggal},#{kodePerdaTahun},
+        #{ketPeraturanSpd1},#{ketPeraturanSpd2},#{ketPeraturanSpd3},#{ketPeraturanSpd4},#{ketPeraturanSpd5},
+        #{namaPpkd},#{nipPpkd} )
+    </insert>
+    
+    <delete id="deleteDokreff" parameterType="java.lang.Integer"   >
+        delete TRDOKREFF     WHERE I_ID      = #{idDokreff}
+    </delete>
+    
+    <select id="getDokreffById" parameterType="java.lang.Integer"
+            resultType="spp.model.Dokreff">
+        select I_ID AS idDokreff,
+         N_DAERAH_JUDUL AS namaDaerahJudul,
+         N_DAERAH AS namaDaerah,
+         N_KOTA AS namaKota,
+         I_PERDA_NO AS noPerda,
+         C_PERDA_TGL AS kodePerdaTanggal,
+         C_PERDA_TAHUN AS kodePerdaTahun,
+         E_PERATURAN_SPD1 AS ketPeraturanSpd1,
+         E_PERATURAN_SPD2 AS ketPeraturanSpd2, 
+         E_PERATURAN_SPD3 AS ketPeraturanSpd3,
+         E_PERATURAN_SPD4 AS ketPeraturanSpd4,
+         E_PERATURAN_SPD5 AS ketPeraturanSpd5,
+         N_PPKD AS namaPpkd,
+         I_NIP_PPKD AS nipPpkd 
+        from TRDOKREFF
+        WHERE   I_ID =  #{value}
+    </select>
+    
+    <update id="updateDokreff" parameterType="spp.model.Dokreff"   >
+        UPDATE TRDOKREFF
+        SET    
+        N_DAERAH_JUDUL = #{namaDaerahJudul},
+        N_DAERAH = #{namaDaerah},
+        N_KOTA = #{namaKota},
+        I_PERDA_NO = #{noPerda},
+        C_PERDA_TGL = #{kodePerdaTanggal},
+        C_PERDA_TAHUN = #{kodePerdaTahun},
+        E_PERATURAN_SPD1 = #{ketPeraturanSpd1},
+        E_PERATURAN_SPD2 = #{ketPeraturanSpd2},
+        E_PERATURAN_SPD3 = #{ketPeraturanSpd3},
+        E_PERATURAN_SPD4 = #{ketPeraturanSpd4},
+        E_PERATURAN_SPD5 = #{ketPeraturanSpd5},
+        N_PPKD = #{namaPpkd},
+        I_NIP_PPKD = #{nipPpkd}
+        WHERE  I_ID         = #{idDokreff}
+    </update>
+    
+    <insert id="historydokreff" parameterType="spp.model.Dokreff">
+        INSERT INTO THDOKREFF
+        SELECT 
+        SEQ_THDOKREFF.NEXTVAL AS  
+        I_ID, 
+        N_DAERAH_JUDUL, 
+        N_DAERAH, 
+        N_KOTA, 
+        I_PERDA_NO, 
+        C_PERDA_TGL, 
+        C_PERDA_TAHUN, 
+        E_PERATURAN_SPD1, 
+        E_PERATURAN_SPD2, 
+        E_PERATURAN_SPD3, 
+        E_PERATURAN_SPD4, 
+        E_PERATURAN_SPD5, 
+        N_PPKD, 
+        I_NIP_PPKD
+        FROM TRDOKREFF
+        where i_ID = #{idDokreff}
+    </insert>
+</mapper>

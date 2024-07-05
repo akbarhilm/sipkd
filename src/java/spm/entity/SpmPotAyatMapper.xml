@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spm.entity.SpmPotAyatMapper">
+
+    <select id="getAllSpm" parameterType="java.util.Map" resultType="spp.model.SpmPotAyat">
+            
+        SELECT TMSPP.C_ANGG_TAHUN as tahun, 
+        TMSPP.I_ID as idSpp, 
+        TMSPP.I_SPPNO as noSpp,
+        TMSPP.D_SPPNO as tglNoSpp, 
+        TMSPM.I_ID as idSpm
+        FROM TMSPP, TMSPM
+        WHERE  (TMSPP.I_id = TMSPM.I_IDSPP) 
+        AND TMSPP.C_JENIS ='1'
+        AND TMSPM.C_POTAYAT='1'
+        AND TMSPP.C_ANGG_TAHUN = #{tahun}
+        AND TMSPP.I_IDSKPD = #{idskpd}
+        AND not exists ( select 1 from TMSPMCETAK WHERE TMSPM.I_ID = TMSPMCETAK.I_ID)
+
+    </select>
+    
+    <select id="getBanyakSpm" parameterType="java.util.Map" resultType="java.lang.Integer">
+            
+        SELECT  COUNT (DISTINCT TMSPM.C_POTAYAT) AS BANYAK
+        FROM TMSPP, TMSPM
+        WHERE  (TMSPP.I_id = TMSPM.I_IDSPP) 
+        AND TMSPP.C_JENIS ='1'
+        AND TMSPM.C_POTAYAT='1'
+        AND TMSPP.C_ANGG_TAHUN = #{tahun}
+        AND TMSPP.I_IDSKPD = #{idskpd}
+        AND not exists ( select 1 from TMSPMCETAK WHERE TMSPM.I_ID = TMSPMCETAK.I_ID)
+
+    </select>
+    
+    <select id="getMacamSimpegByIdSpp" parameterType="java.lang.String" resultType="java.lang.String">
+            
+        SELECT C_PEG_MACAM
+        FROM TMPEGREKAPLIST
+        WHERE  i_idspp = #{idspp}
+
+    </select>
+            
+    <select id="getBanyakPotAyat" parameterType="java.util.Map" resultType="spp.model.SpmPotAyat">
+            
+        SELECT COUNT(DISTINCT I_IDPOTSPM) as BANYAK
+        FROM (
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN, 2 as status, 
+        TMSPMPOT.P_POT as persen, TMSPMPOT.I_ID AS IDPOTONGAN
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE C_POT ='1' 
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{nospm}
+        AND  TMSPMPOT.I_IDSKPD = #{idskpd}
+        AND  TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+        
+        UNION ALL
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN, 2 as status, 
+        TMSPMPOT.P_POT as persen, TMSPMPOT.I_ID AS IDPOTONGAN
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE C_POT ='2' and TRPOTSPM.c_pot_spm = '13'
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{nospm}
+        AND  TMSPMPOT.I_IDSKPD = #{idskpd}
+        AND  TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+        
+        UNION ALL
+        SELECT distinct I_ID, C_POT_SPM,  TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , 0 AS NILAI_POTONGAN, 
+        1 as status, 0 as persen, 0 AS IDPOTONGAN
+        FROM TRPOTSPM 
+        WHERE C_POT ='1'
+        ) XXXXX
+                        
+    </select>
+
+    <select id="getAllPotAyat" parameterType="java.util.Map" resultType="spp.model.SpmPotAyat">
+        <!--    
+        SELECT I_IDPOTSPM as idPot , C_POT_SPM cPot,   POTONGAN as Pot, SUM(NILAI_POTONGAN) AS NilaiPot, SUM(status) as Status
+        FROM (
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN, 2 as status
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE C_POT ='1'
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{nospm}  
+        UNION ALL
+        SELECT I_ID, C_POT_SPM,  TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , 0 AS NILAI_POTONGAN, 1 as status
+        FROM TRPOTSPM 
+        WHERE C_POT ='1'  or TRPOTSPM.c_pot_spm = '13'
+        ) XXXXX
+        GROUP BY  I_IDPOTSPM , C_POT_SPM,  POTONGAN
+        ORDER BY  I_IDPOTSPM ASC
+        -->
+        
+        SELECT distinct I_IDPOTSPM as idPot , C_POT_SPM cPot,   POTONGAN as Pot, SUM(NILAI_POTONGAN) AS NilaiPot, 
+        SUM(status) as Status, persen, decode(SUM(IDPOTONGAN),0,'add','edit')  as kodeEdit , SUM(IDPOTONGAN) AS idTmPotongan
+        FROM (
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN, 2 as status, 
+        TMSPMPOT.P_POT as persen, TMSPMPOT.I_ID AS IDPOTONGAN
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE C_POT ='1' 
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{nospm}
+        AND  TMSPMPOT.I_IDSKPD = #{idskpd}
+        AND  TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+        
+        UNION ALL
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN, 2 as status, 
+        TMSPMPOT.P_POT as persen, TMSPMPOT.I_ID AS IDPOTONGAN
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE C_POT ='2' and TRPOTSPM.c_pot_spm = '13'
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{nospm}
+        AND  TMSPMPOT.I_IDSKPD = #{idskpd}
+        AND  TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+        
+       
+        UNION ALL
+        SELECT distinct I_ID, C_POT_SPM,  TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , 0 AS NILAI_POTONGAN, 
+        1 as status, 0 as persen, 0 AS IDPOTONGAN
+        FROM TRPOTSPM 
+        WHERE C_POT ='1'
+          
+        ) XXXXX
+        GROUP BY  I_IDPOTSPM , C_POT_SPM,  POTONGAN, persen
+        ORDER BY  I_IDPOTSPM ASC
+                
+    </select>
+    
+    <select id="getBanyakPotAyatGaji" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count (*) as banyak from 
+        (SELECT distinct I_IDPOTSPM as idPot , C_POT_SPM cPot,   POTONGAN as Pot, NILAI_POTONGAN AS NilaiPot, 
+        persen, decode(SUM(IDPOTONGAN),0,'add','edit')  as kodeEdit , SUM(IDPOTONGAN) AS idTmPotongan
+        FROM (
+        
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN, 
+        TMSPMPOT.P_POT as persen, TMSPMPOT.I_ID AS IDPOTONGAN
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE TRPOTSPM.C_POT ='1' 
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{idspm}
+        AND  TMSPMPOT.I_IDSKPD = #{idskpd}
+        AND  TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+        
+        <if test="macam == 1">
+            union all
+            SELECT distinct TRPOTSPM.I_ID, TRPOTSPM.C_POT_SPM,  
+            TRPOTSPM.C_POT_GAJI || ' - '  ||  TRPOTSPM.E_POT_SP2D  AS POTONGAN , 
+            TMPEGREKAPLIST.V_PEG_POTDAPEN AS NILAI_POTONGAN, 0 as persen, 0 AS IDPOTONGAN
+            FROM TRPOTSPM, TMPEGREKAPLIST
+            WHERE C_POT ='1'
+            and c_pot_spm = '01'
+            AND TMPEGREKAPLIST.i_idspp = #{idspp}
+            AND NOT EXISTS
+                  (SELECT 1
+                     FROM tmspmpot
+                    WHERE     TMSPMPOT.C_POT_SPM = TRPOTSPM.C_POT_SPM
+                          AND TMSPMPOT.I_IDSPM = #{idspm}
+                          AND TMSPMPOT.I_IDSKPD = #{idskpd}
+                          AND TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+                          AND TMSPMPOT.c_pot_spm = '01')
+            union all
+            SELECT distinct TRPOTSPM.I_ID, TRPOTSPM.C_POT_SPM,  
+            TRPOTSPM.C_POT_GAJI || ' - '  ||  TRPOTSPM.E_POT_SP2D  AS POTONGAN , 
+            TMPEGREKAPLIST.V_PEG_POTBPJS AS NILAI_POTONGAN, 0 as persen, 0 AS IDPOTONGAN
+            FROM TRPOTSPM, TMPEGREKAPLIST
+            WHERE C_POT ='1'
+            and c_pot_spm = '02'
+            AND TMPEGREKAPLIST.i_idspp = #{idspp}
+            AND NOT EXISTS
+                  (SELECT 1
+                     FROM tmspmpot
+                    WHERE     TMSPMPOT.C_POT_SPM = TRPOTSPM.C_POT_SPM
+                          AND TMSPMPOT.I_IDSPM = #{idspm}
+                          AND TMSPMPOT.I_IDSKPD = #{idskpd}
+                          AND TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+                          AND TMSPMPOT.c_pot_spm = '02')
+            union all
+            SELECT distinct TRPOTSPM.I_ID, TRPOTSPM.C_POT_SPM,  
+            TRPOTSPM.C_POT_GAJI || ' - '  ||  TRPOTSPM.E_POT_SP2D  AS POTONGAN , 
+            TMPEGREKAPLIST.V_PEG_POTTHT AS NILAI_POTONGAN, 0 as persen, 0 AS IDPOTONGAN
+            FROM TRPOTSPM, TMPEGREKAPLIST
+            WHERE C_POT ='1'
+            and c_pot_spm = '03'
+            AND TMPEGREKAPLIST.i_idspp = #{idspp}
+            AND NOT EXISTS
+                  (SELECT 1
+                     FROM tmspmpot
+                    WHERE     TMSPMPOT.C_POT_SPM = TRPOTSPM.C_POT_SPM
+                          AND TMSPMPOT.I_IDSPM = #{idspm}
+                          AND TMSPMPOT.I_IDSKPD = #{idskpd}
+                          AND TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+                          AND TMSPMPOT.c_pot_spm = '03')
+            union all
+            SELECT distinct TRPOTSPM.I_ID, TRPOTSPM.C_POT_SPM,  
+            TRPOTSPM.C_POT_GAJI || ' - '  ||  TRPOTSPM.E_POT_SP2D  AS POTONGAN , 
+            TMPEGREKAPLIST.V_PEG_POTTAPERUM AS NILAI_POTONGAN, 0 as persen, 0 AS IDPOTONGAN
+            FROM TRPOTSPM, TMPEGREKAPLIST
+            WHERE C_POT ='1'
+            and c_pot_spm = '05'
+            AND TMPEGREKAPLIST.i_idspp = #{idspp}
+            AND NOT EXISTS
+                  (SELECT 1
+                     FROM tmspmpot
+                    WHERE     TMSPMPOT.C_POT_SPM = TRPOTSPM.C_POT_SPM
+                          AND TMSPMPOT.I_IDSPM = #{idspm}
+                          AND TMSPMPOT.I_IDSKPD = #{idskpd}
+                          AND TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+                          AND TMSPMPOT.c_pot_spm = '05')
+       
+        </if>
+        <if test="macam == 3 or macam == 4">
+            union all
+            SELECT distinct TRPOTSPM.I_ID, TRPOTSPM.C_POT_SPM,  
+            TRPOTSPM.C_POT_GAJI || ' - '  ||  TRPOTSPM.E_POT_SP2D  AS POTONGAN , 
+            TMPEGREKAPLIST.V_PEG_JUMPOT AS NILAI_POTONGAN, 0 as persen, 0 AS IDPOTONGAN
+            FROM TRPOTSPM, TMPEGREKAPLIST
+            WHERE C_POT ='1'
+            and c_pot_spm = '06'
+            AND TMPEGREKAPLIST.i_idspp = #{idspp}
+            AND NOT EXISTS
+                  (SELECT 1
+                     FROM tmspmpot
+                    WHERE     TMSPMPOT.C_POT_SPM = TRPOTSPM.C_POT_SPM
+                          AND TMSPMPOT.I_IDSPM = #{idspm}
+                          AND TMSPMPOT.I_IDSKPD = #{idskpd}
+                          AND TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+                          AND TMSPMPOT.c_pot_spm = '06')
+        </if>
+        
+        ) XXXXX
+        GROUP BY  I_IDPOTSPM , C_POT_SPM,  POTONGAN, NILAI_POTONGAN, persen
+        ORDER BY  I_IDPOTSPM ASC)
+    </select>
+    
+    <select id="getAllPotAyatGaji" parameterType="java.util.Map" resultType="spp.model.SpmPotAyat">
+        SELECT   *
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (  
+        SELECT distinct I_IDPOTSPM as idPot , C_POT_SPM cPot,   POTONGAN as Pot, NILAI_POTONGAN AS NilaiPot, 
+        persen, decode(SUM(IDPOTONGAN),0,'add','edit')  as kodeEdit , SUM(IDPOTONGAN) AS idTmPotongan
+        FROM (
+        
+        SELECT TRPOTSPM.I_ID  AS I_IDPOTSPM , TMSPMPOT.C_POT_SPM  AS C_POT_SPM,  
+        TRPOTSPM.C_POT_GAJI || ' - '  ||  E_POT_SP2D  AS POTONGAN , TMSPMPOT.V_POT_SPM AS NILAI_POTONGAN, 
+        TMSPMPOT.P_POT as persen, TMSPMPOT.I_ID AS IDPOTONGAN
+        FROM TMSPMPOT, TRPOTSPM 
+        WHERE TRPOTSPM.C_POT ='1' 
+        AND TMSPMPOT.C_POT_SPM  = TRPOTSPM.C_POT_SPM
+        AND  TMSPMPOT.I_IDSPM = #{idspm}
+        AND  TMSPMPOT.I_IDSKPD = #{idskpd}
+        AND  TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+        
+        <if test="macam == 1">
+            union all
+            SELECT distinct TRPOTSPM.I_ID, TRPOTSPM.C_POT_SPM,  
+            TRPOTSPM.C_POT_GAJI || ' - '  ||  TRPOTSPM.E_POT_SP2D  AS POTONGAN , 
+            TMPEGREKAPLIST.V_PEG_POTDAPEN AS NILAI_POTONGAN, 0 as persen, 0 AS IDPOTONGAN
+            FROM TRPOTSPM, TMPEGREKAPLIST
+            WHERE C_POT ='1'
+            and c_pot_spm = '01'
+            AND TMPEGREKAPLIST.i_idspp = #{idspp}
+            AND NOT EXISTS
+                  (SELECT 1
+                     FROM tmspmpot
+                    WHERE     TMSPMPOT.C_POT_SPM = TRPOTSPM.C_POT_SPM
+                          AND TMSPMPOT.I_IDSPM = #{idspm}
+                          AND TMSPMPOT.I_IDSKPD = #{idskpd}
+                          AND TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+                          AND TMSPMPOT.c_pot_spm = '01')
+            union all
+            SELECT distinct TRPOTSPM.I_ID, TRPOTSPM.C_POT_SPM,  
+            TRPOTSPM.C_POT_GAJI || ' - '  ||  TRPOTSPM.E_POT_SP2D  AS POTONGAN , 
+            TMPEGREKAPLIST.V_PEG_POTBPJS AS NILAI_POTONGAN, 0 as persen, 0 AS IDPOTONGAN
+            FROM TRPOTSPM, TMPEGREKAPLIST
+            WHERE C_POT ='1'
+            and c_pot_spm = '02'
+            AND TMPEGREKAPLIST.i_idspp = #{idspp}
+            AND NOT EXISTS
+                  (SELECT 1
+                     FROM tmspmpot
+                    WHERE     TMSPMPOT.C_POT_SPM = TRPOTSPM.C_POT_SPM
+                          AND TMSPMPOT.I_IDSPM = #{idspm}
+                          AND TMSPMPOT.I_IDSKPD = #{idskpd}
+                          AND TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+                          AND TMSPMPOT.c_pot_spm = '02')
+            union all
+            SELECT distinct TRPOTSPM.I_ID, TRPOTSPM.C_POT_SPM,  
+            TRPOTSPM.C_POT_GAJI || ' - '  ||  TRPOTSPM.E_POT_SP2D  AS POTONGAN , 
+            TMPEGREKAPLIST.V_PEG_POTTHT AS NILAI_POTONGAN, 0 as persen, 0 AS IDPOTONGAN
+            FROM TRPOTSPM, TMPEGREKAPLIST
+            WHERE C_POT ='1'
+            and c_pot_spm = '03'
+            AND TMPEGREKAPLIST.i_idspp = #{idspp}
+            AND NOT EXISTS
+                  (SELECT 1
+                     FROM tmspmpot
+                    WHERE     TMSPMPOT.C_POT_SPM = TRPOTSPM.C_POT_SPM
+                          AND TMSPMPOT.I_IDSPM = #{idspm}
+                          AND TMSPMPOT.I_IDSKPD = #{idskpd}
+                          AND TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+                          AND TMSPMPOT.c_pot_spm = '03')
+            union all
+            SELECT distinct TRPOTSPM.I_ID, TRPOTSPM.C_POT_SPM,  
+            TRPOTSPM.C_POT_GAJI || ' - '  ||  TRPOTSPM.E_POT_SP2D  AS POTONGAN , 
+            TMPEGREKAPLIST.V_PEG_POTTAPERUM AS NILAI_POTONGAN, 0 as persen, 0 AS IDPOTONGAN
+            FROM TRPOTSPM, TMPEGREKAPLIST
+            WHERE C_POT ='1'
+            and c_pot_spm = '05'
+            AND TMPEGREKAPLIST.i_idspp = #{idspp}
+            AND NOT EXISTS
+                  (SELECT 1
+                     FROM tmspmpot
+                    WHERE     TMSPMPOT.C_POT_SPM = TRPOTSPM.C_POT_SPM
+                          AND TMSPMPOT.I_IDSPM = #{idspm}
+                          AND TMSPMPOT.I_IDSKPD = #{idskpd}
+                          AND TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+                          AND TMSPMPOT.c_pot_spm = '05')
+       
+        </if>
+        <if test="macam == 3 or macam == 4">
+            union all
+            SELECT distinct TRPOTSPM.I_ID, TRPOTSPM.C_POT_SPM,  
+            TRPOTSPM.C_POT_GAJI || ' - '  ||  TRPOTSPM.E_POT_SP2D  AS POTONGAN , 
+            TMPEGREKAPLIST.V_PEG_JUMPOT AS NILAI_POTONGAN, 0 as persen, 0 AS IDPOTONGAN
+            FROM TRPOTSPM, TMPEGREKAPLIST
+            WHERE C_POT ='1'
+            and c_pot_spm = '06'
+            AND TMPEGREKAPLIST.i_idspp = #{idspp}
+            AND NOT EXISTS
+                  (SELECT 1
+                     FROM tmspmpot
+                    WHERE     TMSPMPOT.C_POT_SPM = TRPOTSPM.C_POT_SPM
+                          AND TMSPMPOT.I_IDSPM = #{idspm}
+                          AND TMSPMPOT.I_IDSKPD = #{idskpd}
+                          AND TMSPMPOT.C_ANGG_TAHUN = #{tahun}
+                          AND TMSPMPOT.c_pot_spm = '06')
+        </if>
+        
+        ) XXXXX
+        GROUP BY  I_IDPOTSPM , C_POT_SPM,  POTONGAN, NILAI_POTONGAN, persen
+        ORDER BY  I_IDPOTSPM ASC
+        )a)WHERE ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+    </select>
+
+    <insert id="addPotayat" parameterType="spp.model.SpmPotAyat"   >
+        INSERT INTO TMSPMPOT (I_ID, C_ANGG_TAHUN,I_IDSKPD,I_IDSPM,C_POT_SPM,V_POT_SPM,P_POT,I_PGUN_REKAM,C_DJP_KJS,C_DJP_MAP)
+        VALUES (SEQ_TMSPMPOT.NEXTVAL,#{tahun},#{idSkpd},#{idSpm},#{cPot},ceil(#{NilaiPot}),#{persen},#{idEntry},#{kodeJenisSetor},#{kodeAkunPajak})
+    </insert>
+    
+    <update id="updatePotayat" parameterType="spp.model.SpmPotAyat"  >
+        UPDATE  TMSPMPOT SET
+        V_POT_SPM = ceil(#{nilaiPot}), 
+        P_POT = #{persen},
+        I_PGUN_UBAH = #{idEdit},
+        D_PGUN_UBAH = sysdate,
+        C_DJP_KJS = #{kodeJenisSetor}
+        WHERE  I_IDSKPD = #{idSkpd}
+        AND I_IDSPM = #{idSpm}
+        AND C_POT_SPM = #{cPot}
+    </update>
+    
+    <select id="getNoSpm" parameterType="java.lang.Integer"  resultType="java.lang.Integer">
+        SELECT I_SPMNO FROM TMSPM WHERE I_ID = #{value}
+    </select>
+    
+    <select id="getTglSpm" parameterType="java.lang.Integer" resultType="java.sql.Date">
+        SELECT D_SPMNO FROM TMSPM WHERE I_ID = #{value}
+    </select>
+    
+    <select id="getKodeUmk" parameterType="java.lang.Integer"  resultType="java.lang.Integer">
+        SELECT C_UANGMUKA from tmspm where i_id = #{value}
+    </select>
+    
+    <select id="getJumKotPotSpm" parameterType="java.lang.Integer"  resultType="java.math.BigDecimal">
+        select V_PEG_JUMPOT from tmpegrekaplist where i_idspm = #{value}
+    </select>
+    
+</mapper>

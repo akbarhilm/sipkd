@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="spm.entity.ProgramMapper">
+    <select id="getProgram" parameterType="java.util.Map"
+            resultType="spp.model.Program">
+        SELECT   I_ID AS idProgram,
+        C_PROGRAM AS kodeProgram,
+        N_PROGRAM AS namaProgram,
+        I_IDURUSAN AS idUrusan,
+        N_URUSAN AS "urusan.namaUrusan",
+        C_AKTIF AS isAktif
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   P.I_ID,
+        P.C_PROGRAM,
+        P.N_PROGRAM,
+        U.N_URUSAN,
+        P.I_IDURUSAN,
+        P.C_AKTIF
+        FROM   TRPROGRAM P
+        INNER JOIN trurusan u ON U.I_ID = P.I_IDURUSAN 
+        <if test="namaprogram != null and namaprogram != '' ">
+            where upper( P.N_PROGRAM) like '%'||upper(#{namaprogram})||'%'
+        </if> ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset} AND 1=1
+             
+    </select>
+    <select id="getBanyakAllProgram" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        
+        select count(*) as banyaks from (
+        SELECT   I_ID AS idProgram,
+        C_PROGRAM AS kodeProgram,
+        N_PROGRAM AS namaProgram,
+        I_IDURUSAN AS idUrusan,
+        N_URUSAN AS "urusan.namaUrusan",
+        C_AKTIF AS isAktif
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   P.I_ID,
+        P.C_PROGRAM,
+        P.N_PROGRAM,
+        U.N_URUSAN,
+        P.I_IDURUSAN,
+        P.C_AKTIF
+        FROM   TRPROGRAM P
+        INNER JOIN trurusan u ON U.I_ID = P.I_IDURUSAN 
+        <if test="namaprogram != null and namaprogram != '' ">
+            where upper( P.N_PROGRAM) like '%'||upper(#{namaprogram})||'%'
+        </if> ) a)       )
+    </select>
+    <select id="getUrusan" parameterType="java.util.Map"
+            resultType="spp.model.Urusan">
+        SELECT   I_ID AS idUrusan,
+        C_URUSAN AS kodeUrusan,
+        N_URUSAN AS namaUrusan
+        FROM   (SELECT   ROWNUM AS rn, a.*
+        FROM   (SELECT   I_ID,
+        C_URUSAN,
+        N_URUSAN
+        FROM   TRURUSAN T 
+        <if test="urusan != null and urusan != '' ">
+            where upper( T.N_URUSAN) like '%'||upper(#{urusan})||'%'
+        </if> ) a)
+        WHERE   ROWNUM &lt;= #{limit} AND rn &gt; #{offset}
+             
+    </select>
+    
+    <select id="getBanyakAllUrusan" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        select count(i_id) from TRURUSAN T
+        <if test="bank != null and bank != '' ">
+            where upper( T.N_URUSAN) like '%'||upper(#{urusan})||'%'
+        </if>          
+    </select>
+    
+    <insert id="insertProgram" parameterType="spp.model.Program"   >
+        INSERT INTO TRPROGRAM (I_ID,I_IDURUSAN,C_PROGRAM,N_PROGRAM,C_AKTIF,I_PGUN_REKAM,D_PGUN_REKAM)
+        VALUES (SEQ_TRPROGRAM.nextval,#{idUrusan},#{kodeProgram},#{namaProgram},#{isAktif},#{idEntry},#{tglEntry})
+    </insert>
+    
+    
+    <delete id="deleteProgram" parameterType="java.lang.Integer"   >
+        delete TRPROGRAM    WHERE I_ID      = #{idProgram}
+    </delete>
+    
+    
+    <select id="getProgramById" parameterType="java.lang.Integer"
+             resultType="spp.model.Program">
+    SELECT   I_ID AS idProgram,
+         C_PROGRAM AS kodeProgram,
+         N_PROGRAM AS namaProgram,
+         I_IDURUSAN AS idUrusan,
+         N_URUSAN AS "urusan.namaUrusan",
+         C_AKTIF AS isAktif
+  FROM   (SELECT   ROWNUM AS rn, a.*
+            FROM   (SELECT   P.I_ID,
+                             P.C_PROGRAM,
+                             P.N_PROGRAM,
+                             U.N_URUSAN,
+                             P.I_IDURUSAN,
+                             P.C_AKTIF
+                      FROM      TRPROGRAM P
+                             INNER JOIN
+                                trurusan u
+                             ON U.I_ID = P.I_IDURUSAN
+                     WHERE   P.I_ID = #{value}) a)
+       
+
+    </select>
+    
+    <update id="updateProgram" parameterType="spp.model.Program"   >
+        UPDATE TRPROGRAM
+        SET  
+       
+        C_PROGRAM = #{kodeProgram},
+        N_PROGRAM =#{namaProgram},
+        I_IDURUSAN = #{idUrusan},
+        C_AKTIF = #{isAktif},
+        I_PGUN_UBAH = #{idEntry},
+        D_PGUN_UBAH = #{tglEntry}
+     
+        WHERE  I_ID  =  #{idProgram}
+    </update>
+    
+</mapper>
